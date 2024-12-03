@@ -14,7 +14,7 @@ A comprehensive system for collecting, organizing, and managing AI news articles
 2. Install dependencies: `pip install -r requirements.txt`
 3. Set up environment variables
 4. Run the application
-    `python.exe YourPath/NewsReader/src/webapp/article.py`
+    `python.exe yourpath/NewsReader/src/webapp/article.py`
 
 ## Technologies
 - Python
@@ -39,15 +39,16 @@ A comprehensive system for collecting, organizing, and managing AI news articles
 - The AI News and Papers Collector is a project by [NEO LEE](https://github.com/g29times).
 
 ## License
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [Apache License](LICENSE).
 
 ## Library Usage
+```
 pip install -r requirements.txt
 
 pip install pipreqs
 pipreqs /path/to/your/project
 or
 pip freeze > requirements.txt
-
+```
 Python Lib Errors
 `python -m pip install --upgrade --force-reinstall pip`
