@@ -14,7 +14,7 @@ A comprehensive system for collecting, organizing, and managing AI news articles
 2. Install dependencies: `pip install -r requirements.txt`
 3. Set up environment variables
 4. Run the application
-    `python.exe yourpath/NewsReader/src/webapp/article.py`
+    `python.exe m:/WorkSpace/Dev/NewsReader/src/webapp/article.py`
 
 ## Technologies
 - Python
@@ -42,6 +42,10 @@ A comprehensive system for collecting, organizing, and managing AI news articles
 This project is licensed under the [Apache License](LICENSE).
 
 ## Library Usage
+https://blog.csdn.net/Stromboli/article/details/143220261
+https://blog.csdn.net/pearl8899/article/details/113877334
+查看过时的库：使用 pip list --outdated 检查哪些库已经过时。
+更新特定库：选择需要更新的库，使用 pip install --upgrade <库名> 进行更新。
 ```
 pip install -r requirements.txt
 
