@@ -34,7 +34,6 @@
             <thead>
                 <tr>
                     <th>Title</th>
-                    <th>Url</th>
                     <th>Summary</th>
                     <th>Key Points</th>
                     <th>Tags</th>
@@ -45,12 +44,11 @@
                 {% for article in articles %}
                 <tr>
                     <td>
-                        {{ article.title }}
+                        <a href="{{ article.url }}">{{ article.title }}</a>
                         <form action="/delete_article/{{ article.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this article?');">
                             <button type="submit">Delete Article</button>
                         </form>
                     </td>
-                    <td><a href="{{ article.url }}">{{ article.url[:20] }}...</a></td>
                     <td class="compress" title="{{ article.summary }}">{{ article.summary[:60] }}</td>
                     <td class="compress" id="keypoints-{{ article.id }}"></td>
                     <td>

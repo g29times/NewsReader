@@ -11,10 +11,18 @@ A comprehensive system for collecting, organizing, and managing AI news articles
 
 ## Setup
 1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Set up environment variables
-4. Run the application
-    `python.exe m:/WorkSpace/Dev/NewsReader/src/webapp/article.py`
+2. Set up environment variables 
+    ```
+    # 1 setup safety password
+    touch .env
+    # 2 setup project env
+    sudo apt install python3.12-venv -y
+    python3 -m venv .venv
+    # 3 use venv
+    source .venv/bin/activate
+    ```
+3. Install dependencies: `pip install -r requirements.txt`
+4. Run the application `python src/webapp/article.py python3 src/webapp/article.py`
 
 ## Technologies
 - Python
@@ -41,18 +49,14 @@ A comprehensive system for collecting, organizing, and managing AI news articles
 ## License
 This project is licensed under the [Apache License](LICENSE).
 
-## Library Usage
+## Usage
 https://blog.csdn.net/Stromboli/article/details/143220261
 https://blog.csdn.net/pearl8899/article/details/113877334
 查看过时的库：使用 pip list --outdated 检查哪些库已经过时。
 更新特定库：选择需要更新的库，使用 pip install --upgrade <库名> 进行更新。
+### Job
 ```
-pip install -r requirements.txt
-
-pip install pipreqs
-pipreqs /path/to/your/project
-or
-pip freeze > requirements.txt
+*/10 * * * * auto_push.sh
 ```
-Python Lib Errors
+### Python Lib Errors
 `python -m pip install --upgrade --force-reinstall pip`
