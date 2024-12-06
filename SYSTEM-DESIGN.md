@@ -55,8 +55,8 @@ RAG (Retrieval-Augmented Generation): Implement RAG techniques to enhance LLM re
 Agent Support: Design agents that can autonomously interact with the system, executing tasks like finding related articles, generating ideas, or summarizing content.
 4. LLM/LVM tasks Design
     1. 总结 For every new article/media/information, we need LLM to summarize them, substract key-points/ideas/questions/topics/lables.
-    2. 关联 For every new article/media/information, We need LLM to find relations by go through history in database to find related articles base on silimar key-points/ideas/questions/topics/lables. This is the first level of discovery. But, considering the amount of data, we need to think a way to reduce the number of relations.
-    3. 发现 We need LLM to generate ideas during a time period, this is not for every new article, but for a period of time. Because relations are a large database, but only large is not enough, too many relations could even be redundant. We will design a shedule strategy for this. Ideas are information further extracted based on relations, they are the second level of discovery.
+    2. 关联 For every new article/media/information, We need LLM to find relations by go through history in database to find related articles base on silimar key-points/ideas/questions/topics/lables. This is the first level of discovery. But, considering the amount of data, we need to think a way to reduce the number of relations. 如果Layer 1相关，记录relations
+    3. 发现 We need LLM to generate ideas during a time period, this is not for every new article, but for a period of time. Because relations are a large database, but only large is not enough, too many relations could even be redundant. We will design a shedule strategy for this. Ideas are information further extracted based on relations, they are the second level of discovery.  如果Layer 1 + Layer 2相关，记录ideas
 
 ## Design User Interface
 - User can search text in Title, Summary, Key Points, Tags. We will implement this in a db equal search way first for simple, in the future, we will upgrade the way in a vector comparing way to allow NLP silimar search.

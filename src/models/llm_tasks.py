@@ -11,7 +11,7 @@ def summarize_and_extract_keypoints(db: Session, article: Article):
     if not article:
         return None
 
-    # Process Gemini response
+    # Gemini response 返回格式处理
     def extract_text_from_response(response):
         try:
             return response['candidates'][0]['content']['parts'][0]['text']

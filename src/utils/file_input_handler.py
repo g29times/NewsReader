@@ -28,6 +28,7 @@ class FileInputHandler:
             print(f"File not found: {file_path}")
             return None
 
+    # Call JINA Reader to read text from a URL 调用JINA Reader从URL读取文本
     @staticmethod
     def jina_read_from_url(url, use_jina_reader=True):
         """
