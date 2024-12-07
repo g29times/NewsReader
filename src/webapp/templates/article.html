@@ -28,6 +28,7 @@
         <form action="/add_article" method="post">
             <input type="text" name="title" placeholder="Title" required>
             <input type="text" name="url" placeholder="Url" required>
+            <input type="text" name="tags" placeholder="Tags">
             <button type="submit">Add Article</button>
         </form>
         <table class="table table-striped mt-3">
@@ -45,25 +46,41 @@
                 <tr>
                     <td>
                         <a href="{{ article.url }}">{{ article.title }}</a>
-                        <form action="/delete_article/{{ article.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this article?');">
-                            <button type="submit">Delete Article</button>
-                        </form>
                     </td>
                     <td class="compress" title="{{ article.summary }}">{{ article.summary[:60] }}</td>
                     <td class="compress" id="keypoints-{{ article.id }}"></td>
                     <td>
                         <form action="/update_article/{{ article.id }}" method="post">
-                            <input type="text" name="tags" value="{{ article.tags }}" placeholder="Tags">
-                            <button type="submit">Save</button>
+                            <span id="tags-text-{{ article.id }}">{{ article.tags }}</span>
+                            <input type="text" id="tags-input-{{ article.id }}" name="tags" value="{{ article.tags }}" style="display:none;">
+                            <button type="button" onclick="editTags({{ article.id }})">Edit</button>
+                            <button type="submit" onclick="saveTags({{ article.id }})">Save</button>
                         </form>
                     </td>
-                    <td class="compress" title="{{ article.id }}">{{ article.collection_date }}</td>
+                    <td class="compress" title="{{ article.id }}">
+                        {{ article.collection_date }}
+                        <form action="/delete_article/{{ article.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this article?');">
+                            <button type="submit">Delete Article</button>
+                        </form>
+                    </td>
                 </tr>
+                
                 <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
                 <script>
                     var converter = new showdown.Converter();
                     var html = converter.makeHtml(`{{ article.key_points }}`);
                     document.getElementById('keypoints-{{ article.id }}').innerHTML = html;
+                </script>
+                <script>
+                    function editTags(articleId) {
+                        document.getElementById('tags-text-' + articleId).style.display = 'none';
+                        document.getElementById('tags-input-' + articleId).style.display = 'inline';
+                    }
+
+                    function saveTags(articleId) {
+                        document.getElementById('tags-text-' + articleId).style.display = 'inline';
+                        document.getElementById('tags-input-' + articleId).style.display = 'none';
+                    }
                 </script>
                 {% endfor %}
             </tbody>

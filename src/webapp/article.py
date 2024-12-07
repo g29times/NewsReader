@@ -24,10 +24,15 @@ def article():
 
 @app.route('/add_article', methods=['POST'])
 def add_article():
+    # from frontend form directly
     title = request.form['title']
     url = request.form['url']
+    tags = request.form['tags']
+    # from tools
     content = FileInputHandler.jina_read_from_url(url)
-    new_article = Article(title=title, url=url, content=content, collection_date=func.now())
+    # model
+    new_article = Article(title=title, url=url, tags=tags,
+        content=content, collection_date=func.now())
     try:
         session.add(new_article)
         session.commit()
