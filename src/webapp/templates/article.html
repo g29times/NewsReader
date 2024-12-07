@@ -20,7 +20,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="mt-5">Articles</h1>
+        <h1 class="mt-5">{{ articles|length }} Articles</h1>
         <form action="/search" method="get" class="mb-3">
             <input type="text" name="query" placeholder="Search...">
             <button type="submit">Search</button>
@@ -35,6 +35,7 @@
             <thead>
                 <tr>
                     <th>Title</th>
+                    <th>Url</th>
                     <th>Summary</th>
                     <th>Key Points</th>
                     <th>Tags</th>
@@ -46,6 +47,9 @@
                 <tr>
                     <td>
                         <a href="{{ article.url }}">{{ article.title }}</a>
+                    </td>
+                    <td>
+                        <a href="{{ article.url }}">{{ article.url }}</a>
                     </td>
                     <td class="compress" title="{{ article.summary }}">{{ article.summary[:60] }}</td>
                     <td class="compress" id="keypoints-{{ article.id }}"></td>
