@@ -1,8 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, func
-from models import Base, Article
 
+from .article import Base, Article
+from . import logy
+
+@logy
 def create_article(db: Session, article_data: dict):
     new_article = Article(**article_data)
     db.add(new_article)
@@ -11,18 +14,22 @@ def create_article(db: Session, article_data: dict):
     return new_article
 
 
+@logy
 def get_article_by_id(db: Session, article_id: int):
     return db.query(Article).filter(Article.id == article_id).first()
 
 
+@logy
 def get_articles(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Article).offset(skip).limit(limit).all()
 
 
+@logy
 def get_all_articles(db: Session):
     return db.query(Article).all()
 
 
+@logy
 def update_article(db: Session, article_id: int, update_data: dict):
     article = get_article_by_id(db, article_id)
     if article:
@@ -33,6 +40,7 @@ def update_article(db: Session, article_id: int, update_data: dict):
     return article
 
 
+@logy
 def delete_article(db: Session, article_id: int):
     article = get_article_by_id(db, article_id)
     if article:
@@ -40,9 +48,10 @@ def delete_article(db: Session, article_id: int):
         db.commit()
     return article
 
+
 if __name__ == '__main__':
     engine = create_engine('sqlite:///articles.db')
     Base.metadata.bind = engine
     DBSession = sessionmaker(bind=engine)
     session = DBSession()
-    delete_article(session, 60)
+    # delete_article(session, 0) 根据实际

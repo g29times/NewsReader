@@ -5,8 +5,8 @@ from sqlalchemy.exc import IntegrityError
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from models.models import Base, Article
-from models.llm_tasks import summarize_and_extract_keypoints
+from models.article import Base, Article
+from llms.llm_tasks import LLMTasks
 from utils.file_input_handler import FileInputHandler
 
 app = Flask(__name__)
@@ -28,18 +28,38 @@ def add_article():
     title = request.form['title']
     url = request.form['url']
     tags = request.form['tags']
-    # from tools
+    # from tools TODO 1 no save content
     content = FileInputHandler.jina_read_from_url(url)
-    # model
-    new_article = Article(title=title, url=url, tags=tags,
-        content=content, collection_date=func.now())
+    
     try:
+        # 创建文章对象但不立即提交
+        new_article = Article(
+            title=title, 
+            url=url, 
+            tags=tags,
+            # content=content, #暂不保存原文 节省空间
+            collection_date=func.now()
+        )
+        
+        # 使用LLM处理内容
+        response = LLMTasks.summarize_and_keypoints(session, new_article)
+        
+        # 更新文章属性
+        new_article.title = response.title if response and response.title != "ERROR" else title
+        new_article.summary = response.summary if response else ""
+        new_article.key_points = response.key_points if response else ""
+        
+        # 一次性保存所有更改
         session.add(new_article)
         session.commit()
-        summarize_and_extract_keypoints(session, new_article)
+        
     except IntegrityError:
         session.rollback()
         flash('Article with this URL already exists.')
+    except Exception as e:
+        session.rollback()
+        flash(f'Error processing article: {str(e)}')
+        
     return redirect(url_for('article'))
 
 @app.route('/delete_article/<int:article_id>', methods=['POST'])

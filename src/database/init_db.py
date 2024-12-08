@@ -1,12 +1,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.file_input_handler import FileInputHandler
-from models.models import Base, Article
-from business.llm_tasks import summarize_and_extract_keypoints
+from llms.llm_tasks import LLMTasks
+from models.article import Base, Article
 from models.article_crud import create_article, get_article_by_id, get_articles, update_article, delete_article
 
 def insert_first_article():
@@ -28,7 +29,7 @@ def insert_first_article():
     session.commit()
 
     # Run the summarization task
-    updated_article = summarize_and_extract_keypoints(session, article)
+    updated_article = LLMTasks.summarize_and_keypoints(session, article)
 
     # Check if the summary and key points are updated
     self.assertIsNotNone(updated_article.summary)

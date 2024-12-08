@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.models.models import Base, Article
+from src.models.article import Base, Article
 from src.models.article_crud import create_article, get_article_by_id, get_articles, update_article, delete_article
 
 class TestArticleCRUD(unittest.TestCase):
