@@ -1,103 +1,141 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, func
-from sqlalchemy.exc import IntegrityError
 import os
 import sys
+
+from flask import Flask, render_template, request, redirect, url_for, flash
+from sqlalchemy.exc import IntegrityError
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from models.article import Base, Article
-from llms.llm_tasks import LLMTasks
+from models.article import Article
+from models.article_crud import (
+    create_article,
+    get_article_by_id,
+    get_all_articles,
+    update_article,
+    delete_article
+)
+from utils.llms.llm_tasks import LLMTasks
 from utils.file_input_handler import FileInputHandler
+from database.connection import db_session
 import logging
 
 app = Flask(__name__)
 # 获取模块特定的logger
 logger = logging.getLogger(__name__)
 
-# Database setup
-engine = create_engine('sqlite:///articles.db')
-Base.metadata.bind = engine
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
+# 在请求结束时移除数据库会话
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
 
 @app.route('/')
 def article():
-    articles = session.query(Article).all()
-    return render_template('article.html', articles=articles)
+    """获取所有文章列表"""
+    try:
+        articles = get_all_articles(db_session)
+        return render_template('article.html', articles=articles)
+    except Exception as e:
+        logger.error(f"Error fetching articles: {e}")
+        flash('Error loading articles')
+        return render_template('article.html', articles=[])
 
 @app.route('/add_article', methods=['POST'])
 def add_article():
-    # from frontend form directly
-    title = request.form['title']
-    url = request.form['url']
-    tags = request.form['tags']
-    # from tools TODO 1 no save content
-    content = FileInputHandler.jina_read_from_url(url)
-    
+    """添加新文章"""
     try:
-        # 创建文章对象但不立即提交
-        new_article = Article(
-            title=title, 
-            url=url, 
-            tags=tags,
-            # content=content, #暂不保存原文 节省空间
-            collection_date=func.now()
-        )
-        
+        # 获取表单数据
+        article_data = {
+            'title': request.form['title'],
+            'url': request.form['url'],
+            'tags': request.form['tags'],
+            'content': '' # TODO 1 文件形式来源
+        }
+
+        # 如果有URL，获取内容
+        if article_data['url']:
+            article_data['content'] = FileInputHandler.jina_read_from_url(article_data['url'])
+
         # 使用LLM处理内容
-        response = LLMTasks.summarize_and_keypoints(content)
-        new_article.title = response.title
-        new_article.summary = response.summary
-        new_article.key_points = response.key_points
-        logger.info(f"Title: {new_article.title}")
-        logger.info(f"Summary: {new_article.summary}")
-        logger.info(f"Key Points: {new_article.key_points}")
-        if response.title == "ERROR" or response.title == "": # do not save db
-            flash(f'Error processing resource: {url}')
-        else: # 保存文章
-            session.add(new_article)
-            session.commit()
+        response = LLMTasks.summarize_and_key_points(article_data['content'])
         
+        if response.title == "ERROR" or response.title == "":
+            flash(f'Error processing resource: {article_data["url"]}')
+            return redirect(url_for('article'))
+        logger.info(f"Title: {response.title}")
+        logger.info(f"Summary: {response.summary}")
+        logger.info(f"Key Points: {response.key_points}")
+        
+        # 更新文章数据
+        article_data.update({
+            'title': response.title,
+            'summary': response.summary,
+            'key_points': response.key_points
+        })
+
+        # 创建文章
+        create_article(db_session, article_data)
+        flash('Article added successfully')
+
     except IntegrityError:
-        session.rollback()
+        db_session.rollback()
         flash('Article with this URL already exists.')
     except Exception as e:
-        session.rollback()
+        db_session.rollback()
+        logger.error(f"Error adding article: {e}")
         flash(f'Error processing article: {str(e)}')
-        
+
     return redirect(url_for('article'))
 
 @app.route('/delete_article/<int:article_id>', methods=['POST'])
-def delete_article(article_id):
-    article = session.query(Article).get(article_id)
-    if article:
-        session.delete(article)
-        session.commit()
+def delete_article_route(article_id):
+    """删除文章"""
+    try:
+        article = delete_article(db_session, article_id)
+        if article:
+            flash('Article deleted successfully')
+        else:
+            flash('Article not found')
+    except Exception as e:
+        logger.error(f"Error deleting article {article_id}: {e}")
+        flash('Error deleting article')
+    
     return redirect(url_for('article'))
 
 @app.route('/update_article/<int:article_id>', methods=['POST'])
-def update_article(article_id):
-    article = session.query(Article).get(article_id)
-    if article:
-        article.tags = request.form['tags']
-        session.commit()
+def update_article_route(article_id):
+    """更新文章标签"""
+    try:
+        update_data = {'tags': request.form['tags']}
+        article = update_article(db_session, article_id, update_data)
+        if article:
+            flash('Tags updated successfully')
+        else:
+            flash('Article not found')
+    except Exception as e:
+        logger.error(f"Error updating article {article_id}: {e}")
+        flash('Error updating tags')
+    
     return redirect(url_for('article'))
 
-@app.route('/search', methods=['GET'])
+@app.route('/search')
 def search_articles():
-    query = request.args.get('query', '')
-    articles = session.query(Article).filter(
-        Article.title.contains(query) |
-        Article.summary.contains(query) |
-        Article.key_points.contains(query) |
-        Article.tags.contains(query)
-    ).all()
-    return render_template('article.html', articles=articles)
+    """搜索文章"""
+    try:
+        query = request.args.get('query', '')
+        articles = db_session.query(Article).filter(
+            Article.title.contains(query) |
+            Article.summary.contains(query) |
+            Article.key_points.contains(query) |
+            Article.tags.contains(query)
+        ).all()
+        return render_template('article.html', articles=articles, search_query=query)
+    except Exception as e:
+        logger.error(f"Error searching articles: {e}")
+        flash('Error performing search')
+        return redirect(url_for('article'))
 
 if __name__ == '__main__':
     app.secret_key = 'super secret key'  # Set the secret key
     app.config['SESSION_TYPE'] = 'filesystem'  # Change to filesystem for initial testing
     # session.init_app(app)
-    app.debug = True
 
     app.run(debug=True)

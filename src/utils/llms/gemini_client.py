@@ -1,18 +1,38 @@
 import os
 import sys
-import requests
 import logging
-from typing import Optional, Union, List, Any
-from dotenv import load_dotenv
+from typing import Optional, Dict, Any
 import google.generativeai as genai
+from dotenv import load_dotenv
+import requests
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# 添加项目根目录到 Python 路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
+sys.path.append(project_root)
+
 from utils.text_input_handler import TextInputHandler
 from utils.file_input_handler import FileInputHandler
 
 # Load environment variables and configure logging
 load_dotenv()
 logger = logging.getLogger(__name__)
+
+# 配置生成参数
+GENERATION_CONFIG = {
+    "temperature": 1,
+    "top_p": 0.95,
+    "top_k": 64,
+    "max_output_tokens": 8192,
+    "response_mime_type": "text/plain",
+}
+SYSTEM_INSTRUCTION = (
+    "You are an expert scientific researcher who has years of experience in "
+    "conducting systematic literature surveys and meta-analyses of different topics. "
+    "You pride yourself on incredible accuracy and attention to detail. "
+    "You always stick to the facts in the sources provided, and never make up new facts."
+)
+
 
 class GeminiClient:
     """
@@ -40,10 +60,10 @@ class GeminiClient:
             API响应的JSON数据，如果失败则返回None
         """
         cls._validate_api_key()
-        
+
         headers = {"Content-Type": "application/json"}
         data = {"contents": [{"parts": [{"text": input_text}]}]}
-        
+
         try:
             response = requests.post(
                 f"{cls.BASE_URL}?key={cls.API_KEY}",
@@ -78,7 +98,7 @@ class GeminiClient:
             return None
 
     @classmethod
-    def wait_for_files_active(cls, files: List[Any]) -> None:
+    def wait_for_files_active(cls, files) -> None:
         """
         等待文件处理完成
         
@@ -146,7 +166,8 @@ class GeminiClient:
             return None
 
     @classmethod
-    def query_with_file(cls, file_path: str, question: str, mime_type: Optional[str] = None, retries: int = 2) -> Optional[str]:
+    def query_with_file(cls, file_path: str, question: str, mime_type: Optional[str] = None, retries: int = 2) -> \
+            Optional[str]:
         """
         使用文件内容查询Gemini，支持多媒体文件（文本、图片、PDF等）
         
@@ -160,57 +181,61 @@ class GeminiClient:
             Gemini的响应文本
         """
         try:
-            # 上传文件到Gemini
-            files = [cls.upload_file(file_path, mime_type=mime_type)]
-            if not files[0]:
-                logger.error("Failed to upload file to Gemini")
+            uploaded_files = cls._upload_and_validate_file(file_path, mime_type)
+            if not uploaded_files:
                 return None
 
-            # 等待文件处理完成
-            cls.wait_for_files_active(files)
-
-            # 配置生成参数
-            generation_config = {
-                "temperature": 1,
-                "top_p": 0.95,
-                "top_k": 64,
-                "max_output_tokens": 8192,
-                "response_mime_type": "text/plain",
-            }
-
-            # 创建模型实例
-            model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
-                generation_config=generation_config,
-                system_instruction=(
-                    "You are an expert scientific researcher who has years of experience in "
-                    "conducting systematic literature surveys and meta-analyses of different topics. "
-                    "You pride yourself on incredible accuracy and attention to detail. "
-                    "You always stick to the facts in the sources provided, and never make up new facts."
-                ),
-            )
-
-            # 启动聊天会话
-            chat_session = model.start_chat(
-                history=[
-                    {
-                        "role": "user",
-                        "parts": [question, files[0]]
-                    }
-                ]
-            )
-
-            # 发送消息并获取响应
-            response = chat_session.send_message(question)
-            return response.text
-
+            model = cls._initialize_model()
+            chat_session = cls._start_chat_session(model, question, uploaded_files[0])
+            response = cls._get_response(chat_session, question)
+            return response
         except Exception as e:
             logger.error(f"Error processing file with Gemini: {e}")
             return None
 
+    @classmethod
+    def _upload_and_validate_file(cls, file_path: str, mime_type: Optional[str]):
+        """上传并验证文件"""
+        files = [cls.upload_file(file_path, mime_type=mime_type)]
+        if not files[0]:
+            logger.error("Failed to upload file to Gemini")
+            return []
+        # 等待文件处理完成
+        cls.wait_for_files_active(files)
+        return files
+
+    @classmethod
+    def _initialize_model(cls) -> genai.GenerativeModel:
+        """初始化Generative Model"""
+        return genai.GenerativeModel(
+            model_name="gemini-1.5-flash",
+            generation_config=cls.GENERATION_CONFIG,
+            system_instruction=cls.SYSTEM_INSTRUCTION,
+        )
+
+    @classmethod
+    def _start_chat_session(cls, model: genai.GenerativeModel, question: str, file: Any):
+        """启动聊天会话"""
+        return model.start_chat(
+            history=[
+                {
+                    "role": "user",
+                    "parts": [question, file]
+                }
+            ]
+        )
+
+    @classmethod
+    def _get_response(cls, chat_session, question: str) -> Optional[str]:
+        """获取响应"""
+        response = chat_session.send_message(question)
+        return response.text
+
+
 if __name__ == "__main__":
     # 配置命令行参数
     import argparse
+
     parser = argparse.ArgumentParser(description="Query Gemini with various inputs")
     parser.add_argument("--question", required=True, help="Question to ask Gemini")
     group = parser.add_mutually_exclusive_group(required=True)

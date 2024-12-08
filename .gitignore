@@ -4,6 +4,7 @@
 # ignore directories
 __pycache__
 files/temp
+.idea
 
 # ignore environment
 .venv

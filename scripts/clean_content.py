@@ -8,11 +8,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # 导入数据库配置和模型
 from src.models.article import Article
+from src.database.connection import db_session
 
 # 创建数据库连接
-DATABASE_URL = "sqlite:///m:/WorkSpace/Dev/NewsReader/articles.db"
-engine = create_engine(DATABASE_URL)
-Session = sessionmaker(bind=engine)
+Session = db_session
 
 def check_content():
     """检查数据库中有 content 的记录"""

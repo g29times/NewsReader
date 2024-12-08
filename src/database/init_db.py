@@ -1,21 +1,18 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-
+from connection import db_session
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.file_input_handler import FileInputHandler
-from llms.llm_tasks import LLMTasks
+from utils.llms.llm_tasks import LLMTasks
 from models.article import Base, Article
 from models.article_crud import create_article, get_article_by_id, get_articles, update_article, delete_article
 
 def insert_first_article():
-    # Create an in-memory SQLite database
-    engine = create_engine('sqlite:///articles.db')
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    # Create a SQLite database
+    session = db_session
 
     # Fetch content from a URL
     url = 'https://nextjs.org/learn/react-foundations/what-is-react-and-nextjs'
@@ -29,7 +26,7 @@ def insert_first_article():
     session.commit()
 
     # Run the summarization task
-    updated_article = LLMTasks.summarize_and_keypoints(session, article)
+    updated_article = LLMTasks.summarize_and_key_points(session, article)
 
     # Check if the summary and key points are updated
     self.assertIsNotNone(updated_article.summary)
@@ -39,14 +36,11 @@ def insert_first_article():
 
 def get_init_articles():
     # Create an in-memory SQLite database
-    engine = create_engine('sqlite:///articles.db')
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    articles = get_articles(session)
+    session = db_session
+    articles = get_articles(session,0,1)
     print(articles)
     session.close()
 
 if __name__ == '__main__':
-    # insert_first_article()
     get_init_articles()
+    # insert_first_article()

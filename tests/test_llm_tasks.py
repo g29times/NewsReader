@@ -1,54 +1,59 @@
+import os
+import sys
 import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
-import sys
-from datetime import datetime
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.llms.llm_tasks import LLMTasks
-from src.models.article import Base, Article
-from src.utils.file_input_handler import FileInputHandler
-from src.models.article_crud import create_article, get_article_by_id, get_articles, update_article, delete_article
+# 添加项目根目录到 Python 路径
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, '..'))
+sys.path.append(project_root)
+
+from src.models.article import Base
+from src.utils.llms.llm_tasks import LLMTasks, LLMResponse
 
 class TestLLMTasks(unittest.TestCase):
+    """测试LLM任务相关功能"""
+
     def setUp(self):
-        # Create an in-memory SQLite database
+        """设置测试环境"""
         self.engine = create_engine('sqlite:///:memory:')
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
-    def test_summarize_and_keypoints(self):
+    def test_summarize_and_key_points(self):
+        """测试文章摘要和关键点提取功能"""
         session = self.Session()
 
-        # Fetch content from a URL
-        url = 'https://nextjs.org/learn/react-foundations/what-is-react-and-nextjs'
-        content = FileInputHandler.jina_read_from_url(url)
+        # 测试用的文本内容
+        test_content = """
+        Python is a high-level, interpreted programming language. 
+        It emphasizes code readability with its notable use of significant whitespace. 
+        Python's features include dynamic typing, dynamic binding, and high-level data structures.
+        """
 
-        # Add a sample article
-        article = Article(title='About React and Next.js', content=content, url=url, source='Official', 
-            collection_date=datetime.now()
-        )
-        session.add(article)
-        session.commit()
+        # 调用LLM处理
+        response = LLMTasks.summarize_and_key_points(test_content)
 
-        # Run the summarization task
-        updated_article = LLMTasks.summarize_and_keypoints(session, article)
+        # 验证响应格式
+        self.assertIsInstance(response, LLMResponse)
+        self.assertIsInstance(response.title, str)
+        self.assertIsInstance(response.summary, str)
+        self.assertIsInstance(response.key_points, str)
 
-        # Check if the summary and key points are updated
-        self.assertIsNotNone(updated_article.summary)
-        self.assertIsNotNone(updated_article.key_points)
+        # 验证响应内容不为空
+        self.assertTrue(response.title)
+        self.assertTrue(response.summary)
+        self.assertTrue(response.key_points)
 
         session.close()
 
-    def test_get_all_articles(self):
-        session = self.Session()
-        articles = get_articles(session)
-        print(articles)
-        session.close()
-
-    def tearDown(self):
-        Base.metadata.drop_all(self.engine)
+    def test_empty_content(self):
+        """测试空内容处理"""
+        response = LLMTasks.summarize_and_key_points("")
+        self.assertEqual(response.title, "ERROR")
+        self.assertEqual(response.summary, "")
+        self.assertEqual(response.key_points, "")
 
 if __name__ == '__main__':
     unittest.main()

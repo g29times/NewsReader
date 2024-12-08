@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 import os
@@ -8,11 +8,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Database configuration
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./articles.db')
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///articles.db')
 
 # Create engine
 engine = create_engine(
-    DATABASE_URL, 
+    DATABASE_URL, echo=False,
     connect_args={'check_same_thread': False} if 'sqlite' in DATABASE_URL else {}
 )
 
@@ -41,3 +41,19 @@ def init_db():
     """
     from ..models import article  # Import models
     Base.metadata.create_all(bind=engine)
+
+# 测试方法：验证数据库连接
+def test_connection():
+    try:
+        # 创建一个Session实例
+        with get_db() as session:
+            # 起个简单的sql命令来验证连接（例如：查询当前时间）
+            result = session.execute(text("SELECT CURRENT_TIMESTAMP")).fetchone()
+            print("Database connection successful. Current timestamp:", result[0])
+    except Exception as e:
+        print("Database connection failed:", e)
+
+
+# 如果直接运行这个文件，则执行测试
+if __name__ == "__main__":
+    test_connection()

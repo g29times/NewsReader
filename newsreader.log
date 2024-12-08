@@ -1,0 +1,23 @@
+2024-12-08 23:50:38,174 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2024-12-08 23:50:38,181 - sqlalchemy.engine.Engine - INFO - SELECT count(*) AS count_1 
+FROM (SELECT articles.id AS articles_id, articles.title AS articles_title, articles.url AS articles_url, articles.summary AS articles_summary, articles.key_points AS articles_key_points, articles.source AS articles_source, articles.collection_date AS articles_collection_date, articles.publication_date AS articles_publication_date, articles.content AS articles_content, articles.authors AS articles_authors, articles.tags AS articles_tags, articles.is_research_paper AS articles_is_research_paper, articles.weight AS articles_weight, articles.area AS articles_area, articles.topic AS articles_topic, articles.branch AS articles_branch, articles.persons AS articles_persons, articles.problem AS articles_problem 
+FROM articles 
+WHERE articles.content IS NOT NULL AND articles.content != ?) AS anon_1
+2024-12-08 23:50:38,186 - sqlalchemy.engine.Engine - INFO - [generated in 0.00594s] ('',)
+2024-12-08 23:50:38,193 - sqlalchemy.engine.Engine - INFO - SELECT count(*) AS count_1 
+FROM (SELECT articles.id AS articles_id, articles.title AS articles_title, articles.url AS articles_url, articles.summary AS articles_summary, articles.key_points AS articles_key_points, articles.source AS articles_source, articles.collection_date AS articles_collection_date, articles.publication_date AS articles_publication_date, articles.content AS articles_content, articles.authors AS articles_authors, articles.tags AS articles_tags, articles.is_research_paper AS articles_is_research_paper, articles.weight AS articles_weight, articles.area AS articles_area, articles.topic AS articles_topic, articles.branch AS articles_branch, articles.persons AS articles_persons, articles.problem AS articles_problem 
+FROM articles 
+WHERE articles.content IS NOT NULL AND articles.content != ? AND articles.url IS NOT NULL AND articles.url != ?) AS anon_1
+2024-12-08 23:50:38,197 - sqlalchemy.engine.Engine - INFO - [generated in 0.00463s] ('', '')
+2024-12-08 23:50:38,201 - sqlalchemy.engine.Engine - INFO - SELECT articles.id AS articles_id, articles.title AS articles_title, articles.url AS articles_url, articles.summary AS articles_summary, articles.key_points AS articles_key_points, articles.source AS articles_source, articles.collection_date AS articles_collection_date, articles.publication_date AS articles_publication_date, articles.content AS articles_content, articles.authors AS articles_authors, articles.tags AS articles_tags, articles.is_research_paper AS articles_is_research_paper, articles.weight AS articles_weight, articles.area AS articles_area, articles.topic AS articles_topic, articles.branch AS articles_branch, articles.persons AS articles_persons, articles.problem AS articles_problem 
+FROM articles 
+WHERE articles.content IS NOT NULL AND articles.content != ?
+ LIMIT ? OFFSET ?
+2024-12-08 23:50:38,204 - sqlalchemy.engine.Engine - INFO - [generated in 0.00383s] ('', 3, 0)
+2024-12-08 23:50:38,206 - sqlalchemy.engine.Engine - INFO - ROLLBACK
+2024-12-09 00:36:57,812 - src.utils.llms.llm_tasks - WARNING - Empty content provided to summarize_and_key_points
+2024-12-09 00:36:57,815 - src.utils.llms.llm_tasks - ERROR - Error in summarize_and_key_points: name 'requests' is not defined
+2024-12-09 00:38:34,168 - src.utils.llms.llm_tasks - WARNING - Empty content provided to summarize_and_key_points
+2024-12-09 00:39:19,508 - src.utils.llms.llm_tasks - WARNING - Empty content provided to summarize_and_key_points
+2024-12-09 00:39:35,669 - src.utils.llms.llm_tasks - WARNING - Empty content provided to summarize_and_key_points
+2024-12-09 00:40:52,166 - src.utils.llms.llm_tasks - WARNING - Empty content provided to summarize_and_key_points

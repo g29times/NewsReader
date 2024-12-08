@@ -1,9 +1,15 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, func
+import sys
+import os
 
-from .article import Base, Article
-from . import logy
+# 添加项目根目录到 Python 路径
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from models import logy
+from models.article import Base, Article
+from database.connection import db_session
 
 @logy
 def create_article(db: Session, article_data: dict):
@@ -50,8 +56,6 @@ def delete_article(db: Session, article_id: int):
 
 
 if __name__ == '__main__':
-    engine = create_engine('sqlite:///articles.db')
-    Base.metadata.bind = engine
-    DBSession = sessionmaker(bind=engine)
-    session = DBSession()
+    session = db_session
+    print(get_article_by_id(session, 3))
     # delete_article(session, 0) 根据实际
