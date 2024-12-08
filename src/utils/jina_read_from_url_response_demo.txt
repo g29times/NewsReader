@@ -1,0 +1,30 @@
+Title: DeepMind发布报告：AI for Science的黄金时代已来
+
+URL Source: https://mp.weixin.qq.com/s/XszGAeD-K6H5viwrsA04xA
+
+Markdown Content:
+**「麦芽科研MaltSci」**
+
+**AI让科研更高效**
+
+![Image 83](https://mmbiz.qpic.cn/sz_mmbiz_jpg/OIZW8krRfpVMicuVlg9zeHpnSpyEa80LndZvuDZd75ETibgddHn2cX0mwicK22xh2cH5quNM4rGic5ic4k80TjKF49w/640?wx_fmt=jpeg&from=appmsg)
+
+_**AI赋能科学的黄金时代：探索未来科学研究的革命**_
+
+在这个技术飞速发展的时代，科学的每一次进步似乎都在昭示着一个新的可能性，而人工智能（AI）的崛起，正将科学推向认知边界之外的未知领域。2024年11月，Google DeepMind发布报告《A new golden age of discovery：Seizing the AI for Science Opportunity》，这份报告如同一扇窗，为我们展现了AI如何革新科学研究的广阔蓝图，也启发我们去思考，人类智慧与人工智能能否在未来真正携手，开创一个前所未有的黄金时代。
+
+![Image 84](https://mmbiz.qpic.cn/sz_mmbiz_jpg/OIZW8krRfpVMicuVlg9zeHpnSpyEa80Lntj7Zx1FmdxoMYiaNND7riaAJWD4P4LSVgSKvVqLFEUuvZydlYytrgiauA/640?wx_fmt=jpeg&from=appmsg)
+
+_DeepMind作为全球领先的人工智能研究机构，致力于开发通用人工智能（AGI），通过AI推动科学进步与社会福祉。成立于2010年，总部位于伦敦，DeepMind以突破性成果闻名，包括在围棋领域击败顶级棋手的AlphaGo、预测蛋白质结构的AlphaFold，以及在气候预测和基因研究等领域的创新应用。它以多学科合作为核心，注重技术的安全性和社会责任，目标是让AI成为解决全球性挑战的关键力量，为人类创造更美好的未来。_
+
+****知识之网：从浩瀚到精炼****
+
+知识曾是人类最伟大的资本，但如今它也成为了科学家的一种桎梏。在全球范围内，每分钟都有新的科学论文被发表，而科学家们需要在这片汪洋中筛选出与己相关的点滴珍珠。然而，AI却能为科学家披荆斩棘，用令人难以置信的速度从海量数据中提炼关键信息。例如，报告提到AI助手可以在短短一天内从20万篇论文中提取研究所需的数据，其效率不仅节省了时间，更重塑了研究者“阅读”和“写作”的方式。
+
+更重要的是，AI赋予科学家一种重新构建知识的能力。试想，当文献阅读不再是单调的堆积，而成为一种动态交互时，科学研究将不再仅仅是探索已知，而是发现隐匿于数据之中的无穷未知。
+
+****实验的维度：从局限到无限****
+
+“时间和成本”曾是科学实验的永恒瓶颈，而AI的到来，让这两个变量的意义彻底改变。实验的模拟与加速，是AI改变科研范式的又一利器。例如，DeepMind的AlphaMissense模型能够分析7100万种可能的基因变异，并预测哪些可能引发疾病。这种精准筛选极大缩短了科学实验的迭代周期，使得科学家能够集中资源攻克关键问题。
+
+更惊人的是，AI不仅仅是实验的辅助工具，它还能凭借强大的模拟能力，去触碰物理实验尚无法实现的边界。无论是融合科学中复杂等离子体的控制，还是气候建模中隐藏变量的揭示，AI正在用“虚拟实验室”的方式，为科学打开一扇新的大门

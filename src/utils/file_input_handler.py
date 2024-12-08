@@ -1,4 +1,9 @@
 import requests
+import logging
+from PyPDF2 import PdfReader
+
+# 获取模块特定的logger
+logger = logging.getLogger(__name__)
 
 class FileInputHandler:
     """
@@ -25,7 +30,7 @@ class FileInputHandler:
             with open(file_path, 'r', encoding='utf-8') as file:
                 return file.read()
         except FileNotFoundError:
-            print(f"File not found: {file_path}")
+            logger.error(f"File not found: {file_path}")
             return None
 
     # Call JINA Reader to read text from a URL 调用JINA Reader从URL读取文本
@@ -36,23 +41,22 @@ class FileInputHandler:
         """
         if use_jina_reader:
             url = f"https://r.jina.ai/{url}"
+            
+        logger.info(f"Fetching content from URL: {url}")
         try:
-            print(url)
             response = requests.get(url)
             response.raise_for_status()
-            print("JINA READER STATUS", response.status_code)
-            # print(response.text)
+            logger.info(f"JINA Reader response - Status: {response.status_code}, First 50 chars: {response.text[:50]}")
             return response.text
         except requests.RequestException as e:
-            print(f"Error fetching URL {url}: {e}")
+            logger.error(f"Error fetching URL {url}: {e}")
             return None
 
 # Example usage
 if __name__ == "__main__":
-    print()
-    # handler = FileInputHandler()
-    # local_text = handler.read_from_file('M:\WorkSpace\AIGC\Data\Visual\Anime\prompt.txt')
-    # print(local_text)
+    # 使用示例
+    local_text = FileInputHandler.read_from_file('M:\WorkSpace\AIGC\Data\Visual\Anime\prompt.txt')
+    logger.info(local_text)
 
-    # url_text = handler.jina_read_from_url('https://www.google.com')
-    # print(url_text)
+    url_text = FileInputHandler.jina_read_from_url('https://www.google.com')
+    logger.info(url_text)

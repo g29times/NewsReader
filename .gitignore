@@ -3,6 +3,7 @@
 
 # ignore directories
 __pycache__
+files/temp
 
 # ignore environment
 .venv

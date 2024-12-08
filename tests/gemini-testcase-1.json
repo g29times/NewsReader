@@ -1,6 +1,6 @@
 
 {
-    "request": "python -c from src.utils.gemini_client import GeminiClient; client = GeminiClient(); print(client.generate_content('What dimensions should be considered for designing a multidimensional weight system for recording research and generating ideas?'))",
+    "request": "python -c from src.utils.gemini_client import GeminiClient; client = GeminiClient(); print(client.chat('What dimensions should be considered for designing a multidimensional weight system for recording research and generating ideas?'))",
     "candidates": [
         {
             "content": {

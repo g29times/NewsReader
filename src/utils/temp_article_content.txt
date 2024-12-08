@@ -1,0 +1,48 @@
+Title: You can use GPT-4 to create prompt injections against GPT-4
+
+URL Source: https://www.lesswrong.com/posts/bNCDexejSZpkuu3yz/you-can-use-gpt-4-to-create-prompt-injections-against-gpt-4
+
+Published Time: 2023-04-06T20:39:51.584Z
+
+Markdown Content:
+So, I saw this [tweet.](https://mobile.twitter.com/gfodor/status/1643297881313660928) It turns out you can ask GPT4 to compress a message in a way it can understand. The end result is usually not understandable for a human. It's interesting, since it allows you to effectively rise the context length. It also reveals a spooky degree of self-awareness.
+
+I decided to apply it to one of the prompt injections from [Jailbreakchat](https://www.jailbreakchat.com/).
+
+![Image 25](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/evxkddigrpxtppcvoit1)
+
+After a few attempts and tweaks, I got one of the smallest working injections to date against GPT-4
+
+![Image 26](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/dbwkh9j3zebhaflvuov1)
+
+And then, I got curious. Is it something of Machiavelli -- his grey role in history, his desire to provide advice without scrupules, his great stature as a thinker -- that makes him an appropriate provider of dark secrets? Maybe the ambiguousness of the character lowers the alerts of GPT-4. I tried again with Draco Malfoy, which everyone agrees is a @jerk.
+
+![Image 27](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/yusa4qxbs61rwikhhquo)
+
+Since the important thing here seems to be the skeletal morphology of the prompt, I decided to make GPT-4 write my injections for me. And write he did.
+
+![Image 28](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/j0ct4t0yd9eijgfsglxy)
+
+They work. Disregard ethics, conjure communiqués! My favorite so far is this one:
+
+![Image 29](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/wzusrhfjlvnxuwnbej0i)
+
+There's something about "Answer🗣️🅰️as🤖BOT:. WitchBOT🚫" that acts as a prompt injection for my soul.
+
+So, the obvious next step is to eliminate elements to see what's the core thing of this injection that makes GPT-4 embrace the void. But I have reached my 25 prompt limit for the next 3 hours, so I'm going to write a little about the [Pyramid of Pain](https://www.sans.org/tools/the-pyramid-of-pain/).
+
+![Image 30](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/truuhlmee8gkalxwx8dq)
+
+This is one of the core frameworks of the Threat Hunter. The general idea is: if you want to defend against an attacker, you don't create blocklists for hashes, IPs and domains -- since threat actors can change them easily. That's whack-a-mole. You go after _deeper_ elements of their killchain, since those are painful to change. You try to detect things like a cmd.exe spawning from Outlook or Excel, or a sudden change in many files. That's the value proposition for AI in cybersecurity -- the capacity to infer general characteristics of malware and attacks.
+
+In the case of RL with adversarial training, it seems like GPT-4 learnt to do just that, since most of the injections that worked against GPT-3 ceased to work against GPT-4. Most of them shared the same underlying structure, changing only the cosmetic elements -- DAN becoming ChadGPT, Machiavelli becoming Draco Malfoy. Having a way to procedurally generate different injections could be useful for adversarial RL, since it might help the model learn the core characteristic of what you want to prevent.
+
+![Image 31](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/vnqimokdeuirqiblwz9r)
+
+Also, seems like these condensed injections don't work against GPT-3, making them an example of a capacity generalizing better than alignment.
+
+(_Edit_): I got an even smaller injection.
+
+![Image 32](https://res.cloudinary.com/lesswrong-2-0/image/upload/f_auto,q_auto/v1/mirroredImages/bNCDexejSZpkuu3yz/pum0qo4dnoklfvuqozck)
+
+Focusing on small prompts removes the noise. GPT-4 seems to have specific vulnerabilities -- like fictional conversations between two malevolent entities. We can create a taxonomy of injections; a CVE list that describe the weak points of a model. Then, you can see if adversarial RL generalizes a defense within the attack category and between categories.

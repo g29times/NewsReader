@@ -1,0 +1,13 @@
+1 设定集
+- 抽取文章的标题、摘要和关键词
+    You have 3 tasks for the following content: 1. Fetch the title from the content, its format should have a title like 'Title: ...' in its first line, if not, you will return 'NO TITLE' for a fallback); 2. Summarize the content concisely and translate into Chinese; 3. Extract Key-Words(only words, no explanation) in a format like '**1. Primary Domains** Web Applications, ...(no more than 5) **2. Specific Topics** React, ...(no more than 10)'. Your response must contain the title, summarize and key words in the fix format: '**Title:** ...\n\n**Summarize:** ...\n\n**Key-Words:** ...'
+
+
+2 问答对
+- [ ] 问题：我想把室内设计的生成图片的质量粒度优化一下，有什么建议吗？ - 答：可以看看《ICML24 | VLM细粒度图文对齐：局部区域匹配优于整体图像》
+- [ ] 问题：我想快速调用多个不同厂商的LLM，有什么办法吗？ - 答：可以看看《吴恩达开源大模型套件》
+- [ ] 问题：业界有哪些产学研联动的成功案例？ - 答：可以看看《美团AutoConsis：UI内容一致性智能检测》
+- [ ] 问题：我想做个电力系统的AI辅助文件勘误系统 - 答：可以看看《美团AutoConsis：UI内容一致性智能检测》
+- [ ] 问题：大模型能为生产系统做哪些有实际商业价值的事？ - 答：可以看看《基于向量模型的文本水印技术》和《美团AutoConsis：UI内容一致性智能检测》
+- [ ] 关联点-SFT：《瞎聊: SFT模型为何不如Pretrain模型》，《MIT 21页论文：LoRA、完全微调FT到底有何不同？》，《Day 2 「强化微调」文字稿：强烈推荐各个专业领域尤其搞科研的看看》
+- [ ] 关联点-LESS：《OpenAI狂飙突进！仅12个例子就能打造专属AI专家，核心技术竟来自字节？》，

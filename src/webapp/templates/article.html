@@ -3,92 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NewsReader Articles</title>
+    <title>NewsReader</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <style>
-        .compress {
-            max-height: 5em;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            /* white-space: nowrap; */
+        .container {
+            max-width: 1200px;  /* 限制容器最大宽度 */
+            margin: 0 auto;
         }
-        .compress:hover {
-            overflow: visible;
+        .compress {
             white-space: normal;
+        }
+        .sticky-top-section {
+            position: sticky;
+            top: 0;
+            background-color: white;
+            padding: 20px 0;
+            z-index: 1000;
+            border-bottom: 1px solid #eee;
+        }
+        .table-responsive {
+            overflow-x: auto;  /* 添加水平滚动 */
+        }
+        table {
+            width: 100%;
+            table-layout: fixed;
+        }
+        /* 设置列宽 */
+        .col-title { width: 15%; }
+        /* .col-url { width: 15%; } */
+        .col-summary { width: 20%; }
+        .col-keypoints { width: 35%; }
+        .col-tags { width: 15%; }
+        .col-date { width: 15%; }
+        
+        /* 固定标题行样式 */
+        .sticky-header {
+            display: flex;
+            background-color: #f8f9fa;
+            padding: 8px 0;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .sticky-header div {
+            padding: 8px;
+            font-weight: bold;
+        }
+        .tags-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;  /* 添加按钮和文本之间的间距 */
+        }
+        .tags-buttons {
+            display: flex;
+            gap: 4px;  /* 按钮之间的间距 */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="mt-5">{{ articles|length }} Articles</h1>
-        <form action="/search" method="get" class="mb-3">
-            <input type="text" name="query" placeholder="Search...">
-            <button type="submit">Search</button>
-        </form>
-        <form action="/add_article" method="post">
-            <input type="text" name="title" placeholder="Title" required>
-            <input type="text" name="url" placeholder="Url" required>
-            <input type="text" name="tags" placeholder="Tags">
-            <button type="submit">Add Article</button>
-        </form>
-        <table class="table table-striped mt-3">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Url</th>
-                    <th>Summary</th>
-                    <th>Key Points</th>
-                    <th>Tags</th>
-                    <th>Date(Id)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for article in articles %}
-                <tr>
-                    <td>
-                        <a href="{{ article.url }}">{{ article.title }}</a>
-                    </td>
-                    <td>
-                        <a href="{{ article.url }}">{{ article.url }}</a>
-                    </td>
-                    <td class="compress" title="{{ article.summary }}">{{ article.summary[:60] }}</td>
-                    <td class="compress" id="keypoints-{{ article.id }}"></td>
-                    <td>
-                        <form action="/update_article/{{ article.id }}" method="post">
-                            <span id="tags-text-{{ article.id }}">{{ article.tags }}</span>
-                            <input type="text" id="tags-input-{{ article.id }}" name="tags" value="{{ article.tags }}" style="display:none;">
-                            <button type="button" onclick="editTags({{ article.id }})">Edit</button>
-                            <button type="submit" onclick="saveTags({{ article.id }})">Save</button>
-                        </form>
-                    </td>
-                    <td class="compress" title="{{ article.id }}">
-                        {{ article.collection_date }}
-                        <form action="/delete_article/{{ article.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this article?');">
-                            <button type="submit">Delete Article</button>
-                        </form>
-                    </td>
-                </tr>
-                
-                <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
-                <script>
-                    var converter = new showdown.Converter();
-                    var html = converter.makeHtml(`{{ article.key_points }}`);
-                    document.getElementById('keypoints-{{ article.id }}').innerHTML = html;
-                </script>
-                <script>
-                    function editTags(articleId) {
-                        document.getElementById('tags-text-' + articleId).style.display = 'none';
-                        document.getElementById('tags-input-' + articleId).style.display = 'inline';
-                    }
+        <div class="sticky-top-section">
+            <h1 class="mt-5">{{ articles|length }} Resources</h1>
+            <span>TODO *Tag-代码 *置顶 *多用户 *分页 *todo</span>
+            <form action="/search" method="get" class="mb-3">
+                <input type="text" name="query" placeholder="Search Title Summary Key or Tags">
+                <button type="submit">Search</button>
+            </form>
+            <form action="/add_article" method="post">
+                <input type="text" name="title" placeholder="Title">
+                <input type="text" name="url" placeholder="Url" required>
+                <input type="text" name="tags" placeholder="Tags">
+                <button type="submit">Add</button>
+            </form>
+            
+            <!-- 添加固定的标题行 -->
+            <div class="sticky-header">
+                <div class="col-title">Title</div>
+                <!-- <div class="col-url">Url</div> -->
+                <div class="col-summary">Summary</div>
+                <div class="col-keypoints">Key Points</div>
+                <div class="col-tags">Tags</div>
+                <div class="col-date">Date(Id)</div>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th class="col-title"> </th>
+                        <!-- <th class="col-url">Url</th> -->
+                        <th class="col-summary"> </th>
+                        <th class="col-keypoints"> </th>
+                        <th class="col-tags"> </th>
+                        <th class="col-date"> </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for article in articles %}
+                    <tr>
+                        <td>
+                            <a href="{{ article.url }}">{{ article.title }}</a>
+                        </td>
+                        <td class="compress" title="{{ article.summary }}">{{ article.summary[:60] }}</td>
+                        <td class="compress" id="keypoints-{{ article.id }}"></td>
+                        <td>
+                            <form action="/update_article/{{ article.id }}" method="post" class="tags-container">
+                                <div class="tags-buttons">
+                                    <button type="button" onclick="editTags({{ article.id }})">Edit</button>
+                                    <button type="submit" onclick="saveTags({{ article.id }})">Save</button>
+                                </div>
+                                <span id="tags-text-{{ article.id }}">{{ article.tags }}</span>
+                                <input type="text" id="tags-input-{{ article.id }}" name="tags" value="{{ article.tags }}" style="display:none;">
+                            </form>
+                        </td>
+                        <td class="compress" title="{{ article.id }}">
+                            <form action="/delete_article/{{ article.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this article?');">
+                                <button type="submit">Delete</button>
+                            </form>
+                            {{ article.collection_date }}
+                        </td>
+                    </tr>
+                    
+                    <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
+                    <script>
+                        var converter = new showdown.Converter();
+                        var html = converter.makeHtml(`{{ article.key_points }}`);
+                        document.getElementById('keypoints-{{ article.id }}').innerHTML = html;
+                    </script>
+                    <script>
+                        function editTags(articleId) {
+                            document.getElementById('tags-text-' + articleId).style.display = 'none';
+                            document.getElementById('tags-input-' + articleId).style.display = 'inline';
+                        }
 
-                    function saveTags(articleId) {
-                        document.getElementById('tags-text-' + articleId).style.display = 'inline';
-                        document.getElementById('tags-input-' + articleId).style.display = 'none';
-                    }
-                </script>
-                {% endfor %}
-            </tbody>
-        </table>
+                        function saveTags(articleId) {
+                            document.getElementById('tags-text-' + articleId).style.display = 'inline';
+                            document.getElementById('tags-input-' + articleId).style.display = 'none';
+                        }
+                    </script>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 </html>

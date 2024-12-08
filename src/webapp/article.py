@@ -8,8 +8,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.article import Base, Article
 from llms.llm_tasks import LLMTasks
 from utils.file_input_handler import FileInputHandler
+import logging
 
 app = Flask(__name__)
+# 获取模块特定的logger
+logger = logging.getLogger(__name__)
 
 # Database setup
 engine = create_engine('sqlite:///articles.db')
@@ -42,16 +45,18 @@ def add_article():
         )
         
         # 使用LLM处理内容
-        response = LLMTasks.summarize_and_keypoints(session, new_article)
-        
-        # 更新文章属性
-        new_article.title = response.title if response and response.title != "ERROR" else title
-        new_article.summary = response.summary if response else ""
-        new_article.key_points = response.key_points if response else ""
-        
-        # 一次性保存所有更改
-        session.add(new_article)
-        session.commit()
+        response = LLMTasks.summarize_and_keypoints(content)
+        new_article.title = response.title
+        new_article.summary = response.summary
+        new_article.key_points = response.key_points
+        logger.info(f"Title: {new_article.title}")
+        logger.info(f"Summary: {new_article.summary}")
+        logger.info(f"Key Points: {new_article.key_points}")
+        if response.title == "ERROR" or response.title == "": # do not save db
+            flash(f'Error processing resource: {url}')
+        else: # 保存文章
+            session.add(new_article)
+            session.commit()
         
     except IntegrityError:
         session.rollback()

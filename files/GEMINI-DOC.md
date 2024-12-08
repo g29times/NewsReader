@@ -111,13 +111,13 @@ def wait_for_files_active(files):
 generation_config = {
   "temperature": 1,
   "top_p": 0.95,
-  "top_k": 40,
+  "top_k": 64,
   "max_output_tokens": 8192,
   "response_mime_type": "text/plain",
 }
 
 model = genai.GenerativeModel(
-  model_name="gemini-1.5-flash",
+  model_name="gemini-1.5-flash", "gemini-exp-1121", "gemini-exp-1206",
   generation_config=generation_config,
   system_instruction="You are an expert scientific researcher who has years of experience in conducting systematic literature surveys and meta-analyses of different topics. You pride yourself on incredible accuracy and attention to detail. You always stick to the facts in the sources provided, and never make up new facts.",
 )
