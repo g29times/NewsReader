@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
-from .models import Article
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine, func
+from models import Base, Article
 
 def create_article(db: Session, article_data: dict):
     new_article = Article(**article_data)
@@ -37,3 +39,10 @@ def delete_article(db: Session, article_id: int):
         db.delete(article)
         db.commit()
     return article
+
+if __name__ == '__main__':
+    engine = create_engine('sqlite:///articles.db')
+    Base.metadata.bind = engine
+    DBSession = sessionmaker(bind=engine)
+    session = DBSession()
+    delete_article(session, 60)
