@@ -29,6 +29,9 @@ def get_article_by_id(db: Session, article_id: int):
 def get_articles(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Article).offset(skip).limit(limit).all()
 
+@logy
+def get_article_by_ids(db: Session, article_ids: list):
+    return db.query(Article).filter(Article.id.in_(article_ids)).all()
 
 @logy
 def get_all_articles(db: Session):

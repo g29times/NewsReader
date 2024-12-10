@@ -17,7 +17,7 @@
             position: sticky;
             top: 0;
             background-color: white;
-            padding: 20px 0;
+            padding: 2px 0;
             z-index: 1000;
             border-bottom: 1px solid #eee;
         }
@@ -57,6 +57,63 @@
             display: flex;
             gap: 4px;  /* 按钮之间的间距 */
         }
+        .chat-section {
+            margin-left: 10px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            flex: 1;
+        }
+        .chat-input {
+            width: 100%;
+            min-height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+        }
+        .chat-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .chat-controls button {
+            padding: 5px 10px;
+        }
+        .search-chat-container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .search-section {
+            flex: 1;
+            max-width: 50%;
+        }
+        .add-article-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .add-article-form .tags-row {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+        }
+        .add-article-form input {
+            width: 100%;
+            padding: 5px;
+        }
+        .add-article-form button {
+            margin-left: auto;
+        }
+        .checkbox-column {
+            width: 30px;
+        }
+        #select-all {
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -64,19 +121,40 @@
         <div class="sticky-top-section">
             <h1 class="mt-5">{{ articles|length }} Resources</h1>
             <span>TODO *Tag-代码 *置顶 *多用户 *分页 *todo</span>
-            <form action="/search" method="get" class="mb-3">
-                <input type="text" name="query" placeholder="Search Title Summary Key or Tags">
-                <button type="submit">Search</button>
-            </form>
-            <form action="/add_article" method="post">
-                <input type="text" name="title" placeholder="Title">
-                <input type="text" name="url" placeholder="Url" required>
-                <input type="text" name="tags" placeholder="Tags">
-                <button type="submit">Add</button>
-            </form>
-            
+            <div class="search-chat-container">
+                <div class="search-section">
+                    <form action="/search" method="get" class="mb-3">
+                        <input type="text" name="query" placeholder="Search Title Summary Key or Tags">
+                        <button type="submit">Search</button>
+                    </form>
+                    
+                    <form action="/add_article" method="post" class="add-article-form">
+                        <input type="text" name="title" placeholder="Title">
+                        <input type="text" name="url" placeholder="Url" required>
+                        <div class="tags-row">
+                            <input type="text" name="tags" placeholder="Tags">
+                            <button type="submit">Add</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="chat-section">
+                    <div class="chat-controls">
+                        <button onclick="document.getElementById('file-upload').click()">Upload File</button>
+                        <input type="file" id="file-upload" style="display: none" onchange="handleFileUpload(event)">
+                        <button onclick="startRecording()">Record Audio</button>
+                        <button onclick="openCamera()">Camera</button>
+                    </div>
+                    <textarea class="chat-input" placeholder="Type your message or drop files here..."></textarea>
+                    <button onclick="sendMessage()">Chat</button>
+                </div>
+            </div>
+
             <!-- 添加固定的标题行 -->
             <div class="sticky-header">
+                <div class="checkbox-column">
+                    <input type="checkbox" id="select-all" onclick="toggleAllCheckboxes()">
+                </div>
                 <div class="col-title">Title</div>
                 <!-- <div class="col-url">Url</div> -->
                 <div class="col-summary">Summary</div>
@@ -88,19 +166,12 @@
         
         <div class="table-responsive">
             <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th class="col-title"> </th>
-                        <!-- <th class="col-url">Url</th> -->
-                        <th class="col-summary"> </th>
-                        <th class="col-keypoints"> </th>
-                        <th class="col-tags"> </th>
-                        <th class="col-date"> </th>
-                    </tr>
-                </thead>
                 <tbody>
                     {% for article in articles %}
                     <tr>
+                        <td>
+                            <input type="checkbox" class="article-checkbox" value="{{ article.id }}">
+                        </td>
                         <td>
                             <a href="{{ article.url }}">{{ article.title }}</a>
                         </td>
@@ -146,5 +217,83 @@
             </table>
         </div>
     </div>
+    <script>
+        // 全选/取消全选
+        function toggleAllCheckboxes() {
+            const checkboxes = document.getElementsByClassName('article-checkbox');
+            const selectAllCheckbox = document.getElementById('select-all');
+            
+            for (let checkbox of checkboxes) {
+                checkbox.checked = selectAllCheckbox.checked;
+            }
+        }
+
+        // 处理文件上传
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const chatInput = document.querySelector('.chat-input');
+                    chatInput.value += `[File: ${file.name}]\n`;
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        // 发送消息到LLM
+        function sendMessage() {
+            const chatInput = document.querySelector('.chat-input');
+            const selectedArticles = getSelectedArticles();
+            
+            // 构建要发送的数据
+            const data = {
+                message: chatInput.value,
+                articles: selectedArticles
+            };
+
+            // 发送到后端
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 处理响应
+                chatInput.value = '';
+                // TODO: 显示LLM响应
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // 获取选中的文章
+        function getSelectedArticles() {
+            const checkboxes = document.getElementsByClassName('article-checkbox');
+            const selectedArticles = [];
+            
+            for (let checkbox of checkboxes) {
+                if (checkbox.checked) {
+                    selectedArticles.push(checkbox.value);
+                }
+            }
+            
+            return selectedArticles;
+        }
+
+        // 录音功能（示例）
+        function startRecording() {
+            // TODO: 实现录音功能
+            alert('Recording feature coming soon!');
+        }
+
+        // 相机功能（示例）
+        function openCamera() {
+            // TODO: 实现相机功能
+            alert('Camera feature coming soon!');
+        }
+    </script>
 </body>
 </html>

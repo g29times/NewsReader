@@ -1,18 +1,12 @@
 import os
 import sys
-
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from sqlalchemy.exc import IntegrityError
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.article import Article
-from models.article_crud import (
-    create_article,
-    get_article_by_id,
-    get_all_articles,
-    update_article,
-    delete_article
-)
+from models.article_crud import *
+from utils.llms.gemini_client import GeminiClient
 from utils.llms.llm_tasks import LLMTasks
 from utils.file_input_handler import FileInputHandler
 from database.connection import db_session
@@ -132,6 +126,42 @@ def search_articles():
         logger.error(f"Error searching articles: {e}")
         flash('Error performing search')
         return redirect(url_for('article'))
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    message = data.get('message', '')
+    article_ids = data.get('articles', [])
+    print(f"Message: {message}")
+    print(f"Selected articles: {article_ids}")
+    # 获取选中的文章地址
+    article_urls = []
+    articles = get_article_by_ids(db_session, article_ids)
+    for article in articles:
+        article_urls.append({
+            'url': article.url
+        })
+    
+    # selected_articles = []
+    # for article_id in article_ids:
+    #     article = Article.query.get(article_id)
+    #     if article:
+    #         selected_articles.append({
+    #             'title': article.title,
+    #             'summary': article.summary,
+    #             'key_points': article.key_points,
+    #             'tags': article.tags
+    #         })
+    
+    # TODO: 调用LLM处理文章和消息
+    # response = llm_client.process_articles_and_message(selected_articles, message)
+    client = GeminiClient()
+    response = client.chat(message, selected_articles)
+    
+    return jsonify({
+        'status': 'success',
+        'message': 'Feature coming soon!'
+    })
 
 if __name__ == '__main__':
     app.secret_key = 'super secret key'  # Set the secret key

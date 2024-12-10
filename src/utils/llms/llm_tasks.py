@@ -116,7 +116,6 @@ class LLMTasks:
             # TODO 3 allow switch prompt
             response = client.chat(f"You have 3 tasks for the following content: 1. Fetch the title from the content, its format should have a title like 'Title: ...' in its first line, if not, you will return 'NO TITLE' for a fallback); 2. Summarize the content concisely in Chinese; 3. Extract Key-Words(only words, no explanation) in a format like '**1. Primary Domains** Web Applications, ...(no more than 5) **2. Specific Topics** React, ...(no more than 10)'. Your response must contain the title, summarize and key words in the fix format: '**Title:** ...\n\n**Summarize:** ...\n\n**Key-Words:** ...' : ```{content}```")
             logger.debug(f"LLM Response: {response}")
-
             return LLMTasks.extract_response_from_gemini(response)
 
         except Exception as e:
