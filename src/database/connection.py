@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Database configuration
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///articles.db')
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./src/database/articles.db')
 
 # Create engine
 engine = create_engine(
