@@ -81,5 +81,3 @@ pipreqs /path/to/your/project
 ### Errors Handle
 #### pip
 `python -m pip install --upgrade --force-reinstall pip`
-#### run
-for some env, you may need to change your db file to a path like "DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:////teamspace/studios/this_studio/NewsReader/src/database/articles.db')"
