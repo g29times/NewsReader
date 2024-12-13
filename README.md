@@ -22,7 +22,7 @@ A comprehensive system for collecting, organizing, and managing AI news articles
     source .venv/bin/activate
     ```
 3. Install dependencies: `pip install -r requirements.txt`
-4. Run the application `python src/webapp/article.py python3 src/webapp/article.py`
+4. Run the application `python src/webapp/article.py`
 
 ## Technologies
 - Python
@@ -78,5 +78,8 @@ pipreqs /path/to/your/project
 ```
 */10 * * * * auto_push.sh
 ```
-### Python Lib Errors
+### Errors Handle
+#### pip
 `python -m pip install --upgrade --force-reinstall pip`
+#### run
+for some env, you may need to change your db file to a path like "DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:////teamspace/studios/this_studio/NewsReader/src/database/articles.db')"
