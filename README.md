@@ -19,7 +19,8 @@ A comprehensive system for collecting, organizing, and managing AI news articles
     sudo apt install python3.12-venv -y
     python3 -m venv .venv
     # 3 use venv
-    source .venv/bin/activate
+    [linux] source .venv/bin/activate
+    [windows(cmd, not powershell)] 1. cd .venv/Scripts; 2. activate
     ```
 3. Install dependencies: `pip install -r requirements.txt`
 4. Run the application `python src/webapp/article.py`
