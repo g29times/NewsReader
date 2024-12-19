@@ -13,6 +13,7 @@
             gap: 20px;
             height: 100vh;
             padding: 20px;
+            transition: all 0.3s ease;
         }
 
         .chat-container.expanded {
@@ -27,6 +28,25 @@
             overflow-y: auto;
             height: calc(100vh - 40px);
             position: relative;
+        }
+
+        /* 文章列表 */
+        .article-list {
+            display: block;
+            transition: opacity 0.3s ease;
+        }
+
+        .chat-container.expanded .article-list {
+            display: none;
+        }
+
+        /* 展开的文章内容 */
+        #expandedArticle {
+            display: none;
+        }
+
+        .chat-container.expanded #expandedArticle {
+            display: block;
         }
 
         /* 文章列表 */
@@ -55,11 +75,30 @@
 
         .article-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding: 8px 0;
         }
+
+        .article-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .collapse-btn {
+            padding: 4px 12px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            background: white;
+            color: #3c4043;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        /* .collapse-btn:hover {
+            background-color: #f8f9fa;
+        } */
 
         .article-title {
             font-size: 1.2em;
@@ -198,10 +237,51 @@
         .article-title {
             flex: 1;
             cursor: pointer;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            display: block;
         }
 
         .article-title:hover {
             color: #1a73e8;
+        }
+
+        .source-guide-container {
+            margin-top: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .source-guide-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            gap: 8px;
+        }
+
+        .source-guide-content {
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .source-guide-content.expanded {
+            display: block;
+        }
+
+        .source-guide-content:not(.expanded) {
+            display: none;
+        }
+
+        .source-guide-content h4 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: #202124;
         }
     </style>
 </head>
@@ -215,7 +295,7 @@
             <div class="toolbar">
                 <input type="text" placeholder="搜索文章..." class="form-control">
             </div>
-            <div class="article-list">
+            <div id="articleList" class="article-list">
                 <div class="article-list-header">
                     <input type="checkbox" id="selectAll" class="article-checkbox">
                     <label for="selectAll">全选</label>
@@ -229,15 +309,28 @@
                     {% endfor %}
                 </div>
             </div>
-            <div class="article-content" id="articleContent">
+            <div id="expandedArticle">
                 <div class="article-header">
-                    <span>Sources</span>
-                    <button onclick="toggleArticlePanel()" class="btn btn-sm btn-outline-secondary">Collapse</button>
+                    <h2>Sources</h2>
+                    <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">Collapse</button>
                 </div>
                 <h2 class="article-title" id="expandedArticleTitle"></h2>
-                <div class="source-guide">
-                    <button onclick="toggleSummary()" class="btn btn-sm btn-outline-primary">Source Guide</button>
-                    <div id="expandedArticleSummary" style="display: none;"></div>
+                <div class="source-guide-container">
+                    <div class="source-guide-header" onclick="toggleSourceGuide(this)">
+                        <span class="source-guide-icon">📚</span>
+                        <h5 class="source-guide-title btn btn-outline-primary">Source guide</h5>
+                        <span class="expand-text">展开</span>
+                    </div>
+                    <div class="source-guide-content">
+                        <div class="summary">
+                            <h4>Summary</h4>
+                            <p id="expandedArticleSummary"></p>
+                        </div>
+                        <div class="key-topics">
+                            <h4>Key Topics</h4>
+                            <ul id="expandedArticleTopics"></ul>
+                        </div>
+                    </div>
                 </div>
                 <div class="article-body" id="expandedArticleContent"></div>
             </div>
@@ -303,14 +396,35 @@
         }
 
         function displayArticleContent(article) {
-            document.getElementById('expandedArticleTitle').textContent = article.title;
+            const chatContainer = document.querySelector('.chat-container');
+            chatContainer.classList.add('expanded');
+            
+            const titleElement = document.getElementById('expandedArticleTitle');
+            titleElement.textContent = article.title;
+            
             document.getElementById('expandedArticleSummary').textContent = article.summary;
-            document.getElementById('expandedArticleContent').textContent = article.content;
+            const topicsList = document.getElementById('expandedArticleTopics');
+            topicsList.innerHTML = article.topics.map(topic => `<li>${topic}</li>`).join('');
+            document.getElementById('expandedArticleContent').textContent = article.content || '暂无内容';
+            
+            // 确保Source Guide默认是收起的
+            const sourceGuideContent = document.querySelector('.source-guide-content');
+            sourceGuideContent.classList.remove('expanded');
+            const expandText = document.querySelector('.expand-text');
+            expandText.textContent = '展开';
         }
 
-        function toggleSummary() {
-            const summary = document.getElementById('expandedArticleSummary');
-            summary.style.display = summary.style.display === 'none' ? 'block' : 'none';
+        function toggleSourceGuide(header) {
+            const content = header.nextElementSibling;
+            const expandText = header.querySelector('.expand-text');
+            
+            content.classList.toggle('expanded');
+            expandText.textContent = content.classList.contains('expanded') ? '收缩' : '展开';
+        }
+
+        function collapseArticle() {
+            const chatContainer = document.querySelector('.chat-container');
+            chatContainer.classList.remove('expanded');
         }
 
         // 发送聊天消息

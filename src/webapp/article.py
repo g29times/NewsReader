@@ -225,9 +225,13 @@ def articles_search():
 def get_article_details(article_id):
     """获取文章详情"""
     article = get_article_by_id(db_session, article_id)
+    logger.info(f"获取文章详情：{article.content[:30]}")
     if not article:
         return jsonify({'success': False, 'message': '文章未找到'})
 
+    # 从key_points字段中提取Key Topics
+    topics = article.key_points.split(',') if article.key_points else []
+    
     return jsonify({
         'success': True,
         'data': {
@@ -235,7 +239,8 @@ def get_article_details(article_id):
                 'id': article.id,
                 'title': article.title,
                 'summary': article.summary,
-                'content': article.content
+                'content': article.content,
+                'topics': topics
             }
         }
     })

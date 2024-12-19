@@ -36,8 +36,10 @@ logging.basicConfig(
 def logy(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        logging.info(f"LOG ASPECT START - Function: {func.__name__}")
+        logging.info(f"LOG ASPECT START - Function: {func.__name__} - Args: {args}")
         result = func(*args, **kwargs)
         logging.info(f"LOG ASPECT  END  - Function: {func.__name__}")
+        # if result is not None:
+        #     logging.debug(f"LOG ASPECT Return - Function: {func.__name__} - Return: {result}")
         return result
     return wrapper

@@ -31,10 +31,11 @@ class Article(Base):
     persons = Column(String) # 三级 对应Layer 2 key_points
     problem = Column(Text, nullable=True) # 问题
 
+    # toString方法
     def __repr__(self):
         # simple
         # return f"<{self.id}. Article {self.title} from {self.url}>"
         # summary
-        return f"<{self.id}. Article {self.title}\n summary - {self.summary}\n key_points - {self.key_points}>"
+        # return f"<{self.id}. Article {self.title}\n summary - {self.summary}\n key_points - {self.key_points}>"
         # content
-        # return f"<{self.id}. Article {self.title} - {self.content}>"
+        return f"<{self.id}. Article {self.title} - {self.content}>"

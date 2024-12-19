@@ -3,7 +3,7 @@
     margin: 0 auto;
 }
 .compress {
-    white-space: normal;
+    white-space: normal;  /* CSS 的 text-overflow 属性和 white-space 属性来实现超过指定长度省略，并在鼠标悬浮时显示全部名称。*/
 }
 .sticky-top-section {
     position: sticky;

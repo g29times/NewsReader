@@ -60,5 +60,6 @@ def delete_article(db: Session, article_id: int):
 
 if __name__ == '__main__':
     session = db_session
+    # update_article(session, 3, {'content': '大模型发展了这么久，AI 智能体们早就开始整顿职场了。打开特工宇宙的教程，不需要太高的技术力，就能去搭建一个智能体，从写文章到按下发送键，都不用亲自动手，AI 打工我躺平。按照这个进度，很快每个同事都能拥有自己的专属智能体了。想象一下，到那个时候：不必要的拉通对齐会，只需要你的 Agent 和老板的 Agent 去开就行了！组织活动不需要挨个去问去催了，让你的 Agent 和所有人的 Agent 对接！采购的买方 Agent 可以自动联系多个卖方 Agent 比价，卖方 Agent 也可以同时支持成千上万个客户 Agent 进行咨询！'})
     print(get_article_by_id(session, 3))
     # delete_article(session, 0) 根据实际
