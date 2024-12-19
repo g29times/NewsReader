@@ -1,5 +1,6 @@
 # ignore files
 *.pyc
+.log
 
 # ignore directories
 __pycache__

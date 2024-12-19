@@ -2,6 +2,7 @@ import os
 import sys
 from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import or_
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.article import Article
@@ -144,6 +145,100 @@ def search_articles():
         logger.error(f"Error searching articles: {e}")
         flash('Error performing search')
         return redirect(url_for('article'))
+
+
+
+@app.route('/chat')
+def chat_page():
+    """聊天页面路由"""
+    articles = get_all_articles(db_session)
+    return render_template('chat.html', articles=articles)
+
+@app.route('/api/chat/send', methods=['POST'])
+def chat_send():
+    """处理聊天请求"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '').strip()
+        article_ids = data.get('article_ids', [])
+        
+        if not message:
+            return jsonify({'success': False, 'message': '消息不能为空'})
+        
+        if not article_ids:
+            return jsonify({'success': False, 'message': '请选择至少一篇文章'})
+            
+        # 获取选中的文章
+        articles = get_article_by_ids(db_session, article_ids)
+        if not articles:
+            return jsonify({'success': False, 'message': '未找到选中的文章'})
+            
+        # 记录请求信息用于调试
+        print(f"收到聊天请求：\n消息：{message}\n文章ID：{article_ids}")
+        
+        # TODO: 调用 LLM 处理聊天
+        # 临时返回成功响应
+        return jsonify({
+            'success': True,
+            'data': {
+                'response': f'我收到了你的消息：{message}\n你选择了 {len(articles)} 篇文章。'
+            }
+        })
+        
+    except Exception as e:
+        print(f"处理聊天请求时出错：{str(e)}")
+        return jsonify({'success': False, 'message': '处理请求时出错'})
+
+@app.route('/api/chat/history', methods=['GET'])
+def chat_history():
+    """获取聊天历史"""
+    # TODO: 实现聊天历史记录功能
+    return jsonify({
+        'success': True,
+        'data': {
+            'messages': []
+        }
+    })
+
+@app.route('/api/articles/search', methods=['GET'])
+def articles_search():
+    """搜索文章"""
+    query = request.args.get('q', '').strip()
+    if not query:
+        articles = get_all_articles(db_session)
+    else:
+        articles = search_articles(db_session, query)
+    
+    return jsonify({
+        'success': True,
+        'data': {
+            'articles': [{
+                'id': article.id,
+                'title': article.title,
+                'summary': article.summary,
+                'keywords': article.keywords
+            } for article in articles]
+        }
+    })
+
+@app.route('/api/articles/<int:article_id>', methods=['GET'])
+def get_article_details(article_id):
+    """获取文章详情"""
+    article = get_article_by_id(db_session, article_id)
+    if not article:
+        return jsonify({'success': False, 'message': '文章未找到'})
+
+    return jsonify({
+        'success': True,
+        'data': {
+            'article': {
+                'id': article.id,
+                'title': article.title,
+                'summary': article.summary,
+                'content': article.content
+            }
+        }
+    })
 
 @app.route('/chat', methods=['POST'])
 def chat():

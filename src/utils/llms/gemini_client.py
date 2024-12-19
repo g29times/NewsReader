@@ -43,7 +43,7 @@ class GeminiClient:
     静态方法集合，用于与Google Gemini API交互
     提供文本、媒体和查询的处理功能
     """
-    API_KEY = os.getenv("GEMINI_API_KEY")
+    API_KEY = os.getenv("GEMINI_API_KEY1")
     MODEL = "gemini-1.5-flash-latest"
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent"
     
