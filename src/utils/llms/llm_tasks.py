@@ -1,7 +1,8 @@
 import logging
 import os
 import sys
-from dataclasses import dataclass
+import re
+from dataclasses import dataclass, field
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -10,125 +11,60 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 sys.path.append(project_root)
 
+import json
+import re
+import logging
+from typing import Optional
+from sqlalchemy.orm import Session
+
+from .models import LLMResponse
+from .gemini_client import GeminiClient
 from models.article import Article
-from utils.llms.gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
 
 @dataclass
 class LLMResponse:
     """LLM响应的数据类"""
-    title: str = ""
-    summary: str = ""
-    key_points: str = ""
+    body: dict = field(default_factory=dict)  # LLM 服务提供方 API 返回的原始内容
+    state: str = "SUCCESS"  # LLM 服务提供方 API 返回状态 "SUCCESS" "ERROR"
+    desc: str = ""  # LLM 服务提供方 API 返回的描述信息或自定义错误描述
+    status_code: int = 200 # LLM 服务提供方 API 原始返回的状态码 200 300 400 500 等
 
 class LLMTasks:
-    """处理LLM相关任务的类"""
-
-    @staticmethod
-    def extract_response_from_gemini(response) -> LLMResponse:
-        """
-        从Gemini响应中提取标题、摘要和关键词
-        
-        Args:
-            response: Gemini响应
-            
-        Returns:
-            LLMResponse 包含标题、摘要和关键点
-        """
-        try:
-            text = response['candidates'][0]['content']['parts'][0]['text']
-
-            # 提取标题（在**Title:** 和下一个**之间的内容）
-            title = ""
-            title_start = text.find("**Title:**")
-            if title_start != -1:
-                title_end = text.find("**", title_start + 10)  # 10 是 "**Title:**" 的长度
-                if title_end != -1:
-                    title = text[title_start + 10:title_end].strip()
-                    if title.startswith("Title:"):  # 处理可能的重复 "Title:" 前缀
-                        title = title.replace("Title:", "", 1).strip()
-            if not title:
-                title = "ERROR"
-
-            # 提取摘要（在**Summarize:** 和下一个**之间的内容）
-            summary = ""
-            summary_start = text.find("**Summarize:**")
-            if summary_start != -1:
-                summary_end = text.find("**", summary_start + 14)  # 14 是 "**Summarize:**" 的长度
-                if summary_end != -1:
-                    summary = text[summary_start + 14:summary_end].strip()
-
-            # 提取关键词（在**Key-Words:** 之后的所有内容）
-            key_points = ""
-            key_points_start = text.find("**Key-Words:**")
-            if key_points_start != -1:
-                key_points = text[key_points_start + 14:].strip()
-
-            return LLMResponse(
-                title=title,
-                summary=summary,
-                key_points=key_points
-            )
-
-        except Exception as e:
-            logger.error(f"Error extracting text from response: {e}")
-            return LLMResponse(
-                title="ERROR",
-                summary="",
-                key_points=""
-            )
-
-    # 公共方法：通用
-    # Use LLM to summarize and extract key points
+    """处理各种LLM相关任务的类"""
+    
     @staticmethod
     def summarize_and_key_points(content: str) -> LLMResponse:
         """
-        使用LLM处理文本内容，提取标题、摘要和关键词
+        使用LLM总结内容并提取关键点
         
         Args:
-            content (str): 需要处理的文本内容
+            content: 需要处理的文本内容
             
         Returns:
-            LLMResponse 包含标题、摘要和关键点
+            LLMResponse 包含处理结果
         """
-        if not content or content.strip() == "":
-            logger.warning("Empty content provided to summarize_and_key_points")
-            return LLMResponse(title="ERROR", summary="", key_points="")
-
-        try:
-            # 构建提示
-            # prompt = (
-            #     "Please analyze the following text and provide:\n"
-            #     "1. A concise title (max 100 characters)\n"
-            #     "2. A brief summary (max 200 words)\n"
-            #     "3. Key points (max 5 bullet points)\n"
-            #     "Format your response exactly like this:\n"
-            #     "Title: [your title]\n"
-            #     "Summary: [your summary]\n"
-            #     "Key Points: [your bullet points]\n\n"
-            #     f"Text to analyze:\n{content}"
-            # )
-
-            # 调用 Gemini API
-            # TODO 2 allow switch LLM
-            client = GeminiClient()
-            # TODO 3 allow switch prompt
-            response = client.chat(f"You have 3 tasks for the following content: 1. Fetch the title from the content, its format should have a title like 'Title: ...' in its first line, if not, you will return 'NO TITLE' for a fallback); 2. Summarize the content concisely in Chinese; 3. Extract Key-Words(only words, no explanation) in a format like '**1. Primary Domains** Web Applications, ...(no more than 5) **2. Specific Topics** React, ...(no more than 10)'. Your response must contain the title, summarize and key words in the fix format: '**Title:** ...\n\n**Summarize:** ...\n\n**Key-Words:** ...' : ```{content}```")
-            logger.debug(f"LLM Response: {response}")
-            return LLMTasks.extract_response_from_gemini(response)
-
-        except Exception as e:
-            logger.error(f"Error in summarize_and_key_points: {e}")
-            return LLMResponse(title="ERROR", summary="", key_points="")
+        # TODO: 未来可以根据配置选择不同的LLM提供商
+        gemini = GeminiClient()
+        return gemini.summarize_text(content)
 
     @staticmethod
     def find_relations(db: Session, article: Article):
+        """查找文章关系"""
+        # TODO: 实现关系查找逻辑
         pass
 
-    # Use LLM to discover ideas support by relations. This job is not for every new article, but for a period of time.
     @staticmethod
-    def discover_ideas(db: Session):
+    def extract_key_points(content: str) -> LLMResponse:
+        """提取关键点"""
+        # TODO: 实现关键点提取逻辑
+        pass
+
+    @staticmethod
+    def translate_text(content: str, target_language: str) -> LLMResponse:
+        """翻译文本"""
+        # TODO: 实现文本翻译逻辑
         pass
 
 
@@ -140,8 +76,8 @@ if __name__ == '__main__':
 
     response = json.loads(test_response)
     # 测试提取方法
-    result = LLMTasks.extract_response_from_gemini(response)
+    result = LLMTasks.summarize_and_key_points(response['candidates'][0]['content']['parts'][0]['text'])
     print("提取结果：")
-    print(f"标题: {result.title}")
-    print(f"摘要: {result.summary}")
-    print(f"关键词: {result.key_points}")
+    print(f"标题: {result.body.get('title')}")
+    print(f"摘要: {result.body.get('summary')}")
+    print(f"关键词: {result.body.get('key_points')}")

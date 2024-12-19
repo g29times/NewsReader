@@ -5,121 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NewsReader</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        .container {
-            max-width: 1200px;  /* 限制容器最大宽度 */
-            margin: 0 auto;
-        }
-        .compress {
-            white-space: normal;
-        }
-        .sticky-top-section {
-            position: sticky;
-            top: 0;
-            background-color: white;
-            padding: 2px 0;
-            z-index: 1000;
-            border-bottom: 1px solid #eee;
-        }
-        .table-responsive {
-            overflow-x: auto;  /* 添加水平滚动 */
-        }
-        table {
-            width: 100%;
-            table-layout: fixed;
-        }
-        .table td, .table th {
-            padding: 5px;
-        }
-        /* 设置列宽 加起来100%*/
-        .checkbox-column { width: 2%; }
-        .col-title { width: 13%; }
-        /* .col-url { width: 10%; } */
-        .col-summary { width: 20%; }
-        .col-keypoints { width: 35%; }
-        .col-tags { width: 15%; }
-        .col-date { width: 15%; }
-        
-        /* 固定标题行样式 */
-        .sticky-header {
-            display: flex;
-            background-color: skyblue;
-            padding: 5px 0;  /* 标题之间的间距 */
-            margin-bottom: 10px;
-            border-bottom: 2px solid #dee6df;
-        }
-        .sticky-header div {
-            padding: 5px;
-            font-weight: bold;
-        }
-        .tags-container {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;  /* 按钮和文本之间的间距 */
-        }
-        .tags-buttons {
-            display: flex;
-            gap: 4px;  /* 按钮之间的间距 */
-        }
-        .chat-section {
-            margin-left: 10px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            flex: 1;
-        }
-        .chat-input {
-            width: 100%;
-            min-height: 100px;
-            margin-bottom: 10px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            resize: vertical;
-        }
-        .chat-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .chat-controls button {
-            padding: 5px 10px;
-        }
-        .search-chat-container {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .search-section {
-            flex: 1;
-            max-width: 50%;
-        }
-        .add-article-form {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .add-article-form .tags-row {
-            grid-column: 1 / -1;
-            display: flex;
-            gap: 10px;
-        }
-        .add-article-form input {
-            width: 100%;
-            padding: 5px;
-        }
-        .add-article-form button {
-            margin-left: auto;
-        }
-        #select-all {
-            margin: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/article.css') }}">
 </head>
 <body>
     <div class="container">
         <div class="sticky-top-section">
+            <!-- Flash 消息容器 -->
+            <div class="flash-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+            
+            <!-- Toast 容器 -->
+            <div class="toast-container" id="toastContainer"></div>
+
             <h1 class="mt-5" id="resources-text">{{ articles|length }} 篇文章</h1>
             
             <div class="search-chat-container">
@@ -148,17 +57,17 @@
 
                     <span>TODO *Tag-代码 *置顶 *多用户 *分页 *todo</span>
                 </div>
-
+                <!-- AI对话窗口 -->
                 <div class="chat-section">
                     <div class="chat-controls">
                         <span>AI Assistant</span>
                         <button id="upload-button" onclick="document.getElementById('file-upload').click()">上传文件</button>
-                        <input type="file" id="file-upload" style="display: none" onchange="handleFileUpload(event)">
+                        <input type="file" id="file-upload" accept=".jpg, .jpeg, .png, .txt, .json, .pdf, .html, .doc, .ppt, .xls, .xlsx" style="display: none" onchange="handleFileUpload(event)" multiple>
                         <button id="record-button" onclick="startRecording()">录音</button>
                         <button id="camera-button" onclick="openCamera()">相机</button>
                     </div>
                     <textarea class="chat-input" placeholder="Type your message or drop files here..."></textarea>
-                    <button id="send-button" onclick="sendMessage()">发送</button>
+                    <button id="send-button" onclick="sendChatMessage()">发送</button>
                 </div>
             </div>
 
@@ -182,7 +91,7 @@
                     <span id="articles_start" style="display: none">{% for article in articles %}</span>
                     <tr>
                         <td class="checkbox-column">
-                            <input type="checkbox" class="article-checkbox" value="{{ article.id }}">
+                            <input type="checkbox" class="article-checkbox" name="article_ids" value="{{ article.id }}" id="article-{{ article.id }}">
                         </td>
                         <td class="col-title">
                             <a href="{{ article.url }}">{{ article.title }}</a>
@@ -242,46 +151,56 @@
             }
         }
 
-        // 发送消息到LLM
-        function sendMessage() {
-            const chatInput = document.querySelector('.chat-input');
-            const selectedArticles = getSelectedArticles();
+        // 发送聊天消息
+        async function sendChatMessage() {
+            const messageInput = document.querySelector('.chat-input');
+            const message = messageInput.value.trim();
             
-            // 构建要发送的数据
-            const data = {
-                message: chatInput.value,
-                articles: selectedArticles
-            };
-
-            // 发送到后端
-            fetch('/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => {
-                // 处理响应
-                chatInput.value = '';
-                // TODO: 显示LLM响应
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        // 获取选中的文章
-        function getSelectedArticles() {
-            const checkboxes = document.getElementsByClassName('article-checkbox');
-            const selectedArticles = [];
+            // 获取选中的文章ID
+            const selectedArticles = Array.from(document.querySelectorAll('.article-checkbox:checked'))
+                .map(checkbox => checkbox.value);
             
-            for (let checkbox of checkboxes) {
-                if (checkbox.checked) {
-                    selectedArticles.push(checkbox.value);
-                }
+            console.log('Selected articles:', selectedArticles); // 调试日志
+            
+            if (message === '') {
+                showToast('请输入消息内容', 'error');
+                return;
             }
             
-            return selectedArticles;
+            if (selectedArticles.length === 0) {
+                showToast('请至少选择一篇文章', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        article_ids: selectedArticles
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('聊天请求失败');
+                }
+
+                const result = await response.json();
+                console.log('Chat response:', result);  // 调试日志
+                
+                if (result.success) {
+                    showToast('消息发送成功', 'success');
+                    messageInput.value = '';  // 清空输入框
+                } else {
+                    showToast(result.message || '发送失败', 'error');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                showToast('发送失败：' + error.message, 'error');
+            }
         }
 
         // 录音功能（示例）
@@ -352,28 +271,62 @@
             }
         }
 
-        // 处理添加按钮点击事件
-        // document.getElementById('add-button').addEventListener('click', function(event) {
-        //     event.preventDefault(); // 防止默认表单提交
-        //     const title = document.querySelector('input[name="title"]').value;
-        //     const url = document.querySelector('input[name="url"]').value;
-        //     const tags = document.querySelector('input[name="tags"]').value;
+        // 添加 Toast 提示函数
+        function showToast(message, type = 'error') {
+            const toastContainer = document.querySelector('#toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = message;
             
-        //     // 发送请求到后端添加文章
-        //     fetch('/add_article', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //         },
-        //         body: JSON.stringify({ title, url, tags })
-        //     })
-        //     .then(response => response.json())
-        //     .then(data => {
-        //         // TODO: 处理成功后的逻辑，比如刷新页面或更新列表
-        //         console.log(data);
-        //     })
-        //     .catch(error => console.error('Error:', error));
-        // });
+            toastContainer.appendChild(toast);
+            
+            // 显示 toast
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // 3秒后移除
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // 修改添加文章的表单提交
+        document.querySelector('.add-article-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const form = this;
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+
+            try {
+                const formData = new FormData(form);
+                console.log('Submitting form data:', Object.fromEntries(formData));  // 调试日志
+
+                const response = await fetch('/add_article', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Server response:', result);  // 调试日志
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    form.reset();
+                    window.location.reload();  // 重新加载页面显示新文章
+                } else {
+                    showToast(result.message || '添加文章失败', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast(error.message || '添加文章失败，请稍后重试', 'error');
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
 
         function editTags(articleId) {
             document.getElementById('tags-text-' + articleId).style.display = 'none';
@@ -389,6 +342,40 @@
             // document.getElementById('article-' + articleId).remove();
         }
         
+    </script>
+    <script>
+        // 自动关闭 Flash 消息
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    // 使用原生 JavaScript 淡出效果
+                    alert.style.transition = 'opacity 0.5s ease';
+                    alert.style.opacity = '0';
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 500);
+                }, 3000); // 3秒后自动关闭
+            });
+        });
+
+        // Toast 提示函数
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('#toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = message;
+            toastContainer.appendChild(toast);
+            
+            // 显示 toast
+            setTimeout(() => toast.classList.add('show'), 100);
+            
+            // 3秒后移除
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
     </script>
 </body>
 </html>

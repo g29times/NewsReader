@@ -42,14 +42,14 @@ class FileInputHandler:
         if use_jina_reader:
             url = f"https://r.jina.ai/{url}"
             
-        logger.info(f"Fetching content from URL: {url}")
+        logger.debug(f"JINA Reader Fetching content from: {url}")
         try:
             response = requests.get(url)
             response.raise_for_status()
-            logger.info(f"JINA Reader response - Status: {response.status_code}, First 50 chars: {response.text[:50]}")
+            logger.info(f"JINA Reader SUCCESS: {response.status_code}, First 30 chars: '{response.text[:30]}'")
             return response.text
         except requests.RequestException as e:
-            logger.error(f"Error fetching URL {url}: {e}")
+            logger.error(f"JINA Reader Error fetching '{url}': {e}")
             return None
 
 # Example usage

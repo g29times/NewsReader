@@ -1,15 +1,18 @@
 import os
-import sys
+import re
 import logging
+import sys
 from typing import Optional, Dict, Any
 import google.generativeai as genai
 from dotenv import load_dotenv
 import requests
+from .models import LLMResponse
 
 # 添加项目根目录到 Python 路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
-sys.path.append(project_root)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
 from utils.text_input_handler import TextInputHandler
 from utils.file_input_handler import FileInputHandler
@@ -36,17 +39,20 @@ SYSTEM_INSTRUCTION = (
 
 class GeminiClient:
     """
+    Google Gemini API 客户端
     静态方法集合，用于与Google Gemini API交互
     提供文本、媒体和查询的处理功能
     """
-    API_KEY = os.getenv('GEMINI_API_KEY')
-    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    API_KEY = os.getenv("GEMINI_API_KEY")
+    MODEL = "gemini-1.5-flash-latest"
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent"
+    
 
     @classmethod
     def _validate_api_key(cls):
-        """验证API密钥是否已设置"""
+        """验证API密钥是否设置"""
         if not cls.API_KEY:
-            raise ValueError("GEMINI_API_KEY environment variable not set")
+            raise ValueError("GEMINI_API_KEY not set")
 
     @classmethod
     def chat(cls, input_text: str) -> Optional[dict]:
@@ -57,7 +63,7 @@ class GeminiClient:
             input_text: 输入文本
             
         Returns:
-            API响应的JSON数据，如果失败则返回None
+            API响应的JSON数据，如果失败则返回错误信息和状态码
         """
         cls._validate_api_key()
 
@@ -71,14 +77,133 @@ class GeminiClient:
                 json=data,
                 timeout=10
             )
+            logger.info(f"Gemini Response Status: {response.status_code}")
+            logger.debug(f"Gemini Response Body: {response.text}")
+            
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to call Gemini API: {e}")
-            return None
+            if hasattr(e, 'response'):
+                status_code = e.response.status_code if hasattr(e.response, 'status_code') else response.status_code # 500
+                try:
+                    error_detail = e.response.json() if hasattr(e.response, 'json') else {}
+                    error_message = error_detail.get('error', {}).get('message', str(e))
+                except:
+                    error_message = str(e)
+            else:
+                status_code = response.status_code # 500
+                error_message = str(e)
+                
+            return {
+                'error': {
+                    'message': error_message,
+                    'status_code': status_code
+                }
+            }
 
-    @staticmethod
-    def upload_file(path: str, mime_type: Optional[str] = None) -> Optional[Any]:
+    @classmethod
+    def extract_title_summary_key(cls, response: str) -> LLMResponse:
+        """
+        从Gemini响应中提取结构化信息
+        
+        Args:
+            response: Gemini API的原始响应文本
+            
+        Returns:
+            LLMResponse 包含解析后的标题、摘要和关键词
+        """
+        try:
+            # 使用正则表达式提取信息
+            title_match = re.search(r'\*\*Title:\*\*\s*(.*?)(?=\n\n|$)', response)
+            summary_match = re.search(r'\*\*Summarize:\*\*\s*(.*?)(?=\n\n|$)', response)
+            key_points_match = re.search(r'\*\*Key-Words:\*\*\s*(.*?)(?=\n\n|$)', response)
+
+            body = {
+                'title': title_match.group(1).strip() if title_match else '',
+                'summary': summary_match.group(1).strip() if summary_match else '',
+                'key_points': key_points_match.group(1).strip() if key_points_match else ''
+            }
+
+            return LLMResponse(
+                state="SUCCESS",
+                desc="成功解析LLM响应",
+                status_code=200,
+                body=body
+            )
+        except Exception as e:
+            logger.error(f"解析Gemini响应失败: {e}")
+            return LLMResponse(
+                state="ERROR",
+                desc=f"解析响应失败: {str(e)}",
+                status_code=500,
+                body={}
+            )
+
+    @classmethod
+    def summarize_text(cls, text: str, prompt_template: str = None) -> LLMResponse:
+        """
+        使用Gemini总结文本内容
+        
+        Args:
+            text: 要总结的文本内容
+            prompt_template: 可选的提示词模板
+            
+        Returns:
+            LLMResponse 包含处理结果
+        """
+        if prompt_template is None:
+            prompt_template = (
+                "You have 3 tasks for the following content: "
+                "1. Fetch the title from the content, its format should have a title like 'Title: ...' "
+                "in its first line, if not, you will return 'NO TITLE' for a fallback); "
+                "2. Summarize the content concisely in Chinese; "
+                "3. Extract Key-Words(only words, no explanation) in a format like "
+                "'**1. Primary Domains** Web Applications, ...(no more than 5) "
+                "**2. Specific Topics** React, ...(no more than 10)'. "
+                "Your response must contain the title, summarize and key words in the fix format: "
+                "'**Title:** ...\n\n**Summarize:** ...\n\n**Key-Words:** ...'"
+            )
+        
+        try:
+            response = cls.chat(f"{prompt_template} : ```{text}```")
+            # 成功返回例子 {'candidates': [{'content': {'parts': [{'text': '**Title:** Title: Scaling Test-Time Compute：向量模型上的思维链\n\n**Summarize:** 文章探讨了在向量模型推理阶段增加计算资源'}], 'role': 'model'}, 'finishReason': 'STOP', 'avgLogprobs': -0.21152597132737075}], 'usageMetadata': {'promptTokenCount': 6673, 'candidatesTokenCount': 246, 'totalTokenCount': 6919}, 'modelVersion': 'gemini-1.5-flash-latest'}
+            
+            # 检查是否有错误响应
+            if 'error' in response:
+                return LLMResponse(
+                    state="ERROR",
+                    desc=response['error'].get('message', 'Unknown error'),
+                    status_code=response['error'].get('status_code', 500),
+                    body={}
+                )
+                
+            # 提取文本内容
+            text_content = response.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')
+            # 解析格式出错
+            if not text_content:
+                return LLMResponse(
+                    state="ERROR",
+                    desc="LLM返回内容为空",
+                    status_code=500,
+                    body={}
+                )
+            
+            # 解析响应
+            return cls.extract_title_summary_key(text_content)
+            
+        except Exception as e:
+            error_msg = f"Gemini处理失败: {str(e)}"
+            logger.error(error_msg)
+            return LLMResponse(
+                state="ERROR",
+                desc=error_msg,
+                status_code=500,
+                body={}
+            )
+
+    @classmethod
+    def upload_file(cls, path: str, mime_type: Optional[str] = None) -> Optional[Any]:
         """
         上传文件到Gemini
         
@@ -137,7 +262,7 @@ class GeminiClient:
             try:
                 response = cls.chat(prompt)
                 if response:
-                    return response['candidates'][0]['content']['parts'][0]['text']
+                    return response.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text')
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1} failed: {e}")
                 if attempt == retries:

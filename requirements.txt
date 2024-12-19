@@ -16,7 +16,7 @@ voyageai==0.3.2
 chromadb==0.5.23
 pymilvus==2.5.0
 milvus-model==0.2.4
-milvus-lite==2.4.9
+milvus-lite==2.4.9 # not on windows
 
 google-ai-generativelanguage==0.6.10
 google-api-core==2.23.0

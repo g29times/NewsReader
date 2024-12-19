@@ -116,3 +116,10 @@ Agent Support: Design agents that can autonomously interact with the system, exe
     1. 总结 For every new article/media/information, we need LLM to summarize them, substract key-points/ideas/questions/topics/lables.
     2. 关联 For every new article/media/information, We need LLM to find relations by go through history in database to find related articles base on silimar key-points/ideas/questions/topics/lables. This is the first level of discovery. But, considering the amount of data, we need to think a way to reduce the number of relations. 如果Layer 1相关，记录relations
     3. 发现 We need LLM to generate ideas during a time period, this is not for every new article, but for a period of time. Because relations are a large database, but only large is not enough, too many relations could even be redundant. We will design a shedule strategy for this. Ideas are information further extracted based on relations, they are the second level of discovery.  如果Layer 1 + Layer 2相关，记录ideas
+### Modules
+#### Chat
+我们已经完成了文章/资源页的关键设计 - @article.html，但是现在有个问题，就是我们的 AI对话窗口 太小，而且，只有用户输入的地方，没有AI回复的地方，一般的AI聊天系统的UI设计是：用户和AI在同一个大窗口里对话。
+因此我参考了网上的资源，发现了一个“谷歌笔记本”，我截图了他的网页设计。还使用v0进行了一版基于nextjs的复现，看起来效果不错，我把代码放在app和components文件夹里，供你参考。
+此外，我还在replit生成了网页的提示词，见files\chat-design\replit-prompt.md
+特别需要注意的是，由于改动可能比较大，因此我不建议在article.html中进行改动，我准备了一份新的html，叫做chat.html，可以在这里面实现。
+我们最好先讨论一下，是使用我们的html5+css+js的框架还是使用nextjs来实现。因为这将决定我们后续整个系统的设计方向。

@@ -36,7 +36,9 @@ http://www.haowu.space/
     [windows(cmd, not powershell)]
     1. cd .venv/Scripts; 2. activate
     ```
-3. Install dependencies: `pip install -r requirements.txt`
+3. Install dependencies: 
+    3.1 [windows] comment 'milvus-lite==2.4.9' in requirements.txt
+    3.2 `pip install -r requirements.txt`
 4. Run the application `python src/webapp/article.py`
 
 ## Technologies

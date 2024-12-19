@@ -5,6 +5,7 @@
 __pycache__
 files/temp
 .idea
+node_modules
 
 # ignore environment
 .venv

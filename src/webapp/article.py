@@ -1,6 +1,6 @@
 import os
 import sys
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from sqlalchemy.exc import IntegrityError
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -13,6 +13,7 @@ from database.connection import db_session
 import logging
 
 app = Flask(__name__)
+article_bp = Blueprint('article', __name__, url_prefix='/article')
 # 获取模块特定的logger
 logger = logging.getLogger(__name__)
 
@@ -38,10 +39,10 @@ def add_article():
     try:
         # 获取表单数据
         article_data = {
-            'title': request.form['title'],
-            'url': request.form['url'],
-            'tags': request.form['tags'],
-            'content': '' # TODO 1 文件形式来源
+            'title': request.form.get('title', ''),
+            'url': request.form.get('url', ''),
+            'tags': request.form.get('tags', ''),
+            'content': ''  # 将从URL获取内容
         }
 
         # 如果有URL，获取内容
@@ -51,33 +52,50 @@ def add_article():
         # 使用LLM处理内容
         response = LLMTasks.summarize_and_key_points(article_data['content'])
         
-        if response.title == "ERROR" or response.title == "":
-            flash(f'Error processing resource: {article_data["url"]}')
-            return redirect(url_for('article'))
-        logger.info(f"Title: {response.title}")
-        logger.info(f"Summary: {response.summary}")
-        logger.info(f"Key Points: {response.key_points}")
-        
+        # 异常处理
+        if response.state == "ERROR" or response.body.get('title') == "":
+            error_msg = f'LLM API 调用出错 - {response.desc}'
+            logger.error(error_msg)
+            return jsonify({
+                'success': False,
+                'message': error_msg,
+                'data': None
+            }), response.status_code
+
         # 更新文章数据
+        logger.debug(f"LLM SUMMARY: {response}")
         article_data.update({
-            'title': response.title,
-            'summary': response.summary,
-            'key_points': response.key_points
+            'title': response.body.get('title', ''),
+            'summary': response.body.get('summary', ''),
+            'key_points': response.body.get('key_points', '')
         })
 
-        # 创建文章
-        create_article(db_session, article_data)
-        flash('Article added successfully')
+        # 创建新文章
+        new_article = Article(**article_data)
+        db_session.add(new_article)
+        db_session.commit()
 
-    except IntegrityError:
-        db_session.rollback()
-        flash('Article with this URL already exists.')
+        logger.info(f"成功添加文章: {new_article.title}")
+        return jsonify({
+            'success': True,
+            'message': '文章添加成功',
+            'data': {
+                'id': new_article.id,
+                'title': new_article.title,
+                'summary': new_article.summary,
+                'key_points': new_article.key_points
+            }
+        })
+
     except Exception as e:
         db_session.rollback()
-        logger.error(f"Error adding article: {e}")
-        flash(f'Error processing article: {str(e)}')
-
-    return redirect(url_for('article'))
+        error_msg = f'添加文章失败: {str(e)}'
+        logger.error(error_msg)
+        return jsonify({
+            'success': False,
+            'message': error_msg,
+            'data': None
+        }), 500
 
 @app.route('/delete_article/<int:article_id>', methods=['POST'])
 def delete_article_route(article_id):
@@ -129,39 +147,40 @@ def search_articles():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    data = request.get_json()
-    message = data.get('message', '')
-    article_ids = data.get('articles', [])
-    print(f"Message: {message}")
-    print(f"Selected articles: {article_ids}")
-    # 获取选中的文章地址
-    article_urls = []
-    articles = get_article_by_ids(db_session, article_ids)
-    for article in articles:
-        article_urls.append({
-            'url': article.url
+    """处理聊天请求"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        article_ids = data.get('article_ids', [])
+        
+        # 调试日志
+        logger.info(f"收到聊天请求：message={message}, article_ids={article_ids}")
+        
+        # 这里暂时只返回成功响应，不调用LLM
+        return jsonify({
+            'success': True,
+            'message': '消息已收到',
+            'data': {
+                'received_message': message,
+                'article_count': len(article_ids)
+            }
         })
-    
-    # selected_articles = []
-    # for article_id in article_ids:
-    #     article = Article.query.get(article_id)
-    #     if article:
-    #         selected_articles.append({
-    #             'title': article.title,
-    #             'summary': article.summary,
-    #             'key_points': article.key_points,
-    #             'tags': article.tags
-    #         })
-    
-    # TODO: 调用LLM处理文章和消息
-    # response = llm_client.process_articles_and_message(selected_articles, message)
-    client = GeminiClient()
-    response = client.chat(message, selected_articles)
-    
-    return jsonify({
-        'status': 'success',
-        'message': 'Feature coming soon!'
-    })
+
+    except Exception as e:
+        error_msg = f'处理聊天请求失败: {str(e)}'
+        logger.error(error_msg)
+        return jsonify({
+            'success': False,
+            'message': error_msg,
+            'data': None
+        }), 500
+
+@article_bp.route('/article.css')
+def serve_css():
+    """提供CSS文件"""
+    return send_from_directory('templates', 'article.css')
+
+app.register_blueprint(article_bp)
 
 if __name__ == '__main__':
     app.secret_key = 'super secret key'  # Set the secret key
