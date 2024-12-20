@@ -35,19 +35,26 @@ class FileInputHandler:
 
     # Call JINA Reader to read text from a URL 调用JINA Reader从URL读取文本
     @staticmethod
-    def jina_read_from_url(url, use_jina_reader=True):
+    def jina_read_from_url(url, mode='read'):
         """
-        Fetch and read text from a URL, optionally using JINA Reader
+        Fetch and read text from a URL using JINA Reader
+        Args:
+            url: The URL to fetch content from
+            mode: 'read' to return content directly, 'write' to write to file and return None
         """
-        if use_jina_reader:
-            url = f"https://r.jina.ai/{url}"
-            
-        logger.debug(f"JINA Reader Fetching content from: {url}")
+        url = f"https://r.jina.ai/{url}"
+        logger.info(f"JINA Reader Fetching content from: {url}")
         try:
             response = requests.get(url)
             response.raise_for_status()
             logger.info(f"JINA Reader SUCCESS: {response.status_code}, First 30 chars: '{response.text[:30]}'")
-            return response.text
+            
+            if mode == 'write':
+                with open('src/utils/jina_read_from_url_response_demo.txt', 'w', encoding='utf-8') as f:
+                    f.write(response.text)
+                return None
+            else:
+                return response.text
         except requests.RequestException as e:
             logger.error(f"JINA Reader Error fetching '{url}': {e}")
             return None
@@ -55,8 +62,13 @@ class FileInputHandler:
 # Example usage
 if __name__ == "__main__":
     # 使用示例
-    local_text = FileInputHandler.read_from_file('M:\WorkSpace\AIGC\Data\Visual\Anime\prompt.txt')
-    logger.info(local_text)
-
+    print('READ PDF =====================')
+    pdf_text = FileInputHandler.extract_text_from_pdf('./files/temp/ece443-lec01.pdf')
+    print(pdf_text)
+    print('READ TEXT =====================')
+    local_text = FileInputHandler.read_from_file('src/utils/file_input_handler.py')
+    print(local_text)
+    print('READ URL =====================')
     url_text = FileInputHandler.jina_read_from_url('https://www.google.com')
-    logger.info(url_text)
+    print(url_text)
+    print('END =====================')

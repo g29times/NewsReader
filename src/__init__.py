@@ -1,6 +1,9 @@
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from functools import wraps
+
+# https://blog.csdn.net/Runner1st/article/details/96481954
 
 GEMINI_API_KEY= os.getenv("GEMINI_API_KEY", None)
 
@@ -8,9 +11,10 @@ GEMINI_API_KEY= os.getenv("GEMINI_API_KEY", None)
 GENIMI = "gemini-1.5-flash-latest" # DOC tests\GEMINI-DOC.md
 
 # 配置项目级别的日志
-# 文件
-file_handler = logging.FileHandler('newsreader.log')
-file_handler.setLevel(level=logging.DEBUG) # 文件分级别 DEBUG 且显示行号
+# 使用 RotatingFileHandler 按照大小自动分割日志文件，每个文件最大8MB，保留5个备份
+log_file = 'newsreader.log'
+file_handler = RotatingFileHandler(log_file, maxBytes=8*1024*1024, backupCount=5)
+file_handler.setLevel(level=logging.DEBUG)  # 文件分级别 DEBUG 且显示行号
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s'))
 # 控制台
 stream_handler = logging.StreamHandler()

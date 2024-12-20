@@ -1,0 +1,10 @@
+# 只读模式
+    - codebase_search
+    - grep_search
+    - list_dir
+    - view_file
+    - view_code_item
+    - propose_code
+    - related_files
+# 编辑模式
+    - run_command

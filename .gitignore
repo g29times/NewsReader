@@ -1,6 +1,8 @@
 # ignore files
 *.pyc
-.log
+*.log*
+package.json
+package-lock.json
 
 # ignore directories
 __pycache__

@@ -283,7 +283,7 @@ class GeminiClient:
             Gemini的响应文本
         """
         try:
-            content = FileInputHandler.jina_read_from_url(url, use_jina_reader=True)
+            content = FileInputHandler.jina_read_from_url(url)
             if content:
                 return cls.query_with_content(content, question, retries)
         except Exception as e:
