@@ -4,3 +4,8 @@ dev
 prod
     mysql for RMDB
     milvus for vector DB
+
+TODO
+    user
+    cache
+    memory

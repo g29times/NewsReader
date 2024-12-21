@@ -12,7 +12,7 @@ DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./src/database/articles.db')
 
 # Create engine
 engine = create_engine(
-    DATABASE_URL, echo=False,
+    DATABASE_URL, echo=False, # echo 打印数据库日志
     connect_args={'check_same_thread': False} if 'sqlite' in DATABASE_URL else {}
 )
 

@@ -347,7 +347,7 @@
                 <!-- 聊天消息将在这里动态添加 -->
             </div>
             <div class="chat-input-area">
-                <textarea class="chat-input" placeholder="输入消息..."></textarea>
+                <textarea id="messageInput" class="chat-input" placeholder="输入消息..."></textarea>
                 <button class="btn btn-primary" onclick="sendChatMessage()">发送</button>
             </div>
         </div>
@@ -429,61 +429,42 @@
 
         // 发送聊天消息
         async function sendChatMessage() {
-            const messageInput = document.querySelector('.chat-input');
+            // const messageInput = document.querySelector('.chat-input');
+            const messageInput = document.getElementById('messageInput');
             const message = messageInput.value.trim();
-            
+
             // 获取选中的文章ID
             const selectedArticles = Array.from(document.querySelectorAll('.article-items .article-checkbox:checked'))
                 .map(checkbox => checkbox.dataset.articleId);
             
-            console.log('Selected articles:', selectedArticles); // 调试日志
-            
+            console.debug('Selected articles:', selectedArticles); // 调试日志
+
             if (message === '') {
                 showToast('请输入消息内容', 'error');
                 return;
             }
             
-            if (selectedArticles.length === 0) {
-                showToast('请至少选择一篇文章', 'error');
-                return;
+            let result;
+            if (selectedArticles.length > 0) {
+                result = await call_chat('/api/chat/with_articles', message, selectedArticles);
+            } else {
+                result = await call_chat('/api/chat', message);
             }
-
-            try {
-                const response = await fetch('/api/chat/send', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        message: message,
-                        article_ids: selectedArticles
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('聊天请求失败');
+            console.debug('Chat result:', result.success); // 调试日志
+            
+            if (result.success) {
+                // 添加消息到聊天区域
+                addMessageToChat('user', message);
+                if (result.data && result.data.response) {
+                    addMessageToChat('assistant', result.data.response);
                 }
-
-                const result = await response.json();
-                console.log('Chat response:', result);
-                
-                if (result.success) {
-                    // 添加消息到聊天区域
-                    addMessageToChat('user', message);
-                    if (result.data && result.data.response) {
-                        addMessageToChat('assistant', result.data.response);
-                    }
-                    messageInput.value = '';
-                    showToast('消息发送成功', 'success');
-                } else {
-                    showToast(result.message || '发送失败', 'error');
-                }
-            } catch (error) {
-                console.error('Chat error:', error);
-                showToast('发送失败：' + error.message, 'error');
+                messageInput.value = ''; // 清空输入框
+                showToast('消息发送成功', 'success');
+            } else {
+                showToast(result.message || '发送失败', 'error');
             }
         }
-
+        
         // 添加消息到聊天区域
         function addMessageToChat(role, content) {
             const chatMessages = document.getElementById('chatMessages');
@@ -499,10 +480,52 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        // 调用后端chat服务
+        async function call_chat(url, message, selectedArticles = []) {
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                            'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                            message: message,
+                            article_ids: selectedArticles
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(`服务端响应：(${error.message || '未知错误'})`);
+                }
+
+                const result = await response.json();
+                console.debug('Chat result:', result); // 调试日志
+
+                // if (result.success) {
+                //     // 添加消息到聊天区域
+                //     addMessageToChat('user', message);
+                //     if (result.data && result.data.response) {
+                //         addMessageToChat('assistant', result.data.response);
+                //     }
+                //     messageInput.value = '';
+                //     showToast('消息发送成功', 'success');
+                // } else {
+                //     showToast(result.message || '发送失败', 'error');
+                // }
+
+                return result;
+            } catch (error) {
+                console.error('Chat error:', error);
+                showToast('发送失败：' + error.message, 'error');
+            }
+        }
+        
+
         // 搜索文章
         async function searchArticles(query) {
             try {
-                const response = await fetch(`/api/articles/search?q=${encodeURIComponent(query)}`);
+                const response = await fetch(`/api/articles/search?query=${encodeURIComponent(query)}`);
                 if (!response.ok) {
                     throw new Error('搜索请求失败');
                 }

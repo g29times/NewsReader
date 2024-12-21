@@ -1,5 +1,6 @@
 pipreqs==0.5.0
 
+# basic
 beautifulsoup4==4.12.3
 fastapi==0.115.6
 Flask==3.1.0
@@ -12,12 +13,7 @@ scikit_learn==1.6.0
 SQLAlchemy==2.0.15
 uvicorn==0.32.1
 
-voyageai==0.3.2
-chromadb==0.5.23
-pymilvus==2.5.0
-milvus-model==0.2.4
-milvus-lite==2.4.9 # not on windows
-
+# api
 google-ai-generativelanguage==0.6.10
 google-api-core==2.23.0
 google-api-python-client==2.154.0
@@ -25,3 +21,13 @@ google-auth==2.36.0
 google-auth-httplib2==0.2.0
 google-generativeai==0.8.3
 googleapis-common-protos==1.66.0
+
+# vector db
+chromadb==0.5.23
+pymilvus==2.5.0
+milvus-model==0.2.4
+milvus-lite==2.4.9 # not on windows
+
+# advanced AI
+voyageai==0.3.2
+llama-index==0.12.7

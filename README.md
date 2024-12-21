@@ -20,25 +20,24 @@ http://www.haowu.space/
 1. Clone the repository
 2. Set up environment variables  
     2.1 setup safety env(password etc.)
-    ```
-    cd [projectRoot]
-    vi .env-demo
-    ```
+        ```
+        cd [projectRoot]
+        vi .env-demo
+        ```
     rename it to '.env' after setting  
     2.2 setup python(>=3.10) & venv
-    ```
-    sudo apt install python3.12-venv -y
-    python -m venv .venv
-    ```
+        ```
+        sudo apt install python3.12-venv -y
+        python -m venv .venv
+        ```
     2.3 use venv
-    ```
-    [linux/mac] source .venv/bin/activate
-    [windows(cmd, not powershell)]
-    1. cd .venv/Scripts; 2. activate
-    ```
-3. Install dependencies: 
-    3.1 [windows] comment 'milvus-lite==2.4.9' in requirements.txt
-    3.2 `pip install -r requirements.txt`
+        ```
+        [linux/mac] source .venv/bin/activate
+        [windows(using cmd, not powershell)] 1. cd .venv/Scripts; 2. activate
+        ```
+3. Install dependencies(only first time): 
+    [windows] comment line 'milvus-lite==2.4.9' in requirements.txt
+    `pip install -r requirements.txt`
 4. Run the application `python src/webapp/article.py`
 
 ## Technologies

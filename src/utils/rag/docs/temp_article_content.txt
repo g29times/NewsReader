@@ -1,6 +1,6 @@
 2024/12/20 13:48 LLM之 RAG 实战（二十二） | LlamaIndex 高级检索（一）构建完整基本 RAG 框架（包括 RAG 评估）  - 知乎
 https://zhuanlan.zhihu.com/p/681532023 1/15LLM之RA G实战（二十二）| LlamaIndex高级检索（一）构建
-完整基本RA G框架（包括RA G评估）
+完整基本RAG框架（包括RAG评估）
  关注他
 17 人赞同了该文章
 github：Arr onAI007/A wesome-A GI

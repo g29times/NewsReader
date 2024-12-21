@@ -37,6 +37,14 @@ def get_article_by_ids(db: Session, article_ids: list):
 def get_all_articles(db: Session):
     return db.query(Article).all()
 
+@logy
+def search_articles(db: Session, query: str):
+    return db.query(Article).filter(
+        Article.title.contains(query) |
+        Article.summary.contains(query) |
+        Article.key_points.contains(query) |
+        Article.tags.contains(query)
+    ).all()
 
 @logy
 def update_article(db: Session, article_id: int, update_data: dict):
