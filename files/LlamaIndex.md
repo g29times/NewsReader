@@ -29,7 +29,12 @@ LlamaIndex是一个强大的数据框架，用于构建LLM应用。在我们的N
 By default, we use the OpenAI gpt-3.5-turbo model for text generation and text-embedding-ada-002 for retrieval and embeddings. In order to use this, you must have an OPENAI_API_KEY set up as an environment variable. 
 
 ## 2. 主要组件
-
+### 依赖汇总
+pip install llama-index
+pip install llama-index-readers-database
+pip install llama-index-vector-stores-chroma
+pip install llama-index-embeddings-voyageai
+pip install llama-index-llms-gemini
 ### 2.1 数据加载
 https://docs.llamaindex.ai/en/stable/understanding/loading/loading/
 ```python

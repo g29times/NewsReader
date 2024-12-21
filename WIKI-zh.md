@@ -6,6 +6,7 @@
 3 安装依赖 pip install -r requirements.txt
 #### 依赖管理
 `pip install pipreqs`
+`pipreqs --ignore .venv --force`
 https://cloud.tencent.com/developer/article/2464574
 https://segmentfault.com/a/1190000020886718
 `pipreqs --ignore .venv` # 解决uft-8问题
@@ -16,11 +17,11 @@ https://blog.csdn.net/pearl8899/article/details/113877334
 查看过时的库：使用 pip list --outdated 检查哪些库已经过时。
 更新特定库：选择需要更新的库，使用 pip install --upgrade <库名> 进行更新。
 ```
+pip install pipreqs
+pipreqs --ignore .venv --force
+or
 pip install -r requirements.txt
 pip freeze > requirements.txt
-or
-pip install pipreqs
-pipreqs /path/to/your/project
 ```
 
 ### Job
