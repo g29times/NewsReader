@@ -316,9 +316,6 @@ def chat_with_articles():
             }), 400
         response = rag_service.chat_with_articles(article_ids, message)
         
-        # 清理临时collection
-        rag_service.cleanup_collection(article_ids)
-        
         # return jsonify({'response': response})
         return jsonify({
             'success': True,

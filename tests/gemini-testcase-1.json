@@ -20,5 +20,5 @@
         "candidatesTokenCount": 756,
         "totalTokenCount": 775
     },
-    "modelVersion": "gemini-1.5-flash-latest"
+    "modelVersion": "gemini-2.0-flash-exp"
 }

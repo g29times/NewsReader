@@ -13,7 +13,7 @@ Quickly test the API by running a cURL command
 curl \
   -H "Content-Type: application/json" \
   -d "{\"contents\":[{\"parts\":[{\"text\":\"Explain how AI works\"}]}]}" \
-  -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=YOUR_API_KEY"
+  -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=YOUR_API_KEY"
 ```
 - RESPONSE
 ```
@@ -56,7 +56,7 @@ test set) that wasn't used during training.  This helps to assess how well it ge
     "candidatesTokenCount": 674,
     "totalTokenCount": 678
   },
-  "modelVersion": "gemini-1.5-flash-latest"
+  "modelVersion": "gemini-2.0-flash-exp"
 }
 ```
 
@@ -117,7 +117,7 @@ generation_config = {
 }
 
 model = genai.GenerativeModel(
-  model_name="gemini-1.5-flash", "gemini-exp-1121", "gemini-exp-1206",
+  model_name="gemini-2.0-flash-exp", "gemini-exp-1121", "gemini-exp-1206",
   generation_config=generation_config,
   system_instruction="You are an expert scientific researcher who has years of experience in conducting systematic literature surveys and meta-analyses of different topics. You pride yourself on incredible accuracy and attention to detail. You always stick to the facts in the sources provided, and never make up new facts.",
 )

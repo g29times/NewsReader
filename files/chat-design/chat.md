@@ -69,6 +69,16 @@
 3. 基础聊天功能
 4. 消息历史
 5. 笔记功能
-6. 对话记忆
-7. 人格设定
-8. 主动对话
+
+## 技术特点：
+多路LLM路由 并行化
+https://docs.llamaindex.ai/en/stable/module_guides/deploying/query_engine/response_modes/
+https://mp.weixin.qq.com/s/VkDGOpNtmM1gX_3O7CJBSg
+https://mp.weixin.qq.com/s/nKHyBJ6e5HPWbIsq8-B0Mw
+
+## DEBUG
+1. 部分文档中文问题 “UnicodeEncodeError: 'gbk' codec can't encode character '\xa0' in position 183: illegal multibyte sequence”
+2. 窗口大小（部分模型长篇回复导致变宽）
+3. 参考来源:重复2次显示
+# 问题集
+[问答集](Prompts.txt)

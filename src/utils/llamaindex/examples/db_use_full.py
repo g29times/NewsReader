@@ -93,11 +93,13 @@ print("type(documents): ", type(documents))
 print(documents)
 
 
+# 扩展 - 结合LLM
 
 # 初始化Chroma客户端
 import chromadb
 chroma_client = chromadb.PersistentClient(path="./src/database/chroma_db")
-collection = chroma_client.get_or_create_collection("articles")
+# chroma_client.delete_collection("articles_demo")
+collection = chroma_client.get_or_create_collection("articles_demo")
 
 # 创建向量存储
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -112,22 +114,28 @@ voyage_api_key = os.getenv("VOYAGE_API_KEY")
 embed_model = VoyageEmbedding(
     model_name=model_name, voyage_api_key=voyage_api_key
 )
-index = VectorStoreIndex.from_documents(
-    documents,
-    show_progress=True,
-    storage_context=storage_context,
+# 1 创建索引（首次索引）
+# index = VectorStoreIndex.from_documents(
+#     documents,
+#     show_progress=True,
+#     storage_context=storage_context,
+#     embed_model=embed_model
+# )
+# or 2 加载索引
+index = VectorStoreIndex.from_vector_store(
+    vector_store, storage_context=storage_context,
     embed_model=embed_model
 )
 
 # 配置查询引擎
 from llama_index.llms.gemini import Gemini
-API_KEY = os.getenv("GEMINI_API_KEY1")
-MODEL = "gemini-1.5-flash-latest"
+API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL = os.getenv("GEMINI_MODEL")
 query_engine = index.as_query_engine(
     llm=Gemini(model="models/" + MODEL, api_key=API_KEY),
     streaming=True
 )
 
-# 提问
+# 提问多个文档
 response = query_engine.query("What are these documents about?")
 print(response)

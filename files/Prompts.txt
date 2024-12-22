@@ -11,3 +11,13 @@
 - [ ] 问题：大模型能为生产系统做哪些有实际商业价值的事？ - 答：可以看看《基于向量模型的文本水印技术》和《美团AutoConsis：UI内容一致性智能检测》
 - [ ] 关联点-SFT：《瞎聊: SFT模型为何不如Pretrain模型》，《MIT 21页论文：LoRA、完全微调FT到底有何不同？》，《Day 2 「强化微调」文字稿：强烈推荐各个专业领域尤其搞科研的看看》
 - [ ] 关联点-LESS：《OpenAI狂飙突进！仅12个例子就能打造专属AI专家，核心技术竟来自字节？》，
+
+RAG
+单一文章
+   1 老板为什么怒了
+   2 https://aistudio.google.com/prompts/18IiQk6tbMDjHYPmLiVbwxMBGbb7BoMa1
+多文章
+   1 给学生推荐一下这几篇文章的阅读优先级排序
+   2 这几篇文章里的术语和时间线
+多轮次 Multi-turn Dialogue
+   1 

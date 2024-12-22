@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - NewsReader</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
     <style>
         /* 基础布局 */
         .chat-container {
@@ -399,19 +400,25 @@
             const chatContainer = document.querySelector('.chat-container');
             chatContainer.classList.add('expanded');
             
+            // 创建Markdown转换器
+            const converter = new showdown.Converter();
+            // 转换Markdown内容
+            const contentHtml = converter.makeHtml(article.content || '');
+            
             const titleElement = document.getElementById('expandedArticleTitle');
             titleElement.textContent = article.title;
             
             document.getElementById('expandedArticleSummary').textContent = article.summary;
             const topicsList = document.getElementById('expandedArticleTopics');
             topicsList.innerHTML = article.topics.map(topic => `<li>${topic}</li>`).join('');
-            document.getElementById('expandedArticleContent').textContent = article.content || '暂无内容';
+            document.getElementById('expandedArticleContent').innerHTML = contentHtml || '暂无内容';
             
             // 确保Source Guide默认是收起的
             const sourceGuideContent = document.querySelector('.source-guide-content');
             sourceGuideContent.classList.remove('expanded');
             const expandText = document.querySelector('.expand-text');
             expandText.textContent = '展开';
+            
         }
 
         function toggleSourceGuide(header) {
@@ -427,11 +434,49 @@
             chatContainer.classList.remove('expanded');
         }
 
+        // 添加用户消息到聊天区域
+        function addUserMessageToChat(content) {
+            addMessageToChat('user', content);
+        }
+
+        // 添加助手消息到聊天区域
+        function addAssistantMessageToChat(content) {
+            // 移除所有"思考中..."的临时消息
+            const tempMessages = document.querySelectorAll('.message.assistant.thinking');
+            tempMessages.forEach(msg => msg.remove());
+            
+            // 添加实际的助手消息
+            addMessageToChat('assistant', content);
+        }
+
+        // 添加思考中的临时消息
+        function addThinkingMessage() {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant thinking';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <strong>AI助手:</strong>
+                    <p>思考中...</p>
+                </div>
+            `;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
         // 发送聊天消息
         async function sendChatMessage() {
-            // const messageInput = document.querySelector('.chat-input');
             const messageInput = document.getElementById('messageInput');
+            const sendButton = document.querySelector('.btn-primary');
             const message = messageInput.value.trim();
+
+            if (message === '') {
+                showToast('请输入消息内容', 'error');
+                return;
+            }
+
+            // 禁用发送按钮
+            sendButton.disabled = true;
 
             // 获取选中的文章ID
             const selectedArticles = Array.from(document.querySelectorAll('.article-items .article-checkbox:checked'))
@@ -439,41 +484,55 @@
             
             console.debug('Selected articles:', selectedArticles); // 调试日志
 
-            if (message === '') {
-                showToast('请输入消息内容', 'error');
-                return;
-            }
-            
-            let result;
-            if (selectedArticles.length > 0) {
-                result = await call_chat('/api/chat/with_articles', message, selectedArticles);
-            } else {
-                result = await call_chat('/api/chat', message);
-            }
-            console.debug('Chat result:', result.success); // 调试日志
-            
-            if (result.success) {
-                // 添加消息到聊天区域
-                addMessageToChat('user', message);
-                if (result.data && result.data.response) {
-                    addMessageToChat('assistant', result.data.response);
+            try {
+                // 立即添加用户消息
+                addUserMessageToChat(message);
+                // 添加思考中提示
+                addThinkingMessage();
+                
+                // 清空输入框
+                messageInput.value = '';
+
+                let result;
+                if (selectedArticles.length > 0) {
+                    result = await call_chat('/api/chat/with_articles', message, selectedArticles);
+                } else {
+                    result = await call_chat('/api/chat', message);
                 }
-                messageInput.value = ''; // 清空输入框
-                showToast('消息发送成功', 'success');
-            } else {
-                showToast(result.message || '发送失败', 'error');
+                
+                console.debug('Chat result:', result.success); // 调试日志
+                
+                if (result.success) {
+                    if (result.data && result.data.response) {
+                        addAssistantMessageToChat(result.data.response);
+                    }
+                    showToast('消息处理成功', 'success');
+                } else {
+                    showToast(result.message || '消息处理失败', 'error');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                showToast('消息发送失败', 'error');
+            } finally {
+                // 恢复发送按钮
+                sendButton.disabled = false;
             }
         }
-        
+
         // 添加消息到聊天区域
         function addMessageToChat(role, content) {
+            
+            // 创建Markdown转换器并转换内容
+            const converter = new showdown.Converter();
+            const htmlContent = role === 'assistant' ? converter.makeHtml(content) : content;
+            
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
             messageDiv.innerHTML = `
                 <div class="message-content">
                     <strong>${role === 'user' ? '你' : 'AI助手'}:</strong>
-                    <p>${content}</p>
+                    <p>${htmlContent}</p>
                 </div>
             `;
             chatMessages.appendChild(messageDiv);
@@ -496,31 +555,18 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(`服务端响应：(${error.message || '未知错误'})`);
+                    throw new Error(`服务响应：(${error.message || '未知错误'})`);
                 }
 
                 const result = await response.json();
                 console.debug('Chat result:', result); // 调试日志
 
-                // if (result.success) {
-                //     // 添加消息到聊天区域
-                //     addMessageToChat('user', message);
-                //     if (result.data && result.data.response) {
-                //         addMessageToChat('assistant', result.data.response);
-                //     }
-                //     messageInput.value = '';
-                //     showToast('消息发送成功', 'success');
-                // } else {
-                //     showToast(result.message || '发送失败', 'error');
-                // }
-
                 return result;
             } catch (error) {
                 console.error('Chat error:', error);
-                showToast('发送失败：' + error.message, 'error');
+                showToast('服务调用失败' + error.message, 'error');
             }
         }
-        
 
         // 搜索文章
         async function searchArticles(query) {

@@ -7,6 +7,7 @@ engine = create_engine("sqlite:///./src/database/articles.db", echo=True)
 from llama_index.core import SQLDatabase
 sql_database = SQLDatabase(engine)
 
+import os
 from llama_index.embeddings.voyageai import VoyageEmbedding
 model_name = "voyage-3"
 voyage_api_key = os.getenv("VOYAGE_API_KEY")
@@ -14,10 +15,8 @@ embed_model = VoyageEmbedding(
     model_name=model_name, voyage_api_key=voyage_api_key
 )
 
-import os
-API_KEY = os.getenv("GEMINI_API_KEY1")
-MODEL = "gemini-1.5-flash-latest"
-
+API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL = os.getenv("GEMINI_MODEL")
 from llama_index.llms.gemini import Gemini
 from llama_index.core.indices.struct_store import NLSQLTableQueryEngine
 query_engine = NLSQLTableQueryEngine(

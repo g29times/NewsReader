@@ -8,7 +8,7 @@ from functools import wraps
 GEMINI_API_KEY= os.getenv("GEMINI_API_KEY", None)
 
 # 设置包级别常量
-GENIMI = "gemini-1.5-flash-latest" # DOC tests\GEMINI-DOC.md
+GENIMI = os.getenv("GEMINI_MODEL") # DOC tests\GEMINI-DOC.md
 
 # 配置项目级别的日志
 # 使用 RotatingFileHandler 按照大小自动分割日志文件，每个文件最大8MB，保留5个备份

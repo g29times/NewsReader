@@ -6,6 +6,7 @@ from typing import Optional, Dict, Any
 import google.generativeai as genai
 from dotenv import load_dotenv
 import requests
+
 from .models import LLMResponse
 
 # 添加项目根目录到 Python 路径
@@ -43,8 +44,8 @@ class GeminiClient:
     静态方法集合，用于与Google Gemini API交互
     提供文本、媒体和查询的处理功能
     """
-    API_KEY = os.getenv("GEMINI_API_KEY1")
-    MODEL = "gemini-1.5-flash-latest"
+    API_KEY = os.getenv("GEMINI_API_KEY")
+    MODEL = os.getenv("GEMINI_MODEL")
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent"
     
 
@@ -167,7 +168,7 @@ class GeminiClient:
         
         try:
             response = cls.chat(f"{prompt_template} : ```{text}```")
-            # 成功返回例子 {'candidates': [{'content': {'parts': [{'text': '**Title:** Title: Scaling Test-Time Compute：向量模型上的思维链\n\n**Summarize:** 文章探讨了在向量模型推理阶段增加计算资源'}], 'role': 'model'}, 'finishReason': 'STOP', 'avgLogprobs': -0.21152597132737075}], 'usageMetadata': {'promptTokenCount': 6673, 'candidatesTokenCount': 246, 'totalTokenCount': 6919}, 'modelVersion': 'gemini-1.5-flash-latest'}
+            # 成功返回例子 {'candidates': [{'content': {'parts': [{'text': '**Title:** Title: Scaling Test-Time Compute：向量模型上的思维链\n\n**Summarize:** 文章探讨了在向量模型推理阶段增加计算资源'}], 'role': 'model'}, 'finishReason': 'STOP', 'avgLogprobs': -0.21152597132737075}], 'usageMetadata': {'promptTokenCount': 6673, 'candidatesTokenCount': 246, 'totalTokenCount': 6919}, 'modelVersion': 'gemini-2.0-flash-exp'}
             
             # 检查是否有错误响应
             if 'error' in response:
@@ -333,7 +334,7 @@ class GeminiClient:
     def _initialize_model(cls) -> genai.GenerativeModel:
         """初始化Generative Model"""
         return genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name=cls.MODEL,
             generation_config=cls.GENERATION_CONFIG,
             system_instruction=cls.SYSTEM_INSTRUCTION,
         )

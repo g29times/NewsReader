@@ -6,6 +6,8 @@ https://docs.llamaindex.ai/en/stable/getting_started/starter_example/
 2. 学习：完成入门部分后，下一步就是学习这个部分。在一系列简短的教程中，我们将引导您完成构建生产 LlamaIndex 应用程序的每个阶段，并帮助您逐步掌握库和 LLM 的一般概念。
 https://docs.llamaindex.ai/en/stable/understanding/using_llms/using_llms/
 https://docs.llamaindex.ai/en/stable/understanding/rag/
+https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/apps/fullstack_app_guide/
+https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/chatbots/building_a_chatbot/
 
 3. 用例：如果您是一名开发人员，想要弄清楚 LlamaIndex 是否适合您的用例，我们会概述您可以构建的事物类型。Structured Data Extraction、Query Engines、Chat Engines、Agents
 https://docs.llamaindex.ai/en/stable/use_cases/
@@ -16,12 +18,25 @@ https://docs.llamaindex.ai/en/stable/examples/llama_hub/llama_hub/#using-a-data-
 
 5. 组件指南：按照与我们的学习部分构建 LLM 应用程序的相同顺序排列，这些是针对 LlamaIndex 的各个组件及其使用方法的全面的、低级指南。
 https://docs.llamaindex.ai/en/stable/module_guides/
+https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
+https://docs.llamaindex.ai/en/stable/module_guides/storing/vector_stores/
+检索 https://docs.llamaindex.ai/en/stable/module_guides/querying/retriever/#retriever
+评估 https://docs.llamaindex.ai/en/stable/module_guides/evaluating/
 
 6. 高级主题：已经有一个可以运行的 LlamaIndex 应用程序，并希望进一步完善它？我们的高级部分将引导您完成您应该尝试优化的首要事项，例如您的嵌入模型和块大小，以及逐步更复杂和更微妙的自定义，一直到微调您的模型。
 https://docs.llamaindex.ai/en/stable/optimizing/production_rag/
 
 7. API文档
 https://docs.llamaindex.ai/en/stable/api_reference/
+
+8. 开源库
+[llamahub](https://llamahub.ai/?tab=all)
+
+9. 社区分享
+https://blog.csdn.net/2303_77267815/article/details/141966902 书生大模型实战营
+https://zhuanlan.zhihu.com/p/681532023 LlamaIndex RAG 高级检索 小到大检索 + 评估
+LangChain 与LlamaIndex 比较多轮对话 https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/#the-top
+
 
 ## 1. 概述
 LlamaIndex是一个强大的数据框架，用于构建LLM应用。在我们的NewsReader项目中，我们主要使用它来实现RAG（检索增强生成）功能。
@@ -35,7 +50,29 @@ pip install llama-index-readers-database
 pip install llama-index-vector-stores-chroma
 pip install llama-index-embeddings-voyageai
 pip install llama-index-llms-gemini
-### 2.1 数据加载
+### 2.0 模型 Models
+#### LLM
+
+#### 嵌入
+易
+https://docs.llamaindex.ai/en/stable/examples/embeddings/voyageai/
+``` python
+pip install llama-index-embeddings-voyageai
+from llama_index.embeddings.voyageai import VoyageEmbedding
+model_name = "voyage-3"
+voyage_api_key = os.getenv("VOYAGE_API_KEY")
+embed_model = VoyageEmbedding(
+    model_name=model_name, voyage_api_key=voyage_api_key
+)
+embeddings = embed_model.get_query_embedding("What is llamaindex?")
+```
+难
+https://docs.llamaindex.ai/en/stable/examples/embeddings/jinaai_embeddings/
+https://docs.llamaindex.ai/en/stable/examples/embeddings/custom_embeddings/
+https://docs.llamaindex.ai/en/stable/module_guides/models/embeddings/
+
+
+### 2.1 数据加载 Loading
 https://docs.llamaindex.ai/en/stable/understanding/loading/loading/
 ```python
 pip install llama-index
@@ -83,9 +120,9 @@ loader = BeautifulSoupWebReader()
 documents = loader.load_data(urls=["http://example.com"])
 ```
 
-### 2.2 数据转换（索引（分块、提取元数据）和嵌入）
+### 2.2 数据转换（索引（分块、元数据））Indexing
 #### 索引
-##### 拆分
+##### 使用
 [Document - Node 文本块(Chunk)] -> Index
 ###### High-level API（入门 底层处理分块）
 from llama_index.core import VectorStoreIndex
@@ -131,43 +168,26 @@ print(response)
 ##### 树索引
 ##### 关键词表索引
 TODO https://mp.weixin.qq.com/s/8_yJgADQfnaWByhHmlwy2A
-#### 嵌入
-易
-https://docs.llamaindex.ai/en/stable/examples/embeddings/voyageai/
-``` python
-pip install llama-index-embeddings-voyageai
-from llama_index.embeddings.voyageai import VoyageEmbedding
-model_name = "voyage-3"
-voyage_api_key = os.getenv("VOYAGE_API_KEY")
-embed_model = VoyageEmbedding(
-    model_name=model_name, voyage_api_key=voyage_api_key
-)
-embeddings = embed_model.get_query_embedding("What is llamaindex?")
-```
-难
-https://docs.llamaindex.ai/en/stable/examples/embeddings/jinaai_embeddings/
-https://docs.llamaindex.ai/en/stable/examples/embeddings/custom_embeddings/
-https://docs.llamaindex.ai/en/stable/module_guides/models/embeddings/
-
-### 2.3 存储索引
+#### 存储索引
 index.storage_context.persist(persist_dir="<persist_dir>")
-#### 加载持久索引
+#### 加载索引
 from llama_index.core import StorageContext, load_index_from_storage
 storage_context = StorageContext.from_defaults(persist_dir="<persist_dir>")
 index = load_index_from_storage(storage_context)
-#### 前面的向量索引也会存储到数据库里
+前面的向量索引也会存储到数据库里
 
-### 2.4 查询引擎
-#### 入门
+
+### 2.3 存储 Storing
+
+### 2.4 查询 Querying
+#### 查询引擎 query_engine
+##### 入门
+https://docs.llamaindex.ai/en/stable/module_guides/deploying/query_engine/streaming/
 query_engine = index.as_query_engine()
 response = query_engine.query(
     "Write a poem about a magic backpack"
 )
 print(response)
-#### 高级
-- 检索
-- 后处理
-- 响应合成
 ##### 使用GEMINI查询
 https://docs.llamaindex.ai/en/stable/api_reference/llms/gemini/
 pip install llama-index-llms-gemini
@@ -182,19 +202,32 @@ index = VectorStoreIndex.from_documents(
 )
 # 配置查询引擎
 query_engine = index.as_query_engine(
-    llm=Gemini(model="models/gemini-1.5-flash-latest", api_key="YOUR_API_KEY"),
+    llm=Gemini(model=GENIMI_MODEL, api_key=GEMINI_API_KEY),
     streaming=True
 )
 # 执行查询
 response = query_engine.query("问题")
 print(response)
 ```
-#### 进阶查询
-工作流 TODO
-    TEXT2SQL
+##### 查询数据库 TEXT2SQL
         https://medium.com/dataherald/how-to-connect-llm-to-sql-database-with-llamaindex-fae0e54de97c
         https://docs.llamaindex.ai/en/stable/examples/cookbooks/llama3_cookbook_groq/#4-text-to-sql
-代理 TODO
+
+#### 对话引擎 ChatEngine
+    https://docs.llamaindex.ai/en/stable/module_guides/deploying/chat_engines/
+
+#### 检索 retrieval
+    https://docs.llamaindex.ai/en/stable/module_guides/querying/retriever/#retriever
+
+### 2.5 高级 代理 Agents
+
+### 2.6 高级 工作流 Workflows
+#### rerank
+    https://docs.llamaindex.ai/en/stable/examples/workflow/rag/
+
+### 2.7 高级 评估 观测 后训练 等
+
+
 
 ## 3. 项目集成
 

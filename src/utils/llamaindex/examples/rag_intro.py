@@ -7,7 +7,8 @@ import os
 
 # 初始化Chroma客户端
 chroma_client = chromadb.PersistentClient(path="./src/database/chroma_db")
-collection = chroma_client.get_or_create_collection("news_reader") # 注意替换
+# chroma_client.delete_collection("news_reader_demo")
+collection = chroma_client.get_or_create_collection("news_reader_demo") # 注意替换
 
 # 创建向量存储
 vector_store = ChromaVectorStore(chroma_collection=collection)
@@ -20,9 +21,9 @@ voyage_api_key = os.getenv("VOYAGE_API_KEY")
 embed_model = VoyageEmbedding(
     model_name=model_name, voyage_api_key=voyage_api_key
 )
+# 阅读文档
+documents = SimpleDirectoryReader("./src/utils/rag/docs").load_data()
 # 1 创建索引（首次索引）
-# 加载文档
-# documents = SimpleDirectoryReader("./src/utils/rag/docs").load_data()
 # index = VectorStoreIndex.from_documents(
 #     documents,
 #     show_progress=True,
@@ -36,13 +37,13 @@ index = VectorStoreIndex.from_vector_store(
 )
 
 # 配置查询引擎
-API_KEY = os.getenv("GEMINI_API_KEY1")
-MODEL = "gemini-1.5-flash-latest"
+API_KEY = os.getenv("GEMINI_API_KEY")
+MODEL = os.getenv("GEMINI_MODEL")
 query_engine = index.as_query_engine(
     llm=Gemini(model="models/" + MODEL, api_key=API_KEY),
     streaming=True
 )
 
-# 提问
+# 提问单篇
 response = query_engine.query("What is the document about?")
-print(response)
+response.print_response_stream()
