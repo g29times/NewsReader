@@ -21,7 +21,7 @@ class TestLLMTasks(unittest.TestCase):
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
-    def test_summarize_and_key_points(self):
+    def test_summarize_and_key_topics(self):
         """测试文章摘要和关键点提取功能"""
         session = self.Session()
 
@@ -33,27 +33,27 @@ class TestLLMTasks(unittest.TestCase):
         """
 
         # 调用LLM处理
-        response = LLMTasks.summarize_and_key_points(test_content)
+        response = LLMTasks.summarize_and_key_topics(test_content)
 
         # 验证响应格式
         self.assertIsInstance(response, LLMResponse)
         self.assertIsInstance(response.title, str)
         self.assertIsInstance(response.summary, str)
-        self.assertIsInstance(response.key_points, str)
+        self.assertIsInstance(response.key_topics, str)
 
         # 验证响应内容不为空
         self.assertTrue(response.title)
         self.assertTrue(response.summary)
-        self.assertTrue(response.key_points)
+        self.assertTrue(response.key_topics)
 
         session.close()
 
     def test_empty_content(self):
         """测试空内容处理"""
-        response = LLMTasks.summarize_and_key_points("")
+        response = LLMTasks.summarize_and_key_topics("")
         self.assertEqual(response.title, "ERROR")
         self.assertEqual(response.summary, "")
-        self.assertEqual(response.key_points, "")
+        self.assertEqual(response.key_topics, "")
 
 if __name__ == '__main__':
     unittest.main()

@@ -8,34 +8,22 @@ from sqlalchemy.orm import Session
 
 # 添加项目根目录到 Python 路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
-sys.path.append(project_root)
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 
-import json
-import re
-import logging
-from typing import Optional
-from sqlalchemy.orm import Session
-
-from .models import LLMResponse
-from .gemini_client import GeminiClient
-from models.article import Article
+from src.utils.llms.models import LLMResponse
+from src.utils.llms.gemini_client import GeminiClient
+from src.models.article import Article
 
 logger = logging.getLogger(__name__)
-
-@dataclass
-class LLMResponse:
-    """LLM响应的数据类"""
-    body: dict = field(default_factory=dict)  # LLM 服务提供方 API 返回的原始内容
-    state: str = "SUCCESS"  # LLM 服务提供方 API 返回状态 "SUCCESS" "ERROR"
-    desc: str = ""  # LLM 服务提供方 API 返回的描述信息或自定义错误描述
-    status_code: int = 200 # LLM 服务提供方 API 原始返回的状态码 200 300 400 500 等
 
 class LLMTasks:
     """处理各种LLM相关任务的类"""
     
+    # 文本总结
     @staticmethod
-    def summarize_and_key_points(content: str) -> LLMResponse:
+    def summarize_and_key_topics(content: str) -> LLMResponse:
         """
         使用LLM总结内容并提取关键点
         
@@ -49,35 +37,31 @@ class LLMTasks:
         gemini = GeminiClient()
         return gemini.summarize_text(content)
 
+    # 查找文章关系
     @staticmethod
-    def find_relations(db: Session, article: Article):
+    def find_relations(db: Session, articles: list[Article]):
         """查找文章关系"""
         # TODO: 实现关系查找逻辑
         pass
 
+    # 提取关键点
     @staticmethod
-    def extract_key_points(content: str) -> LLMResponse:
+    def extract_key_topics(content: str) -> LLMResponse:
         """提取关键点"""
         # TODO: 实现关键点提取逻辑
         pass
 
+    # 翻译文本
     @staticmethod
     def translate_text(content: str, target_language: str) -> LLMResponse:
         """翻译文本"""
         # TODO: 实现文本翻译逻辑
         pass
 
-
 if __name__ == '__main__':
     # 测试用例
-    test_response = '''{"candidates": [{"content": {"parts": [{"text": "**Title:** Title: 北航、字节和浙大最新发布Prompt Optimization优化框架ERM，让你的提示词优化更高效准确\\n\\n**Summarize:** This article introduces ERM (Example-Guided Reflection Memory mechanism), a new prompt optimization framework developed by researchers from Beihang University, ByteDance, and Zhejiang University.  ERM addresses shortcomings of existing methods by incorporating a feedback memory system and an example factory.  The framework uses a meta-prompt to guide the process, generating detailed solutions and targeted feedback.  Experiments across multiple datasets show significant performance improvements and efficiency gains compared to existing prompt optimization techniques. The article also discusses practical implications for prompt engineers, including better feedback management, optimized example selection, and improved optimization workflows.  Finally, it explores potential applications in AI products and the future scalability of ERM as a continuous learning system.\\n\\n**Key-Words:** **1. Primary Keywords** Prompt Optimization, ERM,  AI模型, 提示词优化, 大语言模型, 反馈记忆, 示例工厂,  强化学习,  启发式搜索\\n\\n**2. Secondary Keywords** 北航, 字节跳动, 浙江大学,  Doubao-pro, GPT4o,  meta-prompt,  Transformer,  LIAR数据集, BBH数据集, WebNLG数据集,  Prompt工程师\\n"}], "role": "model"}, "finishReason": "STOP", "avgLogprobs": -0.15637054162866929}], "usageMetadata": {"promptTokenCount": 5413, "candidatesTokenCount": 272, "totalTokenCount": 5685}, "modelVersion": "gemini-2.0-flash-exp"}'''
-    # 先转换为JSON对象
-    import json
-
-    response = json.loads(test_response)
-    # 测试提取方法
-    result = LLMTasks.summarize_and_key_points(response['candidates'][0]['content']['parts'][0]['text'])
+    result = LLMTasks.summarize_and_key_topics("2024 年在年初被称为“RAG 发展元年”，虽然这并非共识性的说法，但事实证明，全年的进展无愧于这一称号。在LLM 使用的场景中，RAG 自始至终都在扮演着不可或缺的重要角色。然而，自诞生以来关于 RAG 的争论就没有停止过。由上图可以看到，2023 年 RAG 的称呼并不流行，一种看起来就非常临时的说法“外挂记忆体”、“外挂知识库”是普遍的替代称谓，在当时，主要争论还在于究竟应该用临时的“外挂”还是“永久性的”微调，这个争论在 2024 年初已经终结：从成本和实时性角度，RAG 具有压倒性优势，而效果上相差也并不大，即使需要微调介入的场景，RAG  通常也不可或缺。")
     print("提取结果：")
     print(f"标题: {result.body.get('title')}")
     print(f"摘要: {result.body.get('summary')}")
-    print(f"关键词: {result.body.get('key_points')}")
+    print(f"关键词: {result.body.get('key_topics')}")

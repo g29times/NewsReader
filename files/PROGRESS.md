@@ -6,22 +6,33 @@
 
 # 1 DEGISN/TODO
     File - Relation - Note - Idea
+	核心问题：少即是多，简单原则，哪些东西是会被LLM团队逐渐取代的？
+		案例1：层出不穷的设计模式：CoT、ReACT等框架，最初是因为LLM不具备（LLM厂商精力不在此），但是随着LLM的发展，这些模式逐渐被集成在了LLM内部（o1，gemini-thinking），框架变得臃肿多余。
+			复杂性：https://blog.csdn.net/juan9872/article/details/137658555
+		案例2：Agent是否也会？
+	思想实验：
+		1 吐槽大师
+		2 多LLM分布式共识
+		3 了解用户
+		4 对齐用户划线习惯（具体小点研究）
 ## 前端
 	通用异常
 	通用返回
 	通用重定向
 	浏览器端验证（如数量）
+	shift回车发送
 ## 后端
     user 多用户 租户 登录 支付 权限 API
-    cache
     memory
 	点赞 复制 生成笔记
+	cache
 ## LLM端
 紧急 高优先级：
 	简单
-		回答太简短
-		模型切换
-		shift回车发送
+		1 回答太简短
+			top-2导致 2024-12-22 17:06:47,537 - base.py[line:395] - DEBUG: > Top 2 nodes:
+		2 多轮对话，记忆
+		3 模型切换
 	复杂
 		合并解决：多轮次对话 聊天记录memory 用户意图
 			https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/

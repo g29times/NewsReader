@@ -15,11 +15,11 @@ GENIMI = os.getenv("GEMINI_MODEL") # DOC tests\GEMINI-DOC.md
 log_file = 'newsreader.log'
 file_handler = RotatingFileHandler(log_file, maxBytes=8*1024*1024, backupCount=5)
 file_handler.setLevel(level=logging.DEBUG)  # 文件分级别 DEBUG 且显示行号
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s'))
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)-8s - %(filename)s[line:%(lineno)d] - %(message)s'))
 # 控制台
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO) # 控制台分级别 仅INFO
-stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)-8s - [%(filename)s] - %(message)s'))
+stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)-8s - %(filename)s[line:%(lineno)d] - %(message)s'))
 # 设置日志
 logging.basicConfig(
     level=logging.DEBUG, # 总级别

@@ -98,7 +98,7 @@ see files\chat-design\chat.md
         topic: Secondary domain level
         branch: Tertiary domain level
         persons: People mentioned in the article
-        key_points: Key points or topics discussed
+        key_topics: Key points or topics discussed
         problem: Problem addressed and methods used (optional)
 #### Relation
         id: Unique identifier

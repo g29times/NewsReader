@@ -15,7 +15,10 @@ from database.connection import db_session
 from utils.rag.rag_service import RAGService
 import logging
 
-app = Flask(__name__)
+app = Flask(__name__, 
+    static_url_path='/static',
+    static_folder='static'
+)
 article_bp = Blueprint('article', __name__, url_prefix='/article')
 # 获取模块特定的logger
 logger = logging.getLogger(__name__)
@@ -40,7 +43,7 @@ def article():
         return render_template('article.html', articles=[])
 
 @app.route('/add_article', methods=['POST'])
-def add_article():
+def add_article(type: str = "WEB"):
     """添加新文章"""
     try:
         # 获取表单数据
@@ -50,20 +53,19 @@ def add_article():
             'tags': request.form.get('tags', ''),
             'content': ''  # 将从URL获取内容
         }
-
-        # 如果有URL，获取内容
+        # 如果有URL，通过JINA Reader获取web内容
         if article_data['url']:
             article_data['content'] = FileInputHandler.jina_read_from_url(article_data['url'])
-        # 如果没有url，url不正确，内容为空，则返回
+        # 如果没有url、url不正确，或JINA返回的内容为空，则返回400错误
         if not article_data['content']:
             return jsonify({
                 'success': False,
                 'message': '无法获取文章内容',
                 'data': None
             }), 400
+
         # 使用LLM处理内容
-        response = LLMTasks.summarize_and_key_points(article_data['content'])
-        
+        response = LLMTasks.summarize_and_key_topics(article_data['content'])
         # 异常处理
         if response.state == "ERROR" or response.body.get('title') == "":
             error_msg = f'LLM API 调用出错 - {response.desc}'
@@ -72,23 +74,29 @@ def add_article():
                 'success': False,
                 'message': error_msg,
                 'data': None
-            }), response.status_code
+            }), response.status_code # 原始异常码
 
-        # 更新文章数据 关键文章记录原文 其他文章不记录
+        # 更新文章数据
         logger.debug(f"LLM SUMMARY: {response}")
         article_data.update({
             'title': response.body.get('title', ''),
+            # url
+            'content': article_data['content'],
             'summary': response.body.get('summary', ''),
-            'key_points': response.body.get('key_points', ''),
-            'content': article_data['content'] # 关键文章记录原文
+            'key_topics': response.body.get('key_topics', ''),
+            # tags
+            'source': response.body.get('source', ''),
+            'publication_date': response.body.get('publication_date', ''),
+            'authors': response.body.get('authors', ''),
+            'type': type
         })
 
         # 创建新文章
         new_article = Article(**article_data)
         db_session.add(new_article)
         db_session.commit()
-
         logger.info(f"成功添加文章: {new_article.title}")
+
         return jsonify({
             'success': True,
             'message': '文章添加成功',
@@ -96,7 +104,7 @@ def add_article():
                 'id': new_article.id,
                 'title': new_article.title,
                 'summary': new_article.summary,
-                'key_points': new_article.key_points
+                'key_topics': new_article.key_topics
             }
         })
 
@@ -110,20 +118,28 @@ def add_article():
             'data': None
         }), 500
 
-@app.route('/delete_article/<int:article_id>', methods=['POST'])
+@article_bp.route('/delete_article/<int:article_id>', methods=['POST'])
 def delete_article_route(article_id):
     """删除文章"""
     try:
-        article = delete_article(db_session, article_id)
-        if article:
-            flash('Article deleted successfully')
-        else:
-            flash('Article not found')
+        article = get_article_by_id(db_session, article_id)
+        if not article:
+            return jsonify({
+                'success': False,
+                'message': '文章不存在'
+            }), 404
+            
+        delete_article(db_session, article_id)
+        return jsonify({
+            'success': True,
+            'message': '文章删除成功'
+        })
     except Exception as e:
-        logger.error(f"Error deleting article {article_id}: {e}")
-        flash('Error deleting article')
-    
-    return redirect(url_for('article'))
+        logger.error(f"删除文章时出错: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'删除文章时出错: {str(e)}'
+        }), 500
 
 @app.route('/update_article/<int:article_id>', methods=['POST'])
 def update_article_route(article_id):
@@ -153,6 +169,7 @@ def search_articles_route():
         logger.error(f"Error searching articles: {e}")
         flash('Error performing search')
         return redirect(url_for('article'))
+
 
 
 # 可用
@@ -240,8 +257,8 @@ def get_article_details(article_id):
     if not article:
         return jsonify({'success': False, 'message': '文章未找到'})
 
-    # 从key_points字段中提取Key Topics
-    topics = article.key_points.split(',') if article.key_points else []
+    # 从key_topics字段中提取Key Topics
+    topics = article.key_topics.split(',') if article.key_topics else []
     
     return jsonify({
         'success': True,
@@ -267,7 +284,7 @@ def chat():
         
         # 调试日志
         logger.info(f"收到聊天请求：message={message}, article_ids={article_ids}")
-        response = rag_service.chat_single(message)
+        response = rag_service.chat(message)
         
         # 这里暂时只返回成功响应，不调用LLM
         return jsonify({
@@ -334,6 +351,8 @@ def chat_with_articles():
             'message': error_msg,
             'data': None
         }), 500
+
+
 
 @article_bp.route('/article.css')
 def serve_css():

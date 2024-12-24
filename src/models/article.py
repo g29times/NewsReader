@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from datetime import datetime
-
-Base = declarative_base()
+from .base import Base
+from .user import User  # 添加 User 的导入
 
 class Article(Base):
     """
@@ -13,29 +12,28 @@ class Article(Base):
     __tablename__ = 'articles'
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True) # 必填
-    url = Column(String, unique=True) # 可选 可能是文件
-    summary = Column(Text) # 重点 由LLM生成
-    key_points = Column(Text) # 重点 由LLM生成
-    source = Column(String) # 来源渠道（网络 文件 等） 可选
-    collection_date = Column(DateTime, default=func.now()) # 收集时间
-    publication_date = Column(DateTime, default=func.now()) # 发布时间
+    title = Column(String, index=True) # 标题 必填
+    url = Column(String, unique=True) # 地址 可能是文件
     content = Column(Text, nullable=True) # 原文 全文 可选
-    authors = Column(String) # 可选
-    tags = Column(String) # 人工打标用 可选
-    is_research_paper = Column(Boolean, default=False) # 是否为研究论文
-    weight = Column(Integer, default=0) # 备用字段 需要设计
-    area = Column(String) # 备用字段 领域
-    topic = Column(String) # 备用字段 一级 需人工划定大范围 然后让LLM选
-    branch = Column(String) # 备用字段 二级 对应Layer 1 key_points
-    persons = Column(String) # 备用字段 三级 对应Layer 2 key_points
-    problem = Column(Text, nullable=True) # 备用字段 问题
+    summary = Column(Text) # 概要 由LLM生成
+    key_topics = Column(Text) # 重点 由LLM生成
+    tags = Column(String) # 人工备注
+
+    source = Column(String) # 原始文档（website, github or paper等） 可选
+    collection_date = Column(DateTime, default=func.now()) # 收集时间
+    publication_date = Column(String) # 发布时间 粗略
+    authors = Column(String) # 作者
+    type = Column(String) # 资源类型 （WEB FILE 等）
+
+    # 一对多关系
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship("User", back_populates="articles")
 
     # toString方法
     def __repr__(self):
         # simple
         # return f"<{self.id}. Article {self.title} from {self.url}>"
         # summary
-        # return f"<{self.id}. Article {self.title}\n summary - {self.summary}\n key_points - {self.key_points}>"
+        # return f"<{self.id}. Article {self.title}\n summary - {self.summary}\n key_topics - {self.key_topics}>"
         # content
         return f"<{self.id}. Article {self.title} - {self.content}>"

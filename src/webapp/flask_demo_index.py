@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 import sqlite3
 
+# DEMO
 app = Flask(__name__)
 
 def create_database():

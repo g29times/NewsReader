@@ -11,10 +11,13 @@ from llama_index.embeddings.voyageai import VoyageEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import Document, VectorStoreIndex, ServiceContext, StorageContext
 import chromadb
+from llama_index.core.storage.chat_store import SimpleChatStore
+from llama_index.core.memory import ChatMemoryBuffer
 
 from src.models.article import Article
 from src.models.article_crud import get_article_by_ids
 from src.database.connection import db_session
+
 
 logger = logging.getLogger(__name__)
 
@@ -37,20 +40,9 @@ class RAGService:
             voyage_api_key = self.voyage_api_key
         )
         
-        # Create query engine with Chinese system prompt
-        system_prompt = """你是一个专业的AI助手，负责帮助用户理解和分析文档内容。
-        1. 如果用户没有提供任何文档只是聊天，那么你和用户随意聊天。
-        2. 如果用户提供了文档，请基于检索到的相关文档回答用户的问题，回答应该：
-            2.1. 准确且基于事实
-            2.2. 清晰且结构化
-            2.3. 适当引用来源
-        3. 如果文档中没有相关信息，请明确告知用户。
-        4. 使用中文回答。
-        5. 对于特定的内容，如代码块，请用Markdown格式化。
-        """
         # Initialize LLM
         self.genimi = Gemini(
-            system_prompt=system_prompt,
+            system_prompt=os.getenv("SYSTEM_PROMPT"),
             model="models/" + self.GEMINI_MODEL,
             api_key=self.google_api_key,
             temperature=1,
@@ -75,7 +67,18 @@ class RAGService:
         self.chroma_client = chromadb.PersistentClient(path="src/database/chroma_db")
         
         # Current collection name
-        self.current_collection_name = None
+        self.current_collection_name = "rag_collection"
+
+        # Initialize ChatStore and ChatMemoryBuffer
+        loaded_chat_store = SimpleChatStore.from_persist_path(
+            persist_path="chat_store.json"
+        )
+        self.chat_store = loaded_chat_store if loaded_chat_store else SimpleChatStore()
+        self.chat_memory = ChatMemoryBuffer.from_defaults(
+            token_limit=10000, # shape 相似
+            chat_store=self.chat_store,
+            chat_store_key="user1",
+        )
 
     def _articles_to_documents(self, articles: List[Article]) -> List[Document]:
         """Convert articles to LlamaIndex documents
@@ -97,7 +100,7 @@ class RAGService:
                 "id": article.id,
                 "url": article.url, # 用于“参考来源”
                 "summary": article.summary, # 摘要
-                "key_points": article.key_points,
+                "key_topics": article.key_topics,
                 "tags": article.tags # 标签
             }
             
@@ -107,21 +110,32 @@ class RAGService:
         return documents
     
     # 直接聊天
-    def chat_single(self, query: str) -> str:
-        """Chat with context"""
-        resp = self.genimi.complete(query)
-        logger.info(f"LLM response: {resp}")
-        return resp
-
     # 一级 - 短期记忆（对话窗口）
-    def chat_with_histroy(self, history: str) -> str:
-        """Chat with context"""
-        pass
-
     # 二级 - 长期记忆（笔记区）
-    def chat_with_memmory(self, memory: str) -> str:
+    def chat(self, query: str) -> str:
         """Chat with context"""
-        pass
+        # resp = self.genimi.complete(query)
+        # logger.info(f"LLM response: {resp}")
+        # return resp
+        logger.info(f"Query: {query}")
+        # genimi = Gemini(
+        #     model="models/gemini-exp-1206",
+        #     api_key=self.google_api_key,
+        #     temperature=1,
+        #     max_tokens=8192
+        # )
+        from llama_index.core.chat_engine import SimpleChatEngine
+        chat_engine = SimpleChatEngine.from_defaults(
+            system_prompt=os.getenv("SYSTEM_PROMPT"),
+            memory=self.chat_memory,
+            # llm=genimi
+        )
+        # chat_engine.chat_repl()
+        response = chat_engine.chat(query)
+        logger.info(f"LLM response: {response}")
+        # 持久化
+        self.chat_store.persist(persist_path="chat_store.json")
+        return response
 
     # 三级 - 知识库（资料）
     def chat_with_articles(self, article_ids: List[int], query: str) -> str:
@@ -149,6 +163,7 @@ class RAGService:
             
             # Create collection for these documents
             import time
+            # 以当天时刻对collection命名
             self.current_collection_name = f"chat_{int(time.time())}"
             collection = self.chroma_client.get_or_create_collection(self.current_collection_name)
             logger.info(f"Got collection: {self.current_collection_name}")
@@ -157,24 +172,65 @@ class RAGService:
             vector_store = ChromaVectorStore(chroma_collection=collection)
             storage_context = StorageContext.from_defaults(vector_store=vector_store)
             
+            # Add documents to vector store
             # Create index with storage context
             index = VectorStoreIndex.from_documents(
                 documents,
                 storage_context=storage_context,
-                show_progress=True
-                # embed_model=self.embed_model
+                show_progress=True,
+                # embed_model=self.embed_model # default in Settings
             )
             # 文档追踪
             # print(index.ref_doc_info)
             
-            query_engine = index.as_query_engine(
-                streaming=True
-                # llm=self.llm,
-            )
+            # query_engine = index.as_query_engine(
+            #     streaming=True
+            #     # llm=self.llm, # default in Settings
+            # )
+            # # Get response
+            # response = query_engine.query(query)
+            # logger.info(f"LLM response: {response}")
             
-            # Get response
-            response = query_engine.query(query)
+            # TODO 方式一 简单 as_chat_engine 问题：聊多了之后，会忽略新加的documents信息
+            chat_engine = index.as_chat_engine( # ChatMode.BEST
+                chat_mode="condense_plus_context",
+                memory=self.chat_memory,
+                verbose=False,
+            )
+            # 方式二 from_defaults 问题：retriever尚不了解 有时候会导致信息被错误过滤
+            # context_prompt = os.getenv("DOC_PROMPT")
+            # from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
+            # vector_store_info = VectorStoreInfo(
+            #     content_info="learning materials",
+            #     metadata_info=[
+            #         # MetadataInfo(
+            #         #     name="title", = stan 待探明
+            #         #     description="""
+            #         #         The title of the document. 
+            #         #     """,
+            #         #     type="string",
+            #         # )
+            #     ],
+            # )
+            # from llama_index.core.retrievers import VectorIndexAutoRetriever
+            # retriever = VectorIndexAutoRetriever(
+            #     index,
+            #     vector_store_info=vector_store_info,
+            #     similarity_top_k=3,
+            #     empty_query_top_k=10,  # if only metadata filters are specified, this is the limit
+            #     verbose=True,
+            # )
+            # from llama_index.core.chat_engine import CondensePlusContextChatEngine
+            # chat_engine = CondensePlusContextChatEngine.from_defaults(
+            #     retriever=index.as_retriever(),
+            #     memory=self.chat_memory,
+            #     context_prompt=context_prompt
+            # )
+
+            response = chat_engine.chat(query)
             logger.info(f"LLM response: {response}")
+            # 持久化
+            self.chat_store.persist(persist_path="chat_store.json")
             
             # Format response with sources
             response_text = str(response)

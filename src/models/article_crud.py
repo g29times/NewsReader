@@ -42,7 +42,7 @@ def search_articles(db: Session, query: str):
     return db.query(Article).filter(
         Article.title.contains(query) |
         Article.summary.contains(query) |
-        Article.key_points.contains(query) |
+        Article.key_topics.contains(query) |
         Article.tags.contains(query)
     ).all()
 

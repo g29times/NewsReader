@@ -121,6 +121,7 @@ documents = loader.load_data(urls=["http://example.com"])
 ```
 
 ### 2.2 数据转换（索引（分块、元数据））Indexing
+https://docs.llamaindex.ai/en/stable/module_guides/indexing/index_guide
 #### 索引
 ##### 使用
 [Document - Node 文本块(Chunk)] -> Index

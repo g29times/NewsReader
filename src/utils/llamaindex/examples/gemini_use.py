@@ -5,7 +5,10 @@ import os
 API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL")
 print(GEMINI_MODEL)
-llm = Gemini(model="models/" + GEMINI_MODEL, api_key=API_KEY)
+llm = Gemini(
+    model="models/" + GEMINI_MODEL, api_key=API_KEY,
+    system_prompt="You are a helpful assistant."
+)
 resp = llm.complete("Suppose there are two COI classes {Bank of America, Citibank, Bank of the West}"
 "and {Shell Oil, Union’76, Standard Oil, ARCO} in an investment house using Chinese Wall Model."
 "Alice would like to read 4 objects following the sequence a, b, c, d."

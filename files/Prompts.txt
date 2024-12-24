@@ -1,3 +1,5 @@
+问题集
+
 1 设定集
 - 抽取文章的标题、摘要和关键词
     You have 3 tasks for the following content: 1. Fetch the title from the content, its format should have a title like 'Title: ...' in its first line, if not, you will return 'NO TITLE' for a fallback); 2. Summarize the content concisely and translate into Chinese; 3. Extract Key-Words(only words, no explanation) in a format like '**1. Primary Domains** Web Applications, ...(no more than 5) **2. Specific Topics** React, ...(no more than 10)'. Your response must contain the title, summarize and key words in the fix format: '**Title:** ...\n\n**Summarize:** ...\n\n**Key-Words:** ...'

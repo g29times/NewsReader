@@ -1,0 +1,19 @@
+import os
+import sys
+
+# 添加项目根目录到 Python 路径
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
+
+from webapp import create_app
+from database.connection import db_session
+
+app = create_app()
+
+# 在请求结束时移除数据库会话
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
+
+if __name__ == '__main__':
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.run(debug=True, port=5000)

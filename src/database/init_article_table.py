@@ -26,11 +26,11 @@ def insert_first_article():
     session.commit()
 
     # Run the summarization task
-    updated_article = LLMTasks.summarize_and_key_points(session, article)
+    updated_article = LLMTasks.summarize_and_key_topics(session, article)
 
     # Check if the summary and key points are updated
     self.assertIsNotNone(updated_article.summary)
-    self.assertIsNotNone(updated_article.key_points)
+    self.assertIsNotNone(updated_article.key_topics)
 
     session.close()
 
@@ -40,6 +40,8 @@ def get_init_articles():
     articles = get_articles(session,0,1)
     print(articles)
     session.close()
+
+# 表变更，增加了publication_date ，type 字段
 
 if __name__ == '__main__':
     get_init_articles()

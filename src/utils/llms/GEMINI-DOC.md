@@ -1,13 +1,14 @@
-# Google GEMINI LVM
+# Google AI Labs
 ## API KEY
 Use your API keys securely. Do not share them or embed them in code the public can view.
 
-`AIzaSyAt-btFEIv9QArOhnhC21Tb9OG3Mih9IbI`
+## V2 
+https://aistudio.google.com/prompts/new_chat
 
-## Quick Start
+## V1 Quick Start
 Quickly test the API by running a cURL command
 [API quickstart guide](https://developers.generativeai.google/tutorials/text_quickstart)
-### DEMO
+### FIRST DEMO
 - REQUEST
 ```
 curl \
@@ -59,6 +60,9 @@ test set) that wasn't used during training.  This helps to assess how well it ge
   "modelVersion": "gemini-2.0-flash-exp"
 }
 ```
+### 列出所有模型
+手册地址 https://ai.google.dev/api/models?hl=zh-cn
+curl接口 https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_API_KEY
 
 ## PRODUCT LEVEL API
 - LIBRARY

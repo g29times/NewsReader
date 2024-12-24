@@ -66,7 +66,7 @@ if __name__ == "__main__":
     pdf_text = FileInputHandler.extract_text_from_pdf('./files/temp/ece443-lec01.pdf')
     print(pdf_text)
     print('READ TEXT =====================')
-    local_text = FileInputHandler.read_from_file('src/utils/file_input_handler.py')
+    local_text = FileInputHandler.read_from_file('src/utils/rag/docs/万字长文梳理2024年的RAG.txt')
     print(local_text)
     print('READ URL =====================')
     url_text = FileInputHandler.jina_read_from_url('https://www.google.com')
