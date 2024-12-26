@@ -77,7 +77,7 @@ class RAGService:
         self.chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=10000, # shape 相似
             chat_store=self.chat_store,
-            chat_store_key="user1",
+            chat_store_key="user1", # TODO user_id
         )
 
     def _articles_to_documents(self, articles: List[Article]) -> List[Document]:

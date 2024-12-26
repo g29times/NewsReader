@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 rag_service = RAGService()
 
-# 待定
+# TODO: 聊天历史
 @chat_bp.route('/api/chat/history', methods=['GET'])
 def chat_history():
     """获取聊天历史"""
@@ -21,15 +21,14 @@ def chat_history():
         }
     })
 
-# 聊天页
-# 可用
+# 聊天页面
 @chat_bp.route('/')
 def chat_page():
     """聊天页面路由"""
     articles = get_all_articles(db_session)
     return render_template('chat/chat.html', articles=articles)
 
-# 可用
+# 搜索文章
 @chat_bp.route('/api/articles/search', methods=['GET'])
 def articles_search():
     """搜索文章"""
@@ -51,7 +50,7 @@ def articles_search():
         }
     })
 
-# 可用
+# 获取文章详情
 @chat_bp.route('/api/articles/<int:article_id>', methods=['GET'])
 def get_article_details(article_id):
     """获取文章详情"""
@@ -70,14 +69,16 @@ def get_article_details(article_id):
             'article': {
                 'id': article.id,
                 'title': article.title,
-                'summary': article.summary,
                 'content': article.content,
-                'topics': topics
+                'summary': article.summary,
+                'topics': topics,
+                'tags': article.tags,
+                'source': article.source,
             }
         }
     })
 
-# 可用
+# 聊天
 @chat_bp.route('/api/chat', methods=['POST'])
 def chat():
     """处理聊天请求"""
@@ -110,7 +111,7 @@ def chat():
             'data': None
         }), 500
 
-# 可用
+# 聊资料
 @chat_bp.route('/api/chat/with_articles', methods=['POST'])
 def chat_with_articles():
     """处理多文档RAG对话"""

@@ -27,7 +27,7 @@
                     {% for article in articles %}
                     <div class="article-item">
                         <input type="checkbox" class="article-checkbox" data-article-id="{{ article.id }}">
-                        <div class="article-title" onclick="fetchArticleDetails({{ article.id }})">{{ article.title }}</div>
+                        <div class="article-title" onclick="fetchArticleDetails('{{ article.id }}')">{{ article.title }}</div>
                     </div>
                     {% endfor %}
                 </div>
@@ -40,18 +40,26 @@
                 <h2 class="article-title" id="expandedArticleTitle"></h2>
                 <div class="source-guide-container">
                     <div class="source-guide-header" onclick="toggleSourceGuide(this)">
-                        <span class="source-guide-icon">📚</span>
+                        <!-- <span class="source-guide-icon">📚</span> -->
                         <h5 class="source-guide-title btn btn-outline-primary">Source guide</h5>
                         <span class="expand-text">展开</span>
                     </div>
                     <div class="source-guide-content">
                         <div class="summary">
                             <h4>Summary</h4>
-                            <p id="expandedArticleSummary"></p>
+                            <div id="expandedArticleSummary"></div>
                         </div>
                         <div class="key-topics">
                             <h4>Key Topics</h4>
-                            <ul id="expandedArticleTopics"></ul>
+                            <div id="expandedArticleTopics"></div>
+                        </div>
+                        <div class="tags">
+                            <h4>Tags</h4>
+                            <ul id="expandedArticleTags"></ul>
+                        </div>
+                        <div class="source">
+                            <h4>Source</h4>
+                            <div id="expandedArticleSource"></div>
                         </div>
                     </div>
                 </div>
@@ -85,7 +93,8 @@
     <script>
         let isExpanded = false;
         let currentArticle = null;
-
+        
+        // 获取文章详情
         async function fetchArticleDetails(articleId) {
             if (currentArticle === articleId && isExpanded) {
                 toggleArticlePanel();
@@ -106,7 +115,8 @@
                 console.error('Error fetching article details:', error);
             }
         }
-
+        
+        // 切换文章面板
         function toggleArticlePanel() {
             const chatContainer = document.querySelector('.chat-container');
             isExpanded = !isExpanded;
@@ -117,22 +127,31 @@
             
             chatContainer.classList.toggle('expanded', isExpanded);
         }
-
+        
+        // 显示文章内容
         function displayArticleContent(article) {
             const chatContainer = document.querySelector('.chat-container');
             chatContainer.classList.add('expanded');
             
-            // 创建Markdown转换器
-            const converter = new showdown.Converter();
-            // 转换Markdown内容
-            const contentHtml = converter.makeHtml(article.content || '');
-            
+            // 设置标题
             const titleElement = document.getElementById('expandedArticleTitle');
             titleElement.textContent = article.title;
+
+            // 创建Markdown转换器
+            const converter = new showdown.Converter();
             
-            document.getElementById('expandedArticleSummary').textContent = article.summary;
-            const topicsList = document.getElementById('expandedArticleTopics');
-            topicsList.innerHTML = article.topics.map(topic => `<li>${topic}</li>`).join('');
+            // 转换所有Markdown内容
+            const contentHtml = converter.makeHtml(article.content || '');
+            const summaryHtml = converter.makeHtml(article.summary || '');
+            const topicsHtml = article.topics ? converter.makeHtml(article.topics.map(topic => `- ${topic}`).join('\n')) : '';
+            const tagsHtml = article.tags;
+            const sourceHtml = article.source ? converter.makeHtml(`- ${article.source}`) : '';
+            
+            // 设置转换后的HTML内容
+            document.getElementById('expandedArticleSummary').innerHTML = summaryHtml;
+            document.getElementById('expandedArticleTopics').innerHTML = topicsHtml;
+            document.getElementById('expandedArticleTags').innerHTML = tagsHtml;
+            document.getElementById('expandedArticleSource').innerHTML = sourceHtml;
             document.getElementById('expandedArticleContent').innerHTML = contentHtml || '暂无内容';
             
             // 确保Source Guide默认是收起的
@@ -142,7 +161,8 @@
             expandText.textContent = '展开';
             
         }
-
+        
+        // 切换Source Guide
         function toggleSourceGuide(header) {
             const content = header.nextElementSibling;
             const expandText = header.querySelector('.expand-text');
@@ -150,7 +170,8 @@
             content.classList.toggle('expanded');
             expandText.textContent = content.classList.contains('expanded') ? '收缩' : '展开';
         }
-
+        
+        // 折叠文章
         function collapseArticle() {
             const chatContainer = document.querySelector('.chat-container');
             chatContainer.classList.remove('expanded');
@@ -178,7 +199,7 @@
             messageDiv.className = 'message assistant thinking';
             messageDiv.innerHTML = `
                 <div class="message-content">
-                    <strong>AI助手:</strong>
+                    <strong>助手:</strong>
                     <p>思考中...</p>
                 </div>
             `;
@@ -253,7 +274,7 @@
             messageDiv.className = `message ${role}`;
             messageDiv.innerHTML = `
                 <div class="message-content">
-                    <strong>${role === 'user' ? '你' : 'AI助手'}:</strong>
+                    <strong>${role === 'user' ? '你' : '助手'}:</strong>
                     <p>${htmlContent}</p>
                 </div>
             `;

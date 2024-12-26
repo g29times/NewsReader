@@ -178,7 +178,7 @@
             messageDiv.className = 'message assistant thinking';
             messageDiv.innerHTML = `
                 <div class="message-content">
-                    <strong>AI助手:</strong>
+                    <strong>助手:</strong>
                     <p>思考中...</p>
                 </div>
             `;
@@ -253,7 +253,7 @@
             messageDiv.className = `message ${role}`;
             messageDiv.innerHTML = `
                 <div class="message-content">
-                    <strong>${role === 'user' ? '你' : 'AI助手'}:</strong>
+                    <strong>${role === 'user' ? '你' : '助手'}:</strong>
                     <p>${htmlContent}</p>
                 </div>
             `;

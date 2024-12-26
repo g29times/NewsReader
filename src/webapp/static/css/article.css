@@ -27,8 +27,8 @@ table {
 .checkbox-column { width: 2%; }
 .col-title { width: 13%; }
 /* .col-url { width: 10%; } */
-.col-summary { width: 20%; }
-.col-keypoints { width: 35%; }
+.col-summary { width: 55%; }
+/* .col-keytopics { width: 35%; } */
 .col-tags { width: 15%; }
 .col-date { width: 15%; }
 

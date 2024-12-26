@@ -77,9 +77,8 @@
                     <input type="checkbox" id="select-all" onclick="toggleAllCheckboxes()">
                 </div>
                 <div class="col-title" id="title-column">标题</div>
-                <!-- <div class="col-url">Url</div> -->
                 <div class="col-summary" id="summary-column">摘要</div>
-                <div class="col-keypoints" id="keypoints-column">关键点</div>
+                <!-- <div class="col-keytopics" id="keytopics-column">关键点</div> -->
                 <div class="col-tags" id="tags-column">标签</div>
                 <div class="col-date" id="date-column">日期</div>
             </div>
@@ -93,11 +92,15 @@
                         <td class="checkbox-column">
                             <input type="checkbox" class="article-checkbox" name="article_ids" value="{{ article.id }}" id="article-{{ article.id }}">
                         </td>
+                        <!-- 标题 -->
                         <td class="col-title">
                             <a href="{{ article.url }}">{{ article.title }}</a>
                         </td>
-                        <td class="col-summary compress" title="{{ article.summary }}">{{ article.summary[:60] }}</td>
-                        <td class="col-keypoints compress" id="keypoints-{{ article.id }}"></td>
+                        <!-- 摘要 长度限定500 鼠标悬浮提示关键点-->
+                        <td class="col-summary compress" id="summary-{{ article.id }}" title="{{ article.key_topics }}">{{ article.summary[:500] }}</td>
+                        <!-- 关键点 -->
+                        <!-- <td class="col-keytopics compress" id="keytopics-{{ article.id }}"></td> -->
+                        <!-- 标签 -->
                         <td class="col-tags">
                             <div class="tags-container">
                                 <div class="tags-buttons">
@@ -108,6 +111,7 @@
                                 <input type="text" id="tags-input-{{ article.id }}" name="tags" value="{{ article.tags }}" style="display:none;">
                             </div>
                         </td>
+                        <!-- 日期 -->
                         <td class="col-date compress" title="{{ article.id }}">
                             <form action="/delete_article/{{ article.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this article?');">
                                 <button type="button" onclick="deleteArticle('{{ article.id }}')">删除</button>
@@ -119,8 +123,9 @@
                     <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
                     <script>
                         var converter = new showdown.Converter();
-                        var html = converter.makeHtml(`{{ article.key_topics }}`);
-                        document.getElementById('keypoints-{{ article.id }}').innerHTML = html;
+                        var html = converter.makeHtml('{{ article.summary }}');
+                        console.log(html);
+                        document.getElementById('summary-{{ article.id }}').innerHTML = html;
                     </script>
                     <span id="articles_end" style="display: none">{% endfor %}</span>
                 </tbody>
@@ -328,7 +333,7 @@
             const deleteButton = document.querySelectorAll('button[onclick*="deleteArticle"]');
             const titleColumn = document.getElementById('title-column');
             const summaryColumn = document.getElementById('summary-column');
-            const keyPointsColumn = document.getElementById('keypoints-column');
+            const keytopicsColumn = document.getElementById('keytopics-column');
             const tagsColumn = document.getElementById('tags-column');
             const dateColumn = document.getElementById('date-column');
 
@@ -345,7 +350,7 @@
                 deleteButton.forEach(btn => btn.textContent = '删除');
                 titleColumn.textContent = '标题';
                 summaryColumn.textContent = '摘要';
-                keyPointsColumn.textContent = '关键点';
+                keytopicsColumn.textContent = '关键点';
                 tagsColumn.textContent = '标签';
                 dateColumn.textContent = '日期';
             } else if (language === 'en') {
@@ -361,7 +366,7 @@
                 deleteButton.forEach(btn => btn.textContent = 'Delete');
                 titleColumn.textContent = 'Title';
                 summaryColumn.textContent = 'Summary';
-                keyPointsColumn.textContent = 'Key Topics';
+                keytopicsColumn.textContent = 'Key Topics';
                 tagsColumn.textContent = 'Tags';
                 dateColumn.textContent = 'Date(Id)';
             } else {
