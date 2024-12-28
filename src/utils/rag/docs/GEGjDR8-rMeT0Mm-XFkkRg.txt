@@ -1,0 +1,74 @@
+Title: Claude 的 5 层 Prompt 体系
+
+URL Source: https://mp.weixin.qq.com/s/GEGjDR8-rMeT0Mm-XFkkRg
+
+Markdown Content:
+在跟AI对话过程中，同样的问题，其他人可以得到非常好的答案，自己却只能得到很简单的回应。这个时候Prompt的作用就体现出来了。自从深入研究Dify之后，对这方面的需求也是非常大的。本文是大神@eviljer整理的Claude  5层Prompt体系，学习一下。
+
+![Image 21](https://mmbiz.qpic.cn/mmbiz_jpg/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjq1SVGk15pVKJQRYRyur3c8yqMoXF5Opiavqh279DMHBMhz23tgafmsg/640?wx_fmt=jpeg&from=appmsg)
+
+1. 用户需求
+
+这是最核心的咒语，可以细分为提示词、指令、随便闲聊3中。
+
+![Image 22](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjcJN9hElnk8IcDMicqgyoh3miaFkungiaNQK55LLwkb1gOnYWAEsWqBE0g/640?wx_fmt=png&from=appmsg)
+
+提示词包括明确做什么、预期的结果、约束。
+
+指令是让AI做什么
+
+闲聊就是随便说。
+
+2. 系统提示词：
+
+这是基础语法。量身定制，可以最大化发挥模型的潜力。在API调用中这个非常重要。避免重复已有的定义。
+
+![Image 23](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjneDRO4EaVfnUvicWh6T70kVayh9Xt8HVrTWbRvlj3vjLynPn4TnqQow/640?wx_fmt=png&from=appmsg)
+
+3. 全局支配
+
+支配所有会话，适合处理重复要求。不宜过多约束，追求通用型和灵活性。根据需求量身定制回应。
+
+eg: 请逐步思考/充分评估意图后再执行任务/可视化辅助
+
+Cursor: Cursor Rules
+
+![Image 24](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sj84qhicLC7sae858DAibBOUycCQO93M6ic7DkaeupRLCTjUC0ia5DbibibxkQ/640?wx_fmt=png&from=appmsg)
+
+Windsurf: Global Rules-> Workspace Rules
+
+![Image 25](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjdh3rksG4ofnhKQxibtiajCEIdicxv7Gy6QEBpibFIVOjWRzMDBBLFPBRoA/640?wx_fmt=png&from=appmsg)
+
+4. 个性化指令
+
+这是Claude AI中最重要的，所需要的工具和知识库根据项目的不同而不同。
+
+eg: 日常助手：
+
+![Image 26](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjUWHvNeDDls6gOEaSDbsws4QWmcdhcjxjmfd4CSlgXq9oHHZvOg3FOA/640?wx_fmt=png&from=appmsg)
+
+5. 风格化：
+
+定义细节，按自己的风格来针对性设计。
+
+eg:
+
+![Image 27](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjK4qERx5b4WjywVq47v3alzhbu80ZshsiaOZD4p1ducNK59iaFjhpUoow/640?wx_fmt=png&from=appmsg)
+
+这种层层递进的体系设计，让我们能够实现：
+
+ ✦ 原子设计：将复杂需求拆解为结构化的指令组件
+
+ ✦ 灵活组合：在不同层级灵活组合和调用规则 
+
+✦ 以少胜多：用简洁的表达获得精准的输出
+
+ 最新的Anthropc最新提示词详见：
+
+https://docs.anthropic.com/en/release-notes/system-prompts#nov-22nd-2024
+
+文章来源：
+
+https://threadreaderapp.com/thread/1870807224672743549.html
+
+![Image 28](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQ8ubwSEwWMxriaBn391ZEicaq11YYicRIBUzOUqPJFWTBhZdMBibdLIZfxSoQjIWAsdFdQXRcU93SdPYg/640?wx_fmt=other&wxfrom=5&wx_lazy=1&wx_co=1&tp=webp)

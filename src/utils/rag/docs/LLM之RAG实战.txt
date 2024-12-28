@@ -228,7 +228,6 @@ retriever = index.as_retriever(similarity_top_k=2)
 retrieved_nodes = retriever.retrieve("What did the president say about covid-19")
 print(retrieved_nodes)
  
-print("\n\n\n=============================================================")
 print("Node Texts")
  
 for node in retrieved_nodes:

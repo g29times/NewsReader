@@ -12,6 +12,7 @@ class Article(Base):
     __tablename__ = 'articles'
 
     id = Column(Integer, primary_key=True, index=True)
+    vector_ids = Column(String, nullable=True)  # 存储逗号分隔的向量ID列表
     title = Column(String, index=True) # 标题 必填
     url = Column(String, unique=True) # 地址 可能是文件
     content = Column(Text, nullable=True) # 原文 全文 可选

@@ -5,6 +5,10 @@ from functools import wraps
 
 # https://blog.csdn.net/Runner1st/article/details/96481954
 
+VECTOR_DB_ARTICLES = "news_reader_articles"
+VECTOR_DB_CHATS = "news_reader_chats"
+VECTOR_DB_NOTES = "news_reader_notes"
+
 GEMINI_API_KEY= os.getenv("GEMINI_API_KEY", None)
 
 # 设置包级别常量

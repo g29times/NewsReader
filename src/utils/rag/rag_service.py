@@ -4,20 +4,34 @@ RAG service for handling multi-document conversations
 from math import log
 import os
 import logging
+import time
 from typing import List, Optional
+from chromadb.utils import embedding_functions
 from llama_index.core import Settings
 from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.voyageai import VoyageEmbedding
+from llama_index.embeddings.jinaai import JinaEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.core import Document, VectorStoreIndex, ServiceContext, StorageContext
 import chromadb
+import asyncio
+from chromadb import Documents, EmbeddingFunction, Embeddings
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
+import requests
 
+from typing import List, Dict, Any, Optional, Tuple
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 from src.models.article import Article
-from src.models.article_crud import get_article_by_ids
+from src.models.article_crud import *
 from src.database.connection import db_session
-
+from src import VECTOR_DB_ARTICLES, VECTOR_DB_CHATS, VECTOR_DB_NOTES
+import src.utils.embeddings.voyager as voyager
 
 logger = logging.getLogger(__name__)
 
@@ -30,85 +44,78 @@ class RAGService:
         self.voyage_api_key = os.getenv("VOYAGE_API_KEY")
         self.google_api_key = os.getenv("GEMINI_API_KEY")
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL")
-        
+        self.JINA_API_KEY = os.getenv("JINA_API_KEY")
         if not self.voyage_api_key or not self.google_api_key:
             raise ValueError("Missing required API keys")
             
-        # Initialize embedding model
+        # 模块1 嵌入 Initialize embedding model
         self.voyage = VoyageEmbedding(
             model_name = "voyage-3",
             voyage_api_key = self.voyage_api_key
         )
+        self.jina = JinaEmbedding( # 推荐
+            model_name = "jina-embeddings-v3",
+            api_key = self.JINA_API_KEY,
+            dimensions = 128, # MRL技术
+            late_chunking = True # late_chunking 技术
+        )
         
-        # Initialize LLM
+        # 模块2 大模型 Initialize LLM
         self.genimi = Gemini(
             system_prompt=os.getenv("SYSTEM_PROMPT"),
             model="models/" + self.GEMINI_MODEL,
             api_key=self.google_api_key,
             temperature=1,
-            max_tokens=8192
+            max_tokens=16000 # 8192
         )
         
-        # Create service context - Deprecated Use Settings instead
-        # self.service_context = ServiceContext.from_defaults(
-        #     llm=self.llm,
-        #     embed_model=self.embed_model
-        # )
-        # Global 默认值
-        Settings.llm = self.genimi
-        Settings.embed_model = self.voyage
-        # Settings.context_window=8192
-        # Settings.text_splitter = SentenceSplitter(chunk_size=1024)
-        # Settings.chunk_size = 512
-        # Settings.chunk_overlap = 20
-        # Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
-        
-        # Initialize Chroma client
+        # 模块3 存储 Initialize Chroma client
+        # 向量数据库优化 https://docs.trychroma.com/docs/collections/configure
+        # https://www.llamaindex.ai/blog/evaluating-the-ideal-chunk-size-for-a-rag-system-using-llamaindex-6207e5d3fec5
         self.chroma_client = chromadb.PersistentClient(path="src/database/chroma_db")
-        
+        # Client_Server_Mode `chroma run --path /db_path`
+        # self.chroma_client = chromadb.HttpClient(host='localhost', port=8000)
         # Current collection name
-        self.current_collection_name = "rag_collection"
+        self.current_collection_name = "news_reader_rag" # 默认值
 
-        # Initialize ChatStore and ChatMemoryBuffer
+        class DocEmbedding(EmbeddingFunction):
+            def __call__(self, input: Documents) -> Embeddings:
+                # return voyager.get_doc_embeddings_jina(documents=input, task="retrieval.passage")
+                return voyager.get_doc_embeddings(documents=input)
+        self._embed_doc = DocEmbedding()
+
+        class QueryEmbedding(EmbeddingFunction):
+            def __call__(self, input: Documents) -> Embeddings:
+                # return voyager.get_doc_embeddings_jina(documents=input, task="retrieval.query")
+                return voyager.get_doc_embeddings(documents=input)
+        self._embed_query = QueryEmbedding()
+
+        class EmbeddingVoyage(EmbeddingFunction):
+            def __call__(self, input: Documents) -> Embeddings:
+                return voyager.get_doc_embeddings(documents=input)
+        self._embed_doc_voyage = EmbeddingVoyage()
+
+        # 模块4 聊天记忆 Initialize ChatStore and ChatMemoryBuffer
         loaded_chat_store = SimpleChatStore.from_persist_path(
             persist_path="chat_store.json"
         )
         self.chat_store = loaded_chat_store if loaded_chat_store else SimpleChatStore()
         self.chat_memory = ChatMemoryBuffer.from_defaults(
-            token_limit=10000, # shape 相似
+            token_limit=3000, # shape 相似
             chat_store=self.chat_store,
             chat_store_key="user1", # TODO user_id
         )
 
-    def _articles_to_documents(self, articles: List[Article]) -> List[Document]:
-        """Convert articles to LlamaIndex documents
+        # 全局配置 Global 默认值
+        Settings.llm = self.genimi
+        Settings.embed_model = self.jina
+        # Settings.context_window=8192
+        # Settings.text_splitter = SentenceSplitter(chunk_size=1024)
+        Settings.chunk_size = 1024
+        Settings.chunk_overlap = 50
+        # Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
         
-        Args:
-            articles: List of Article objects
-            
-        Returns:
-            List of Document objects
-        """
-        documents = []
-        for article in articles:
-            # 主体由标题和内容构成
-            text = f"标题: {article.title}\n"
-            if article.content:
-                text += f"内容: {article.content}\n"
-            # 其他元数据
-            metadata = {
-                "id": article.id,
-                "url": article.url, # 用于“参考来源”
-                "summary": article.summary, # 摘要
-                "key_topics": article.key_topics,
-                "tags": article.tags # 标签
-            }
-            
-            doc = Document(text=text, metadata=metadata)
-            documents.append(doc)
-            
-        return documents
-    
+
     # 直接聊天
     # 一级 - 短期记忆（对话窗口）
     # 二级 - 长期记忆（笔记区）
@@ -149,56 +156,107 @@ class RAGService:
             Response from LLM
         """
         try:
-            logger.info(f"Chatting with articles: {article_ids}")
-            # Get articles from database
-            articles = get_article_by_ids(db_session, article_ids)
-            if not articles:
-                logger.info("No articles found")
-                return "未找到相关文章"
-            
-            logger.info(f"Got {len(articles)} articles")
-            # Convert to documents
-            documents = self._articles_to_documents(articles)
-            logger.info(f"Got {len(documents)} documents")
-            
+            logger.info(f"用户选择了文章: {article_ids}")
             # Create collection for these documents
-            import time
-            # 以当天时刻对collection命名
-            self.current_collection_name = f"chat_{int(time.time())}"
-            collection = self.chroma_client.get_or_create_collection(self.current_collection_name)
-            logger.info(f"Got collection: {self.current_collection_name}")
-            
-            # Create vector store and storage context
-            vector_store = ChromaVectorStore(chroma_collection=collection)
-            storage_context = StorageContext.from_defaults(vector_store=vector_store)
-            
-            # Add documents to vector store
-            # Create index with storage context
-            index = VectorStoreIndex.from_documents(
-                documents,
-                storage_context=storage_context,
-                show_progress=True,
-                # embed_model=self.embed_model # default in Settings
+            collection = self.chroma_client.get_or_create_collection(
+                name=VECTOR_DB_ARTICLES,
+                embedding_function = self._embed_query
             )
-            # 文档追踪
-            # print(index.ref_doc_info)
+            logger.info(f"Got collection: {VECTOR_DB_ARTICLES}")
             
+            # Create vector store
+            vector_store = ChromaVectorStore(chroma_collection=collection)
+            # 如果collection不为空，从向量库加载索引
+            if collection.count() > 0:
+                logger.info("使用现有向量表查询")
+                index = VectorStoreIndex.from_vector_store(
+                    vector_store
+                )
+            else: # 如果collection为空，用文档创建索引（数据库转向量库）
+                logger.info("创建新向量表")
+                # Get articles from database
+                articles = get_article_by_ids(db_session, article_ids)
+                if not articles:
+                    logger.info("No articles found")
+                    return "未找到相关文章"
+                logger.info(f"Got {len(articles)} articles")
+                # Convert to documents
+                documents = self._articles_to_documents(articles)
+                logger.info(f"Got {len(documents)} documents")
+                storage_context = StorageContext.from_defaults(vector_store=vector_store)
+                index = VectorStoreIndex.from_documents(
+                    documents,
+                    storage_context=storage_context,
+                    show_progress=True,
+                    # embed_model=self.embed_model
+                )
+            
+            # 文档追踪 只支持 SimpleDirectoryReader 不支持 向量库
+            # print(index.ref_doc_info)
+
+            # Query 模式
             # query_engine = index.as_query_engine(
             #     streaming=True
             #     # llm=self.llm, # default in Settings
             # )
-            # # Get response
             # response = query_engine.query(query)
             # logger.info(f"LLM response: {response}")
-            
-            # TODO 方式一 简单 as_chat_engine 问题：聊多了之后，会忽略新加的documents信息
-            chat_engine = index.as_chat_engine( # ChatMode.BEST
-                chat_mode="condense_plus_context",
+
+            # Chat 模式
+            # TODO 方式一 as_chat_engine 简单 high-level api 问题：聊多了，会忽略新的documents信息
+            chat_engine = index.as_chat_engine(
+                # https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_context/
+                # 1 first retrieve text from the index using the user message
+                # 2 set the retrieved text as context in the system prompt
+                # 3 return an answer to the user message
+                chat_mode="context",
                 memory=self.chat_memory,
-                verbose=False,
+				similarity_top_k=10,
+                verbose=True,
+                system_prompt=( # TODO 不确定是否生效
+                    "对于学习类的问题，你会先看看你和用户的聊天历史（如有），然后再看看资料库（如有），然后，把它们作为上下文，总结出方法论，优点、缺点"
+                ),
+                context_prompt=( # TODO 不确定是否生效
+                    "对于学习类的问题，你会先看看你和用户的聊天历史（如有），然后再看看资料库（如有），然后，把它们作为上下文，总结出方法论，优点、缺点"
+                ),
             )
-            # 方式二 from_defaults 问题：retriever尚不了解 有时候会导致信息被错误过滤
-            # context_prompt = os.getenv("DOC_PROMPT")
+
+            # 方式二 from_defaults low-level api
+            # from llama_index.core import PromptTemplate
+            # from llama_index.core.llms import ChatMessage, MessageRole
+            # from llama_index.core.chat_engine import CondenseQuestionChatEngine
+            # custom_prompt = PromptTemplate(
+            #     """\
+            #     Given a conversation (between Human and Assistant) and a follow up message from Human, \
+            #     rewrite the message to be a standalone question that captures all relevant context \
+            #     from the conversation.
+
+            #     <Chat History>
+            #     {chat_history}
+
+            #     <Follow Up Message>
+            #     {question}
+
+            #     <Standalone question>
+            #     """
+            # )
+            # # list of `ChatMessage` objects
+            # custom_chat_history = [
+            #     ChatMessage(
+            #         role=MessageRole.USER,
+            #         content="Hello assistant, we are having a insightful discussion about Paul Graham today.",
+            #     ),
+            #     ChatMessage(role=MessageRole.ASSISTANT, content="Okay, sounds good."),
+            # ]
+            # query_engine = index.as_query_engine()
+            # chat_engine = CondenseQuestionChatEngine.from_defaults(
+            #     query_engine=query_engine,
+            #     condense_question_prompt=custom_prompt,
+            #     chat_history=custom_chat_history,
+            #     verbose=True,
+            # )
+            # 方式二.1 增加retriever 问题：retriever尚不了解 有时候会导致信息被错误过滤
+            # context_prompt = os.getenv("CONTEXT_PROMPT")
             # from llama_index.core.vector_stores import MetadataInfo, VectorStoreInfo
             # vector_store_info = VectorStoreInfo(
             #     content_info="learning materials",
@@ -222,11 +280,11 @@ class RAGService:
             # )
             # from llama_index.core.chat_engine import CondensePlusContextChatEngine
             # chat_engine = CondensePlusContextChatEngine.from_defaults(
-            #     retriever=index.as_retriever(),
+            #     retriever=index.as_retriever(similarity_top_k=2),
             #     memory=self.chat_memory,
             #     context_prompt=context_prompt
             # )
-
+            # https://docs.llamaindex.ai/en/stable/examples/cookbooks/contextual_retrieval/#set-similarity_top_k
             response = chat_engine.chat(query)
             logger.info(f"LLM response: {response}")
             # 持久化
@@ -237,10 +295,10 @@ class RAGService:
             if response.source_nodes:
                 response_text += "\n\n参考来源:\n"
                 for node in response.source_nodes:
-                    if "url" in node.metadata:
+                    if "url" in node.metadata and node.metadata["url"] not in response_text:
                         response_text += f"- {node.metadata['url']}\n"
             
-            # 清理临时collection
+            # 清理 临时collection
             self.cleanup_collection()
 
             return response_text
@@ -249,6 +307,175 @@ class RAGService:
             logger.error(f"Error in chat_with_articles: {e}")
             return f"处理请求时发生错误: {str(e)}"
     
+    def _split_text_with_jina(self, text: str, max_chunk_length: int = 1000) -> List[str]:
+        """使用JINA API切分文本
+        Args:
+            text: 要切分的文本
+            max_chunk_length: 最大块长度
+        Returns:
+            切分后的文本块列表
+        """
+        url = 'https://segment.jina.ai/'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.JINA_API_KEY}'
+        }
+        data = {
+            "content": text,
+            "return_tokens": False,
+            "return_chunks": True,
+            "max_chunk_length": max_chunk_length
+        }
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            result = response.json()
+            return [chunk for chunk in result.get("chunks", [])]
+        except Exception as e:
+            logger.error(f"JINA切片失败: {str(e)}")
+            # 如果JINA API失败，使用简单的长度切分作为后备方案
+            return [text[i:i+max_chunk_length] for i in range(0, len(text), max_chunk_length)]
+
+    def _articles_to_documents(self, articles: List[Article]) -> List[Document]:
+        """Convert articles to LlamaIndex documents
+        Args:
+            articles: List of Article objects
+        Returns:
+            List of Document objects
+        """
+        documents = []
+        for article in articles:
+            # 主体由标题和内容构成
+            text = f"标题: {article.title}\n"
+            if article.content:
+                text += f"内容: {article.content}\n"
+            # 其他元数据
+            metadata = {
+                "id": article.id,
+                "url": article.url, # 用于“参考来源”
+                "summary": article.summary, # 摘要
+                "key_topics": article.key_topics,
+                "tags": article.tags # 标签
+            }
+            doc = Document(text=text, metadata=metadata)
+            documents.append(doc)
+        return documents
+    
+    def add_articles_to_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
+        """将文章添加到向量数据库
+        
+        Args:
+            articles: 要添加的文章列表
+            collection_name: 集合名称，如果为None则使用默认名称
+        """
+        try:
+            # 获取或创建collection
+            if collection_name is None:
+                collection_name = f"{self.current_collection_name}_{int(time.time())}"
+
+            collection = self.chroma_client.get_or_create_collection(
+                name=collection_name,
+                embedding_function = self._embed_doc
+                # lambda texts: [self.voyage.get_text_embedding(t) for t in texts]
+            )
+            logger.info(f"chroma collection: {collection_name}")
+            
+            # 切分文本并入库
+            for article in articles:
+                chunks = self._split_text_with_jina(article.content or article.summary)
+                if not chunks:
+                    logger.warning(f"文章 {article.id} 没有有效内容可切分")
+                    continue
+                # 为每个chunk生成唯一ID
+                chunk_ids = [f"article_{article.id}_chunk_{i}" for i in range(len(chunks))]
+                logger.info(f"JINA 将文章 {article.id} 切分成 {len(chunks)} 个chunk")
+                # 添加到ChromaDB
+                collection.upsert(
+                    ids=chunk_ids,
+                    documents=chunks,
+                    metadatas=[{"article_id": article.id, "chunk_index": i} for i in range(len(chunks))]
+                )
+                # 更新sqlite数据库 文章的vector_ids
+                article.vector_ids = ",".join(chunk_ids)
+                update_article(db_session, article.id, {"vector_ids": article.vector_ids})
+
+            logger.info(f"成功将 {len(articles)} 个文档添加到ChromaDB向量库 {collection_name} 集合中，总计 {collection.count()} 个文档")
+            return True
+        except Exception as e:
+            logger.error(f"添加文章到向量数据库失败: {str(e)}")
+            return False
+
+    def delete_articles_from_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
+        """从向量数据库中删除文章
+        
+        Args:
+            articles: 要删除的文章列表
+            collection_name: 集合名称，如果为None则使用默认名称
+        """
+        try:
+            if collection_name is None:
+                collection_name = self.current_collection_name
+            collection = self.chroma_client.get_collection(name=collection_name)
+            
+            for article in articles:
+                if not article.vector_ids:
+                    continue
+                    
+                # 获取文章的所有向量ID
+                vector_ids = article.vector_ids.split(",")
+                
+                # 从ChromaDB中删除
+                collection.delete(ids=vector_ids)
+                
+                # 清空文章的vector_ids
+                article.vector_ids = None
+                
+            logger.info(f"成功从ChromaDB向量库 {collection_name} 删除 {len(articles)} 个文档")
+            return True
+        except Exception as e:
+            logger.error(f"从向量数据库删除文章失败: {str(e)}")
+            return False
+
+    def retrieve(self, query: str, top_k: int = 20) -> List[Dict]:
+        """统一的检索接口，用于评估
+        
+        Args:
+            query: 查询文本
+            top_k: 返回结果数量
+            
+        Returns:
+            List[Dict]: 检索结果列表，包含chunk_id和score
+        """
+        try:
+            # 获取集合
+            collection = self.chroma_client.get_or_create_collection(
+                name=self.current_collection_name, # news_reader_rag
+                embedding_function=self._embed_doc_voyage
+            )
+            
+            # 执行查询
+            results = collection.query(
+                query_texts=[query],
+                n_results=top_k,
+                include=["documents", "distances", "metadatas"]
+            )
+            
+            # 格式化结果
+            formatted_results = []
+            if results and results['ids']:
+                for i in range(len(results['ids'][0])):
+                    formatted_results.append({
+                        'id': results['ids'][0][i],
+                        'score': float(results['distances'][0][i]) if 'distances' in results else 0.0,
+                        'content': results['documents'][0][i] if 'documents' in results else ""
+                    })
+            
+            return formatted_results
+            
+        except Exception as e:
+            logger.error(f"Error in retrieve: {e}")
+            return []
+
     def cleanup_collection(self):
         """Clean up temporary collection
         """
@@ -262,3 +489,26 @@ class RAGService:
             
         except Exception as e:
             logger.error(f"Error cleaning up collection: {e}")
+
+# main
+if __name__ == "__main__":
+    print("RAG service main")
+    # 清理向量库脚本 如果调整了向量维度 也可通过这重置
+    # 正常响应 2024-12-27 00:26:47,042 - INFO     - posthog.py[line:22] - Anonymized telemetry enabled. 
+    # See https://docs.trychroma.com/telemetry for more information.
+    # chroma_client = chromadb.PersistentClient(path="src/database/chroma_db")
+    # chroma_client = chromadb.HttpClient(host='localhost', port=8000)
+    # chroma_client.delete_collection(name=VECTOR_DB_ARTICLES)
+
+    # 查询测试
+    chroma_client = chromadb.HttpClient(host='localhost', port=8000)
+    class EmbeddingVoyage(EmbeddingFunction):
+            def __call__(self, input: Documents) -> Embeddings:
+                return voyager.get_doc_embeddings(documents=input)
+    collection = chroma_client.get_collection("news_reader_rag",
+        embedding_function = EmbeddingVoyage())
+    results = collection.query(
+        query_texts=["RAGFlow 引入的第二个设计亮点是什么？"], # Chroma will embed this for you
+        n_results=3 # how many results to return
+    )
+    print(results)

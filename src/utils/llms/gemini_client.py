@@ -274,17 +274,18 @@ class GeminiClient:
             prompt = (
                 "Process the following content, Main tasks: "
                 "1. Get the title, if no title, return '[TITLE]NO TITLE[/TITLE]'"
-                f", 2. Summarize the content concisely in {language} and use markdown to highlight important parts" 
+                f", 2. Summarize the content concisely in {language}, use markdown to highlight important parts" 
                 ", 3. Extract 5 Key-Topics(only words, no explanation)."
-                "Your response must contain the title, summarize and key topics in the fix format: "
+                "Your response must be in the fix format: "
                 "'[TITLE]...[/TITLE]\n[SUMMARY]...[/SUMMARY]\n[KEY_TOPICS]...[/KEY_TOPICS]\n'"
                 ", Sub tasks(optional): "
-                "4. Get the authors, publication_date, the most important 3 sources(website, github or paper) "
-                "if provided, use the same format as above like: "
+                "4. Get the authors, publication date, and up to 3 sources(website, github or paper etc.) "
+                "use the same format as above like: "
                 "'[AUTHORS]...[/AUTHORS]\n[PUBLICATION_DATE]...[/PUBLICATION_DATE]\n[SOURCES]...[/SOURCES]\n'"
             )
         question = prompt
-        print("question " + language)
+        logger.info(f"Answer in {language}")
+        
         try:
             # 成功返回例子 {'candidates': [{'content': {'parts': [{'text': '**Title:** Title: Scaling Test-Time Compute：向量模型上的思维链\n\n**Summarize:** 文章探讨了在向量模型推理阶段增加计算资源'}], 'role': 'model'}, 'finishReason': 'STOP', 'avgLogprobs': -0.21152597132737075}], 'usageMetadata': {'promptTokenCount': 6673, 'candidatesTokenCount': 246, 'totalTokenCount': 6919}, 'modelVersion': 'gemini-2.0-flash-exp'}
             # response = cls.chat(f"{question} : ```{content}```")

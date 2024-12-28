@@ -7,8 +7,11 @@ from database.connection import db_session
 from utils.file_input_handler import FileInputHandler
 from utils.llms.llm_tasks import LLMTasks
 import logging
+from src.utils.rag.rag_service import RAGService
+from src import VECTOR_DB_ARTICLES
 
 logger = logging.getLogger(__name__)
+rag_service = RAGService()
 
 # 文章页
 @article_bp.route('/')
@@ -78,6 +81,9 @@ def add_article(type: str = "WEB"):
         db_session.commit()
         logger.info(f"成功添加文章: {new_article.title}")
 
+        # 每次添加文章后，将文章转存向量数据库
+        add_articles_to_vector_store(new_article)
+
         return jsonify({
             'success': True,
             'message': '文章添加成功',
@@ -112,6 +118,8 @@ def delete_article_route(article_id):
             }), 404
 
         delete_article(db_session, article_id)
+        # 删除文章后，也删除向量数据库中该文章的信息
+        rag_service.delete_articles_from_vector_store([article], collection_name=VECTOR_DB_ARTICLES)
         return jsonify({
             'success': True,
             'message': '文章删除成功',
@@ -138,6 +146,10 @@ def update_article_route(article_id):
                 'message': '文章不存在',
                 'data': None
             }), 404
+
+        # 更新文章后，将文章转存向量数据库
+        article = get_article_by_id(db_session, article_id)
+        add_articles_to_vector_store(article)
 
         return jsonify({
             'success': True,
@@ -167,3 +179,11 @@ def search_articles_route():
         logger.error(f"Error searching articles: {e}")
         flash('Error performing search')
         return render_template('article/article.html', articles=[])
+
+def add_articles_to_vector_store(article: Article):
+    """将文章添加到向量数据库"""
+    articles = [article]
+    if rag_service.add_articles_to_vector_store(articles, collection_name=VECTOR_DB_ARTICLES):
+        logger.info(f"文章已添加到向量数据库: <{article.title}>")
+    else:
+        logger.error(f"添加文章到向量数据库失败")

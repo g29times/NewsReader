@@ -6,9 +6,10 @@ https://docs.llamaindex.ai/en/stable/getting_started/starter_example/
 2. 学习：完成入门部分后，下一步就是学习这个部分。在一系列简短的教程中，我们将引导您完成构建生产 LlamaIndex 应用程序的每个阶段，并帮助您逐步掌握库和 LLM 的一般概念。
 https://docs.llamaindex.ai/en/stable/understanding/using_llms/using_llms/
 https://docs.llamaindex.ai/en/stable/understanding/rag/
+https://docs.llamaindex.ai/en/stable/understanding/indexing/indexing/
 https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/apps/fullstack_app_guide/
 https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/chatbots/building_a_chatbot/
-
+https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/q_and_a/terms_definitions_tutorial/
 3. 用例：如果您是一名开发人员，想要弄清楚 LlamaIndex 是否适合您的用例，我们会概述您可以构建的事物类型。Structured Data Extraction、Query Engines、Chat Engines、Agents
 https://docs.llamaindex.ai/en/stable/use_cases/
 
@@ -24,6 +25,7 @@ https://docs.llamaindex.ai/en/stable/module_guides/storing/vector_stores/
 评估 https://docs.llamaindex.ai/en/stable/module_guides/evaluating/
 
 6. 高级主题：已经有一个可以运行的 LlamaIndex 应用程序，并希望进一步完善它？我们的高级部分将引导您完成您应该尝试优化的首要事项，例如您的嵌入模型和块大小，以及逐步更复杂和更微妙的自定义，一直到微调您的模型。
+https://docs.llamaindex.ai/en/stable/optimizing/basic_strategies/basic_strategies/
 https://docs.llamaindex.ai/en/stable/optimizing/production_rag/
 
 7. API文档
@@ -38,10 +40,15 @@ https://zhuanlan.zhihu.com/p/681532023 LlamaIndex RAG 高级检索 小到大检�
 LangChain 与LlamaIndex 比较多轮对话 https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/#the-top
 
 
+
+
 ## 1. 概述
 LlamaIndex是一个强大的数据框架，用于构建LLM应用。在我们的NewsReader项目中，我们主要使用它来实现RAG（检索增强生成）功能。
 ## Important: OpenAI Environment Setup
 By default, we use the OpenAI gpt-3.5-turbo model for text generation and text-embedding-ada-002 for retrieval and embeddings. In order to use this, you must have an OPENAI_API_KEY set up as an environment variable. 
+
+
+
 
 ## 2. 主要组件
 ### 依赖汇总
@@ -227,6 +234,11 @@ print(response)
     https://docs.llamaindex.ai/en/stable/examples/workflow/rag/
 
 ### 2.7 高级 评估 观测 后训练 等
+初步评估
+	GEMINI-1206的格式遵循最好，窗口最长，但是会有代词混淆的问题（你我他），较慢，适合工作场景
+	GEMINI-THINKING综合回答好，快，但窗口较短，偶有服务故障，适合聊天
+	GEMINI-FLASH适合不严格的快速应答
+
 
 
 

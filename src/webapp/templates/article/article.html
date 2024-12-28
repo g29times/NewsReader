@@ -41,24 +41,21 @@
                         </select>
                     </div>
 
-                    <form action="/article/search" method="get" class="mb-3">
-                        <input type="text" name="query" placeholder="Search Title, Summary, Key or Tags" style="padding: 5px; width: 80%;">
+                    <form action="/article/search" method="get" class="mb-3" style="display: flex; gap: 10px;">
+                        <input type="text" name="query" placeholder="Search Title, Summary, Key or Tags" style="flex: 1;">
                         <button type="submit" id="search-button">搜索</button>
                     </form>
                     
-                    <form action="/article/add_article" method="post" class="add-article-form">
-                        <input type="text" name="title" placeholder="Title">
-                        <input type="text" name="url" placeholder="Url" required>
-                        <div class="tags-row">
-                            <input type="text" name="tags" placeholder="Tags" style="width: 80%;">
-                            <button type="submit" id="add-button" style="width: 20%;">添加</button>
-                        </div>
+                    <form action="/article/add_article" method="post" class="mb-3 add-article-form" style="display: flex; gap: 10px;">
+                        <!-- <div style="display: flex; gap: 10px;"> -->
+                        <input type="text" name="url" placeholder="Url" required style="flex: 1;">
+                        <input type="text" name="tags" placeholder="Tags" style="flex: 1;">
+                        <button type="submit" id="add-button">添加</button>
+                        <!-- </div> -->
                     </form>
-
-                    <span>TODO *Tag-代码 *置顶 *多用户 *分页 *todo</span>
                 </div>
                 <!-- AI对话窗口 -->
-                <div class="chat-section">
+                <!-- <div class="chat-section">
                     <div class="chat-controls">
                         <span>AI Assistant</span>
                         <button id="upload-button" onclick="document.getElementById('file-upload').click()">上传文件</button>
@@ -68,7 +65,7 @@
                     </div>
                     <textarea class="chat-input" placeholder="Type your message or drop files here..."></textarea>
                     <button id="send-button" onclick="sendChatMessage()">发送</button>
-                </div>
+                </div> -->
             </div>
 
             <!-- 添加固定的标题行 -->
@@ -340,33 +337,33 @@
             if (language === 'zh') {
                 resourcesText.textContent = `{{ articles|length }} 篇资源`;
                 searchButton.textContent = '搜索';
-                uploadButton.textContent = '上传文件';
-                recordButton.textContent = '录音';
-                cameraButton.textContent = '相机';
-                sendButton.textContent = '发送';
+                // uploadButton.textContent = '上传文件';
+                // recordButton.textContent = '录音';
+                // cameraButton.textContent = '相机';
+                // sendButton.textContent = '发送';
                 addButton.textContent = '添加';
                 editButton.forEach(btn => btn.textContent = '编辑');
                 saveButton.forEach(btn => btn.textContent = '保存');
                 deleteButton.forEach(btn => btn.textContent = '删除');
                 titleColumn.textContent = '标题';
                 summaryColumn.textContent = '摘要';
-                keytopicsColumn.textContent = '关键点';
+                // keytopicsColumn.textContent = '关键点';
                 tagsColumn.textContent = '标签';
                 dateColumn.textContent = '日期';
             } else if (language === 'en') {
                 resourcesText.textContent = `{{ articles|length }} Resources`;
                 searchButton.textContent = 'Search';
-                uploadButton.textContent = 'Upload File';
-                recordButton.textContent = 'Record Audio';
-                cameraButton.textContent = 'Camera';
-                sendButton.textContent = 'Chat';
+                // uploadButton.textContent = 'Upload File';
+                // recordButton.textContent = 'Record Audio';
+                // cameraButton.textContent = 'Camera';
+                // sendButton.textContent = 'Chat';
                 addButton.textContent = 'Add';
                 editButton.forEach(btn => btn.textContent = 'Edit');
                 saveButton.forEach(btn => btn.textContent = 'Save');
                 deleteButton.forEach(btn => btn.textContent = 'Delete');
                 titleColumn.textContent = 'Title';
                 summaryColumn.textContent = 'Summary';
-                keytopicsColumn.textContent = 'Key Topics';
+                // keytopicsColumn.textContent = 'Key Topics';
                 tagsColumn.textContent = 'Tags';
                 dateColumn.textContent = 'Date(Id)';
             } else {

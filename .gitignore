@@ -10,6 +10,7 @@ files/temp
 .idea
 node_modules
 chroma_db
+database
 
 # ignore environment
 .venv

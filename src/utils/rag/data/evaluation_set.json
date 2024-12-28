@@ -1,0 +1,640 @@
+[
+  {
+    "question": "什么是 RAG 技术的原理？",
+    "answer": "RAG（增强搜索生成）是一种通过丰富 Prompt 为大模型提供相关背景信息，从而增强其专业领域应答能力的技术。",
+    "golden_chunk": "Title: 👾打开 RAG 对接大模型的黑盒 —— 9  大隐藏问题-腾讯云开发者社区-腾讯云\n\nURL Source: https://cloud.tencent.com/developer/article/2404634\n\nMarkdown Content:\n前一段时间，各个大模型在争斗：谁能携带更长、更大的上下文 Prompt，比如 Kimi 说 200 万字，阿里通义千问又说自己能达 1000 万字；大家都知道 Prompt 很重要，但是 RAG 和 长的上下文文本携带 是两个不同的技术方向。\n\n### RAG\n\n先来简单介绍一下什么是 RAG （增强搜索生成），很简单：\n\n当我们问 ChatGPT 一个比较专业的问题时，他就是开始回答轱辘话了，通用大模型在专业领域的应答能力有限；\n\n所有这个时候，我们通过丰富 Prompt 给他介绍一下相关背景，然后大模型就有更专业的应答能力了。\n\n这个丰富 Prompt 的过程就是 RAG —— 增强搜索生成。\n\n实际操作会更复杂一点，但是原理就是这么一个原理，如图：\n\n![Image 23](https://developer.qcloudimg.com/http-save/yehe-7738744/878677f2afa0832538b7a180b662d637.webp)",
+    "chunk_id": "a9147487-066e-4dd8-ba74-d9bd9205d612_golden_0",
+    "metadata": {
+      "source": "2404634.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "构建 RAG 时通常会经历哪些步骤？",
+    "answer": "将文档分割成均匀的块，为每个块生成嵌入，将每个块存储在向量数据库中，从向量数据库集合中找到最相似的 Top-k 块，接入 LLM 响应合成模块。",
+    "golden_chunk": "![Image 23](https://developer.qcloudimg.com/http-save/yehe-7738744/878677f2afa0832538b7a180b662d637.webp)\n\n如上图，当我们问大模型：“五四运动的历史意义”，它可能泛泛而谈；此时，此时，我们引入了专业知识库（书、教材、论文文献等），然后通过提取文本形成区块，形成向量库；当我们再次提问的时候，会结合向量库形成一个更加完备的Prompt ，此时，大模型就能很好地回答我们的专业问题了！\n\n言而总之，大数据时代，很多公司都拥有大量的专有数据，如果能基于它们创建 RAG，将显著提升大模型的特异性。\n\n### 构建 RAG\n\n本篇不是想讲 RAG 概念，而是想再深入探索一下：RAG 的构建；\n\n通常来说，构建 RAG 的过程有：\n\n*   将文档分割成均匀的块，每个块都是一段原始文本；\n*   为每个块生成嵌入（例如 OpenAl 嵌入，sentence_transformer）；\n*   将每个块存储在向量数据库中；\n*   从向量数据库集合中找到最相似的Top-k块；\n*   接入LLM响应合成模块；\n\n![Image 24](https://developer.qcloudimg.com/http-save/yehe-7738744/d7bd927811691d45a8f95ba46c96cb52.webp)",
+    "chunk_id": "a9147487-066e-4dd8-ba74-d9bd9205d612_golden_1",
+    "metadata": {
+      "source": "2404634.txt",
+      "chunk_index": 1,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "简易 RAG 管道中的 query_engine 使用的是什么算法？",
+    "answer": "top-k 相似性算法",
+    "golden_chunk": "![Image 24](https://developer.qcloudimg.com/http-save/yehe-7738744/d7bd927811691d45a8f95ba46c96cb52.webp)\n\n![Image 25](https://developer.qcloudimg.com/http-save/yehe-7738744/b2ed2a65fdcbef0ba7c051999d8bf9f5.webp)\n\n简易 RAG：\n\n```\n!pip install llama-index\n\n# My OpenAI Key\nimport os\nos.environ['OPENAI_API_KEY'] = \"\"\n\n\nimport logging\nimport sys\nimport requests\n\nlogging.basicConfig(stream=sys.stdout, level=logging.INFO)\nlogging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))\n\nfrom llama_index import VectorStoreIndex, SimpleDirectoryReader\nfrom IPython.display import Markdown, display\n\n# download paul graham's essay\nresponse = requests.get(\"https://www.dropbox.com/s/f6bmb19xdg0xedm/paul_graham_essay.txt?dl=1\")\nessay_txt = response.text\nwith open(\"pg_essay.txt\", \"w\") as fp:\n  fp.write(essay_txt)\n  \n  \n  # load documents\ndocuments = SimpleDirectoryReader(input_files=['pg_essay.txt']).load_data()\n\n\nindex = VectorStoreIndex.from_documents(documents)\n\n\n# set Logging to DEBUG for more detailed outputs\nquery_engine = index.as_query_engine(similarity_top_k=2)\n\nresponse = query_engine.query(\n    \"What did the author do growing up?\",\n)\n\n\nprint(response.source_nodes[0].node.get_text())\n```\n\n以上代码是一个简单的 RAG 管道，演示了加载一篇专业文章，对其进行分块，并使用 llama-index 库创建 RAG 管道。这种简易的 RAG 适合一些小而美的专业问题。\n\n现实世界中，专业问题往往会更加复杂。\n\n对于很多人来说，RAG 的引入、与大模型的对接是一个黑盒，任何微小参数的变动都将引起结果发生很大的变化。",
+    "chunk_id": "a9147487-066e-4dd8-ba74-d9bd9205d612_golden_2",
+    "metadata": {
+      "source": "2404634.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在检索中常见的三个问题是什么？",
+    "answer": "低精度、低召回率、信息过时",
+    "golden_chunk": "![Image 26: image.png](https://developer.qcloudimg.com/http-save/yehe-7738744/24f10e69c34a2503ebba73edbaffaa33.webp)\n\nimage.png\n\n广泛理解，在检索中，容易造成的问题有：\n\n*   低精度：检索集合中并非所有片段都相关—— 存在幻觉问题和中间丢失问题\n*   低召回率：并非所有相关片段都被检索到——缺乏足够的上下文让LLM合成答案（这也印证了扩张上下文容量的必要性）\n*   信息过时：数据冗余或已过时\n\n这样会导致：模型编造不符合上下文语义的答案/模型没有回答问题/模型编造有害的或带有偏见的答案\n\n接下来，一起揭秘：RAG 对接大模型的黑盒 —— 9 大问题\n\n![Image 27](https://developer.qcloudimg.com/http-save/yehe-7738744/9697e3d8d827c1ad0a647d173edc6269.webp)\n\n来源：[Seven Failure Points When Engineering a Retrieval Augmented Generation System](https://cloud.tencent.com/developer/tools/blog-entry?target=https%3A%2F%2Flink.juejin.cn%2F%3Ftarget%3Dhttps%253A%252F%252Farxiv.org%252Fpdf%252F2401.05856.pdf&objectId=2404634&objectType=1&isNewArticle=undefined)\n\n#### 1. 源数据本身缺少上下文\n\n这个很好理解， 你想要问专业的历史问题，就需要建立历史知识库，而不是对接一个生物数据库；",
+    "chunk_id": "a9147487-066e-4dd8-ba74-d9bd9205d612_golden_3",
+    "metadata": {
+      "source": "2404634.txt",
+      "chunk_index": 3,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "提供数据清理中去除噪声和不相关信息的具体示例有哪些？",
+    "answer": "去除特殊字符、停顿词（像“the”和“a”这样的常用词）和HTML标签。",
+    "golden_chunk": "这个很好理解， 你想要问专业的历史问题，就需要建立历史知识库，而不是对接一个生物数据库；\n\n如果源数据质量较差，例如包含冲突信息，无论我们如何构建 RAG 管道，最终也无法从提供的垃圾中生成黄金。\n\n有一些常见的策略可以清理数据，举几个例子：\n\n*   去除噪声和不相关信息：包括去除特殊字符、停顿词（像“the”和“a”这样的常用词）和HTML标签。\n*   识别并纠正错误：包括拼写错误、打字错误和语法错误；拼写检查器和语言模型之类的工具可以帮助解决这些问题。\n*   去重：移除重复记录或在偏置检索过程的相似记录。\n\n这里推荐：[Unstructured.io](https://cloud.tencent.com/developer/tools/blog-entry?target=https%3A%2F%2Flink.juejin.cn%2F%3Ftarget%3DUnstructured.io&objectId=2404634&objectType=1&isNewArticle=undefined) 是一套核心库，能帮助解决数清理，值得一试。\n\n![Image 28](https://developer.qcloudimg.com/http-save/yehe-7738744/3f5213f27c25090a0959f4d5f2738ea1.webp)\n\n还有一个提示的小技巧：直接告诉大模型，“如果你遇到了你不懂的知识点，请直接告诉我：不知道”；\n\n或者你还可以在每个 chunk 里面添加上下文；\n\n#### 2. 关键信息出现权重较低",
+    "chunk_id": "a9147487-066e-4dd8-ba74-d9bd9205d612_golden_4",
+    "metadata": {
+      "source": "2404634.txt",
+      "chunk_index": 4,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "Contextual Embeddings如何改善检索性能？",
+    "answer": "通过在嵌入之前为每个块添加相关上下文。",
+    "golden_chunk": "<p>\r\nEnhancing RAG with Contextual Retrieval\r\nNote: For more background information on Contextual Retrieval, including additional performance evaluations on various datasets, we recommend reading our accompanying blog post.\r\n\r\nRetrieval Augmented Generation (RAG) enables Claude to leverage your internal knowledge bases, codebases, or any other corpus of documents when providing a response. Enterprises are increasingly building RAG applications to improve workflows in customer support, Q&A over internal company documents, financial & legal analysis, code generation, and much more.\r\n\r\nIn a separate guide, we walked through setting up a basic retrieval system, demonstrated how to evaluate its performance, and then outlined a few techniques to improve performance. In this guide, we present a technique for improving retrieval performance: Contextual Embeddings.\r\n\r\nIn traditional RAG, documents are typically split into smaller chunks for efficient retrieval. While this approach works well for many applications, it can lead to problems when individual chunks lack sufficient context. Contextual Embeddings solve this problem by adding relevant context to each chunk before embedding. This method improves the quality of each embedded chunk, allowing for more accurate retrieval and thus better overall performance. Averaged across all data sources we tested, Contextual Embeddings reduced the top-20-chunk retrieval failure rate by 35%.\r\n\r\nThe same chunk-specific context can also be used with BM25 search to further improve retrieval performance. We introduce this technique in the “Contextual BM25” section.\r\n\r\nIn this guide, we'll demonstrate how to build and optimize a Contextual Retrieval system using a dataset of 9 codebases as our knowledge base. We'll walk through:\r\n\r\nSetting up a basic retrieval pipeline to establish a baseline for performance.\r\n\r\nContextual Embeddings: what it is, why it works, and how prompt caching makes it practical for production use cases.\r\n\r\nImplementing Contextual Embeddings and demonstrating performance improvements.\r\n\r\nContextual BM25: improving performance with contextual BM25 hybrid search.\r\n\r\nImproving performance with reranking,\r\n</p><p>\r\nEvaluation Metrics & Dataset:\r\nWe use a pre-chunked dataset of 9 codebases - all of which have been chunked according to a basic character splitting mechanism. Our evaluation dataset contains 248 queries - each of which contains a 'golden chunk.' We'll use a metric called Pass@k to evaluate performance.",
+    "chunk_id": "53e54831-9ea0-44d8-95ff-db475e86c728_golden_0",
+    "metadata": {
+      "source": "a.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "Contextual Embeddings与传统RAG的不同之处是什么？",
+    "answer": "传统RAG将文档分成更小的块以进行高效检索，而Contextual Embeddings在嵌入前添加上下文。",
+    "golden_chunk": "<p>\r\nEnhancing RAG with Contextual Retrieval\r\nNote: For more background information on Contextual Retrieval, including additional performance evaluations on various datasets, we recommend reading our accompanying blog post.\r\n\r\nRetrieval Augmented Generation (RAG) enables Claude to leverage your internal knowledge bases, codebases, or any other corpus of documents when providing a response. Enterprises are increasingly building RAG applications to improve workflows in customer support, Q&A over internal company documents, financial & legal analysis, code generation, and much more.\r\n\r\nIn a separate guide, we walked through setting up a basic retrieval system, demonstrated how to evaluate its performance, and then outlined a few techniques to improve performance. In this guide, we present a technique for improving retrieval performance: Contextual Embeddings.\r\n\r\nIn traditional RAG, documents are typically split into smaller chunks for efficient retrieval. While this approach works well for many applications, it can lead to problems when individual chunks lack sufficient context. Contextual Embeddings solve this problem by adding relevant context to each chunk before embedding. This method improves the quality of each embedded chunk, allowing for more accurate retrieval and thus better overall performance. Averaged across all data sources we tested, Contextual Embeddings reduced the top-20-chunk retrieval failure rate by 35%.\r\n\r\nThe same chunk-specific context can also be used with BM25 search to further improve retrieval performance. We introduce this technique in the “Contextual BM25” section.\r\n\r\nIn this guide, we'll demonstrate how to build and optimize a Contextual Retrieval system using a dataset of 9 codebases as our knowledge base. We'll walk through:\r\n\r\nSetting up a basic retrieval pipeline to establish a baseline for performance.\r\n\r\nContextual Embeddings: what it is, why it works, and how prompt caching makes it practical for production use cases.\r\n\r\nImplementing Contextual Embeddings and demonstrating performance improvements.\r\n\r\nContextual BM25: improving performance with contextual BM25 hybrid search.\r\n\r\nImproving performance with reranking,\r\n</p><p>\r\nEvaluation Metrics & Dataset:\r\nWe use a pre-chunked dataset of 9 codebases - all of which have been chunked according to a basic character splitting mechanism. Our evaluation dataset contains 248 queries - each of which contains a 'golden chunk.' We'll use a metric called Pass@k to evaluate performance.",
+    "chunk_id": "53e54831-9ea0-44d8-95ff-db475e86c728_golden_0",
+    "metadata": {
+      "source": "a.txt",
+      "chunk_index": 0,
+      "question_type": "comparative"
+    }
+  },
+  {
+    "question": "如何使用块特定上下文进一步提高检索性能？",
+    "answer": "可以使用它与BM25搜索一起使用，称为“Contextual BM25”。",
+    "golden_chunk": "<p>\r\nEnhancing RAG with Contextual Retrieval\r\nNote: For more background information on Contextual Retrieval, including additional performance evaluations on various datasets, we recommend reading our accompanying blog post.\r\n\r\nRetrieval Augmented Generation (RAG) enables Claude to leverage your internal knowledge bases, codebases, or any other corpus of documents when providing a response. Enterprises are increasingly building RAG applications to improve workflows in customer support, Q&A over internal company documents, financial & legal analysis, code generation, and much more.\r\n\r\nIn a separate guide, we walked through setting up a basic retrieval system, demonstrated how to evaluate its performance, and then outlined a few techniques to improve performance. In this guide, we present a technique for improving retrieval performance: Contextual Embeddings.\r\n\r\nIn traditional RAG, documents are typically split into smaller chunks for efficient retrieval. While this approach works well for many applications, it can lead to problems when individual chunks lack sufficient context. Contextual Embeddings solve this problem by adding relevant context to each chunk before embedding. This method improves the quality of each embedded chunk, allowing for more accurate retrieval and thus better overall performance. Averaged across all data sources we tested, Contextual Embeddings reduced the top-20-chunk retrieval failure rate by 35%.\r\n\r\nThe same chunk-specific context can also be used with BM25 search to further improve retrieval performance. We introduce this technique in the “Contextual BM25” section.\r\n\r\nIn this guide, we'll demonstrate how to build and optimize a Contextual Retrieval system using a dataset of 9 codebases as our knowledge base. We'll walk through:\r\n\r\nSetting up a basic retrieval pipeline to establish a baseline for performance.\r\n\r\nContextual Embeddings: what it is, why it works, and how prompt caching makes it practical for production use cases.\r\n\r\nImplementing Contextual Embeddings and demonstrating performance improvements.\r\n\r\nContextual BM25: improving performance with contextual BM25 hybrid search.\r\n\r\nImproving performance with reranking,\r\n</p><p>\r\nEvaluation Metrics & Dataset:\r\nWe use a pre-chunked dataset of 9 codebases - all of which have been chunked according to a basic character splitting mechanism. Our evaluation dataset contains 248 queries - each of which contains a 'golden chunk.' We'll use a metric called Pass@k to evaluate performance.",
+    "chunk_id": "53e54831-9ea0-44d8-95ff-db475e86c728_golden_0",
+    "metadata": {
+      "source": "a.txt",
+      "chunk_index": 0,
+      "question_type": "methodological"
+    }
+  },
+  {
+    "question": "构建和优化Contextual Retrieval系统需要哪些步骤？",
+    "answer": "设置一个基本的检索管道、实施Contextual Embeddings、实现Contextual BM25、提高性能。",
+    "golden_chunk": "<p>\r\nEnhancing RAG with Contextual Retrieval\r\nNote: For more background information on Contextual Retrieval, including additional performance evaluations on various datasets, we recommend reading our accompanying blog post.\r\n\r\nRetrieval Augmented Generation (RAG) enables Claude to leverage your internal knowledge bases, codebases, or any other corpus of documents when providing a response. Enterprises are increasingly building RAG applications to improve workflows in customer support, Q&A over internal company documents, financial & legal analysis, code generation, and much more.\r\n\r\nIn a separate guide, we walked through setting up a basic retrieval system, demonstrated how to evaluate its performance, and then outlined a few techniques to improve performance. In this guide, we present a technique for improving retrieval performance: Contextual Embeddings.\r\n\r\nIn traditional RAG, documents are typically split into smaller chunks for efficient retrieval. While this approach works well for many applications, it can lead to problems when individual chunks lack sufficient context. Contextual Embeddings solve this problem by adding relevant context to each chunk before embedding. This method improves the quality of each embedded chunk, allowing for more accurate retrieval and thus better overall performance. Averaged across all data sources we tested, Contextual Embeddings reduced the top-20-chunk retrieval failure rate by 35%.\r\n\r\nThe same chunk-specific context can also be used with BM25 search to further improve retrieval performance. We introduce this technique in the “Contextual BM25” section.\r\n\r\nIn this guide, we'll demonstrate how to build and optimize a Contextual Retrieval system using a dataset of 9 codebases as our knowledge base. We'll walk through:\r\n\r\nSetting up a basic retrieval pipeline to establish a baseline for performance.\r\n\r\nContextual Embeddings: what it is, why it works, and how prompt caching makes it practical for production use cases.\r\n\r\nImplementing Contextual Embeddings and demonstrating performance improvements.\r\n\r\nContextual BM25: improving performance with contextual BM25 hybrid search.\r\n\r\nImproving performance with reranking,\r\n</p><p>\r\nEvaluation Metrics & Dataset:\r\nWe use a pre-chunked dataset of 9 codebases - all of which have been chunked according to a basic character splitting mechanism. Our evaluation dataset contains 248 queries - each of which contains a 'golden chunk.' We'll use a metric called Pass@k to evaluate performance.",
+    "chunk_id": "53e54831-9ea0-44d8-95ff-db475e86c728_golden_0",
+    "metadata": {
+      "source": "a.txt",
+      "chunk_index": 0,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "评估性能使用的指标是什么？",
+    "answer": "Pass@k。",
+    "golden_chunk": "<p>\r\nEnhancing RAG with Contextual Retrieval\r\nNote: For more background information on Contextual Retrieval, including additional performance evaluations on various datasets, we recommend reading our accompanying blog post.\r\n\r\nRetrieval Augmented Generation (RAG) enables Claude to leverage your internal knowledge bases, codebases, or any other corpus of documents when providing a response. Enterprises are increasingly building RAG applications to improve workflows in customer support, Q&A over internal company documents, financial & legal analysis, code generation, and much more.\r\n\r\nIn a separate guide, we walked through setting up a basic retrieval system, demonstrated how to evaluate its performance, and then outlined a few techniques to improve performance. In this guide, we present a technique for improving retrieval performance: Contextual Embeddings.\r\n\r\nIn traditional RAG, documents are typically split into smaller chunks for efficient retrieval. While this approach works well for many applications, it can lead to problems when individual chunks lack sufficient context. Contextual Embeddings solve this problem by adding relevant context to each chunk before embedding. This method improves the quality of each embedded chunk, allowing for more accurate retrieval and thus better overall performance. Averaged across all data sources we tested, Contextual Embeddings reduced the top-20-chunk retrieval failure rate by 35%.\r\n\r\nThe same chunk-specific context can also be used with BM25 search to further improve retrieval performance. We introduce this technique in the “Contextual BM25” section.\r\n\r\nIn this guide, we'll demonstrate how to build and optimize a Contextual Retrieval system using a dataset of 9 codebases as our knowledge base. We'll walk through:\r\n\r\nSetting up a basic retrieval pipeline to establish a baseline for performance.\r\n\r\nContextual Embeddings: what it is, why it works, and how prompt caching makes it practical for production use cases.\r\n\r\nImplementing Contextual Embeddings and demonstrating performance improvements.\r\n\r\nContextual BM25: improving performance with contextual BM25 hybrid search.\r\n\r\nImproving performance with reranking,\r\n</p><p>\r\nEvaluation Metrics & Dataset:\r\nWe use a pre-chunked dataset of 9 codebases - all of which have been chunked according to a basic character splitting mechanism. Our evaluation dataset contains 248 queries - each of which contains a 'golden chunk.' We'll use a metric called Pass@k to evaluate performance.",
+    "chunk_id": "53e54831-9ea0-44d8-95ff-db475e86c728_golden_0",
+    "metadata": {
+      "source": "a.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在测试时计算扩展方法中，模型是如何在困难的问题上表现出性能提升的？",
+    "answer": "模型通过「思考更长时间」来提升性能。",
+    "golden_chunk": "Title: 3B模型长思考后击败70B！HuggingFace逆向出o1背后技术细节并开源\n\nURL Source: https://mp.weixin.qq.com/s/E1FaaOurAb-QlCX3BASi9Q\n\nMarkdown Content:\n机器之心报道\n\n**机器之心编辑部**\n\n> 如果给小模型更长的思考时间，它们性能可以超越更大规模的模型。\n\n最近一段时间，业内对小模型的研究热情空前地高涨，通过一些「实用技巧」让它们在性能上超越更大规模的模型。\n\n可以说，将目光放到提升较小模型的性能上来有其必然性。对于大语言模型而言，训练时计算（train-time compute）的扩展主导了它们的发展。尽管这种模式已被证明非常有效，但越来越大模型的预训练所需的资源却变得异常昂贵，数十亿美元的集群已经出现。\n\n因此，这一趋势引发了人们对另外一种互补方法的极大兴趣，即测试时计算扩展（test-time compute scaling）。测试时方法不依赖于越来越大的预训练预算，而是使用动态推理策略，让模型在更难的问题上「思考更长时间」。一个突出的例子是 OpenAI 的 o1 模型，随着测试时计算量的增加，它在困难数学问题上表现出持续的进步。",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_0",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "通过什么策略可以实现测试时计算的最佳扩展？",
+    "answer": "迭代自我改进或使用奖励模型在解决方案空间上进行搜索",
+    "golden_chunk": "![Image 47](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fHeZkVREnHcRQ3Ribv318aPHNiaMMy4sDVibWDRFqNdV9gpHegFqXuxtQw/640?wx_fmt=png&from=appmsg)\n\n虽然我们不清楚 o1 是如何训练的，但 DeepMind 最近的研究表明，可以通过迭代自我改进或使用奖励模型在解决方案空间上进行搜索等策略来实现测试时计算的最佳扩展。通过自适应地按 prompt 分配测试时计算，较小的模型可以与较大、资源密集型模型相媲美，有时甚至超越它们。当内存受限且可用硬件不足以运行较大模型时，扩展时间时计算尤其有利。然而这种有前途的方法是用闭源模型演示的，没有发布任何实现细节或代码。\n\nDeepMind 论文：https://arxiv.org/pdf/2408.03314\n\n在过去几个月里，HuggingFace 一直在深入研究，试图对这些结果进行逆向工程并复现。他们在这篇博文将介绍：",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_1",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 1,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "根据提供的基准数据，计算最优扩展如何提升更小规模的模型的性能？",
+    "answer": "在 MATH-500 基准上，经过充分的「思考时间」，规模为 1B 和 3B 的 Llama Instruct 模型优于更大的 8B 和 70B 模型。",
+    "golden_chunk": "*   **计算最优扩展（compute-optimal scaling）：**通过实现 DeepMind 的技巧来提升测试时开放模型的数学能力。\n    \n*   **多样性验证器树搜索 (DVTS)：**它是为验证器引导树搜索技术开发的扩展。这种简单高效的方法提高了多样性并提供了更好的性能，特别是在测试时计算预算较大的情况下。\n    \n*   **搜索和学习：**一个轻量级工具包，用于使用 LLM 实现搜索策略，并使用 vLLM 实现速度提升。\n    \n\n那么，计算最优扩展在实践中效果如何呢？在下图中，如果你给它们足够的「思考时间」，规模很小的 1B 和 3B Llama Instruct 模型在具有挑战性的 MATH-500 基准上，超越了比它们大得多的 8B、70B 模型。\n\n![Image 48](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fC42dJ100t1n2Licz52vkfCLl8OUfsicZhEYHhjnkCwJ9CSOoKYln9c7w/640?wx_fmt=png&from=appmsg)",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_2",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "OpenAI o1 公布后多久，Hugging Face 公开了其突破性技术的开源版本？",
+    "answer": "10 天",
+    "golden_chunk": "HuggingFace 联合创始人兼 CEO Clem Delangue 表示，在 OpenAI o1 公开亮相仅 10 天后，我们很高兴地揭晓了其成功背后的突破性技术的开源版本：扩展测试时计算。通过给模型更长的「思考时间」，1B 模型可以击败 8B、3B 模型可以击败 70B。当然，完整的技术配方是开源的。\n\n![Image 49](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fOjvFTywpljzplg2wU5SuugRuhMFvL8QbmrvJhiaYJrOvRibCzQNJA0fA/640?wx_fmt=png&from=appmsg)\n\n各路网友看到这些结果也不淡定了，直呼不可思议，并认为这是小模型的胜利。\n\n![Image 50](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fibsQ58IYKP8aDrlS2YIuV0qpfBUGCymGnKm3zEsb8baQXIlFHaJwRug/640?wx_fmt=png&from=appmsg)\n\n![Image 51](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fuM1nKC7ibq6dPz2mHEwDaVZzODanxdXicpxgSeEuXTFTBpX8qQOudEzw/640?wx_fmt=png&from=appmsg)",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_3",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 3,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "扩展测试时计算的两种主要策略是什么？",
+    "answer": "- 自我改进\n- 针对验证器进行搜索",
+    "golden_chunk": "接下来，HuggingFace 深入探讨了产生上述结果背后的原因，并帮助读者了解实现测试时计算扩展的实用策略。\n\n**扩展测试时计算策略**\n\n扩展测试时计算主要有以下两种主要策略：\n\n*   自我改进：模型通过在后续迭代中识别和纠错来迭代改进自己的输出或「想法」。虽然这种策略在某些任务上有效，但通常要求模型具有内置的自我改进机制，这可能会限制其适用性。\n    \n*   针对验证器进行搜索：这种方法侧重于生成多个候选答案并使用验证器选择最佳答案。验证器可以是基于硬编码的启发式方法，也可以是学得的奖励模型。本文将重点介绍学得的验证器，它包括了 Best-of-N 采样和树搜索等技术。这种搜索策略更灵活，可以适应问题的难度，不过它们的性能受到验证器质量的限制。\n    \n\nHuggingFace 专注于基于搜索的方法，它们是测试时计算优化的实用且可扩展的解决方案。下面是三种策略：\n\n![Image 52](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fOib4PFA1Q1psr6ITBz3oSFQAVwSIa38yxInrHb9yxnYw6N667YcoPwQ/640?wx_fmt=png&from=appmsg)",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_4",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 4,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "为什么 HuggingFace 专注于基于搜索的扩展测试时计算策略？",
+    "answer": "因为它是测试时计算优化的实用且可扩展的解决方案。",
+    "golden_chunk": "接下来，HuggingFace 深入探讨了产生上述结果背后的原因，并帮助读者了解实现测试时计算扩展的实用策略。\n\n**扩展测试时计算策略**\n\n扩展测试时计算主要有以下两种主要策略：\n\n*   自我改进：模型通过在后续迭代中识别和纠错来迭代改进自己的输出或「想法」。虽然这种策略在某些任务上有效，但通常要求模型具有内置的自我改进机制，这可能会限制其适用性。\n    \n*   针对验证器进行搜索：这种方法侧重于生成多个候选答案并使用验证器选择最佳答案。验证器可以是基于硬编码的启发式方法，也可以是学得的奖励模型。本文将重点介绍学得的验证器，它包括了 Best-of-N 采样和树搜索等技术。这种搜索策略更灵活，可以适应问题的难度，不过它们的性能受到验证器质量的限制。\n    \n\nHuggingFace 专注于基于搜索的方法，它们是测试时计算优化的实用且可扩展的解决方案。下面是三种策略：\n\n![Image 52](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fOib4PFA1Q1psr6ITBz3oSFQAVwSIa38yxInrHb9yxnYw6N667YcoPwQ/640?wx_fmt=png&from=appmsg)",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_4",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 4,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "HuggingFace 在本文中提出的三种基于搜索的扩展测试时计算策略是什么？",
+    "answer": "这个信息不在文本中。",
+    "golden_chunk": "接下来，HuggingFace 深入探讨了产生上述结果背后的原因，并帮助读者了解实现测试时计算扩展的实用策略。\n\n**扩展测试时计算策略**\n\n扩展测试时计算主要有以下两种主要策略：\n\n*   自我改进：模型通过在后续迭代中识别和纠错来迭代改进自己的输出或「想法」。虽然这种策略在某些任务上有效，但通常要求模型具有内置的自我改进机制，这可能会限制其适用性。\n    \n*   针对验证器进行搜索：这种方法侧重于生成多个候选答案并使用验证器选择最佳答案。验证器可以是基于硬编码的启发式方法，也可以是学得的奖励模型。本文将重点介绍学得的验证器，它包括了 Best-of-N 采样和树搜索等技术。这种搜索策略更灵活，可以适应问题的难度，不过它们的性能受到验证器质量的限制。\n    \n\nHuggingFace 专注于基于搜索的方法，它们是测试时计算优化的实用且可扩展的解决方案。下面是三种策略：\n\n![Image 52](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fOib4PFA1Q1psr6ITBz3oSFQAVwSIa38yxInrHb9yxnYw6N667YcoPwQ/640?wx_fmt=png&from=appmsg)",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_4",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 4,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "自我改进策略和针对验证器进行搜索策略之间有什么区别？",
+    "answer": "- 自我改进：模型通过识别和纠错来迭代改进自己的输出。\n- 针对验证器进行搜索：生成多个候选答案并使用验证器选择最佳答案。",
+    "golden_chunk": "接下来，HuggingFace 深入探讨了产生上述结果背后的原因，并帮助读者了解实现测试时计算扩展的实用策略。\n\n**扩展测试时计算策略**\n\n扩展测试时计算主要有以下两种主要策略：\n\n*   自我改进：模型通过在后续迭代中识别和纠错来迭代改进自己的输出或「想法」。虽然这种策略在某些任务上有效，但通常要求模型具有内置的自我改进机制，这可能会限制其适用性。\n    \n*   针对验证器进行搜索：这种方法侧重于生成多个候选答案并使用验证器选择最佳答案。验证器可以是基于硬编码的启发式方法，也可以是学得的奖励模型。本文将重点介绍学得的验证器，它包括了 Best-of-N 采样和树搜索等技术。这种搜索策略更灵活，可以适应问题的难度，不过它们的性能受到验证器质量的限制。\n    \n\nHuggingFace 专注于基于搜索的方法，它们是测试时计算优化的实用且可扩展的解决方案。下面是三种策略：\n\n![Image 52](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fOib4PFA1Q1psr6ITBz3oSFQAVwSIa38yxInrHb9yxnYw6N667YcoPwQ/640?wx_fmt=png&from=appmsg)",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_4",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 4,
+      "question_type": "comparative"
+    }
+  },
+  {
+    "question": "如何使用针对验证器进行搜索的策略实现扩展测试时计算？",
+    "answer": "这个信息不在文本中。",
+    "golden_chunk": "接下来，HuggingFace 深入探讨了产生上述结果背后的原因，并帮助读者了解实现测试时计算扩展的实用策略。\n\n**扩展测试时计算策略**\n\n扩展测试时计算主要有以下两种主要策略：\n\n*   自我改进：模型通过在后续迭代中识别和纠错来迭代改进自己的输出或「想法」。虽然这种策略在某些任务上有效，但通常要求模型具有内置的自我改进机制，这可能会限制其适用性。\n    \n*   针对验证器进行搜索：这种方法侧重于生成多个候选答案并使用验证器选择最佳答案。验证器可以是基于硬编码的启发式方法，也可以是学得的奖励模型。本文将重点介绍学得的验证器，它包括了 Best-of-N 采样和树搜索等技术。这种搜索策略更灵活，可以适应问题的难度，不过它们的性能受到验证器质量的限制。\n    \n\nHuggingFace 专注于基于搜索的方法，它们是测试时计算优化的实用且可扩展的解决方案。下面是三种策略：\n\n![Image 52](https://mmbiz.qpic.cn/sz_mmbiz_png/KmXPKA19gW9GXh2BaDETjIjzTbDaEH2fOib4PFA1Q1psr6ITBz3oSFQAVwSIa38yxInrHb9yxnYw6N667YcoPwQ/640?wx_fmt=png&from=appmsg)",
+    "chunk_id": "1ede73c2-4c12-4f9c-a4c5-68f94c03b77c_golden_4",
+    "metadata": {
+      "source": "E1FaaOurAb-QlCX3BASi9Q.txt",
+      "chunk_index": 4,
+      "question_type": "methodological"
+    }
+  },
+  {
+    "question": "Claude 5 层 Prompt 体系中包含哪三种类型的信息？",
+    "answer": "提示词、指令、随便闲聊",
+    "golden_chunk": "Title: Claude 的 5 层 Prompt 体系\n\nURL Source: https://mp.weixin.qq.com/s/GEGjDR8-rMeT0Mm-XFkkRg\n\nMarkdown Content:\n在跟AI对话过程中，同样的问题，其他人可以得到非常好的答案，自己却只能得到很简单的回应。这个时候Prompt的作用就体现出来了。自从深入研究Dify之后，对这方面的需求也是非常大的。本文是大神@eviljer整理的Claude  5层Prompt体系，学习一下。\n\n![Image 21](https://mmbiz.qpic.cn/mmbiz_jpg/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjq1SVGk15pVKJQRYRyur3c8yqMoXF5Opiavqh279DMHBMhz23tgafmsg/640?wx_fmt=jpeg&from=appmsg)\n\n1. 用户需求\n\n这是最核心的咒语，可以细分为提示词、指令、随便闲聊3中。\n\n![Image 22](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjcJN9hElnk8IcDMicqgyoh3miaFkungiaNQK55LLwkb1gOnYWAEsWqBE0g/640?wx_fmt=png&from=appmsg)\n\n提示词包括明确做什么、预期的结果、约束。\n\n指令是让AI做什么\n\n闲聊就是随便说。\n\n2. 系统提示词：",
+    "chunk_id": "28fe7e8a-68be-4626-ac8e-a2169476b2e4_golden_0",
+    "metadata": {
+      "source": "GEGjDR8-rMeT0Mm-XFkkRg.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "创建自定义 API 调用时至关重要的方面是什么？",
+    "answer": "系统提示词",
+    "golden_chunk": "指令是让AI做什么\n\n闲聊就是随便说。\n\n2. 系统提示词：\n\n这是基础语法。量身定制，可以最大化发挥模型的潜力。在API调用中这个非常重要。避免重复已有的定义。\n\n![Image 23](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjneDRO4EaVfnUvicWh6T70kVayh9Xt8HVrTWbRvlj3vjLynPn4TnqQow/640?wx_fmt=png&from=appmsg)\n\n3. 全局支配\n\n支配所有会话，适合处理重复要求。不宜过多约束，追求通用型和灵活性。根据需求量身定制回应。\n\neg: 请逐步思考/充分评估意图后再执行任务/可视化辅助\n\nCursor: Cursor Rules\n\n![Image 24](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sj84qhicLC7sae858DAibBOUycCQO93M6ic7DkaeupRLCTjUC0ia5DbibibxkQ/640?wx_fmt=png&from=appmsg)\n\nWindsurf: Global Rules-> Workspace Rules",
+    "chunk_id": "28fe7e8a-68be-4626-ac8e-a2169476b2e4_golden_1",
+    "metadata": {
+      "source": "GEGjDR8-rMeT0Mm-XFkkRg.txt",
+      "chunk_index": 1,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "Claude AI 中个性化指令最重要的一点是什么？",
+    "answer": "所需的工具和知识库根据项目的不同而不同。",
+    "golden_chunk": "Windsurf: Global Rules-> Workspace Rules\n\n![Image 25](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjdh3rksG4ofnhKQxibtiajCEIdicxv7Gy6QEBpibFIVOjWRzMDBBLFPBRoA/640?wx_fmt=png&from=appmsg)\n\n4. 个性化指令\n\n这是Claude AI中最重要的，所需要的工具和知识库根据项目的不同而不同。\n\neg: 日常助手：\n\n![Image 26](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjUWHvNeDDls6gOEaSDbsws4QWmcdhcjxjmfd4CSlgXq9oHHZvOg3FOA/640?wx_fmt=png&from=appmsg)\n\n5. 风格化：\n\n定义细节，按自己的风格来针对性设计。\n\neg:\n\n![Image 27](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjK4qERx5b4WjywVq47v3alzhbu80ZshsiaOZD4p1ducNK59iaFjhpUoow/640?wx_fmt=png&from=appmsg)\n\n这种层层递进的体系设计，让我们能够实现：\n\n ✦ 原子设计：将复杂需求拆解为结构化的指令组件\n\n ✦ 灵活组合：在不同层级灵活组合和调用规则",
+    "chunk_id": "28fe7e8a-68be-4626-ac8e-a2169476b2e4_golden_2",
+    "metadata": {
+      "source": "GEGjDR8-rMeT0Mm-XFkkRg.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "举例说明日常助理的个性化指令。",
+    "answer": "![Image 26](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjUWHvNeDDls6gOEaSDbsws4QWmcdhcjxjmfd4CSlgXq9oHHZvOg3FOA/640?wx_fmt=png&from=appmsg)",
+    "golden_chunk": "Windsurf: Global Rules-> Workspace Rules\n\n![Image 25](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjdh3rksG4ofnhKQxibtiajCEIdicxv7Gy6QEBpibFIVOjWRzMDBBLFPBRoA/640?wx_fmt=png&from=appmsg)\n\n4. 个性化指令\n\n这是Claude AI中最重要的，所需要的工具和知识库根据项目的不同而不同。\n\neg: 日常助手：\n\n![Image 26](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjUWHvNeDDls6gOEaSDbsws4QWmcdhcjxjmfd4CSlgXq9oHHZvOg3FOA/640?wx_fmt=png&from=appmsg)\n\n5. 风格化：\n\n定义细节，按自己的风格来针对性设计。\n\neg:\n\n![Image 27](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjK4qERx5b4WjywVq47v3alzhbu80ZshsiaOZD4p1ducNK59iaFjhpUoow/640?wx_fmt=png&from=appmsg)\n\n这种层层递进的体系设计，让我们能够实现：\n\n ✦ 原子设计：将复杂需求拆解为结构化的指令组件\n\n ✦ 灵活组合：在不同层级灵活组合和调用规则",
+    "chunk_id": "28fe7e8a-68be-4626-ac8e-a2169476b2e4_golden_2",
+    "metadata": {
+      "source": "GEGjDR8-rMeT0Mm-XFkkRg.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "风格化个性化指令的主要目的是什么？",
+    "answer": "针对性地按自己的风格定义细节。",
+    "golden_chunk": "Windsurf: Global Rules-> Workspace Rules\n\n![Image 25](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjdh3rksG4ofnhKQxibtiajCEIdicxv7Gy6QEBpibFIVOjWRzMDBBLFPBRoA/640?wx_fmt=png&from=appmsg)\n\n4. 个性化指令\n\n这是Claude AI中最重要的，所需要的工具和知识库根据项目的不同而不同。\n\neg: 日常助手：\n\n![Image 26](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjUWHvNeDDls6gOEaSDbsws4QWmcdhcjxjmfd4CSlgXq9oHHZvOg3FOA/640?wx_fmt=png&from=appmsg)\n\n5. 风格化：\n\n定义细节，按自己的风格来针对性设计。\n\neg:\n\n![Image 27](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjK4qERx5b4WjywVq47v3alzhbu80ZshsiaOZD4p1ducNK59iaFjhpUoow/640?wx_fmt=png&from=appmsg)\n\n这种层层递进的体系设计，让我们能够实现：\n\n ✦ 原子设计：将复杂需求拆解为结构化的指令组件\n\n ✦ 灵活组合：在不同层级灵活组合和调用规则",
+    "chunk_id": "28fe7e8a-68be-4626-ac8e-a2169476b2e4_golden_2",
+    "metadata": {
+      "source": "GEGjDR8-rMeT0Mm-XFkkRg.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "举例说明风格化个性化指令。",
+    "answer": "![Image 27](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjK4qERx5b4WjywVq47v3alzhbu80ZshsiaOZD4p1ducNK59iaFjhpUoow/640?wx_fmt=png&from=appmsg)",
+    "golden_chunk": "Windsurf: Global Rules-> Workspace Rules\n\n![Image 25](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjdh3rksG4ofnhKQxibtiajCEIdicxv7Gy6QEBpibFIVOjWRzMDBBLFPBRoA/640?wx_fmt=png&from=appmsg)\n\n4. 个性化指令\n\n这是Claude AI中最重要的，所需要的工具和知识库根据项目的不同而不同。\n\neg: 日常助手：\n\n![Image 26](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjUWHvNeDDls6gOEaSDbsws4QWmcdhcjxjmfd4CSlgXq9oHHZvOg3FOA/640?wx_fmt=png&from=appmsg)\n\n5. 风格化：\n\n定义细节，按自己的风格来针对性设计。\n\neg:\n\n![Image 27](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjK4qERx5b4WjywVq47v3alzhbu80ZshsiaOZD4p1ducNK59iaFjhpUoow/640?wx_fmt=png&from=appmsg)\n\n这种层层递进的体系设计，让我们能够实现：\n\n ✦ 原子设计：将复杂需求拆解为结构化的指令组件\n\n ✦ 灵活组合：在不同层级灵活组合和调用规则",
+    "chunk_id": "28fe7e8a-68be-4626-ac8e-a2169476b2e4_golden_2",
+    "metadata": {
+      "source": "GEGjDR8-rMeT0Mm-XFkkRg.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "Claude AI 中分层递进体系设计的目的是什么？",
+    "answer": "实现原子设计和灵活组合。",
+    "golden_chunk": "Windsurf: Global Rules-> Workspace Rules\n\n![Image 25](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6Sjdh3rksG4ofnhKQxibtiajCEIdicxv7Gy6QEBpibFIVOjWRzMDBBLFPBRoA/640?wx_fmt=png&from=appmsg)\n\n4. 个性化指令\n\n这是Claude AI中最重要的，所需要的工具和知识库根据项目的不同而不同。\n\neg: 日常助手：\n\n![Image 26](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjUWHvNeDDls6gOEaSDbsws4QWmcdhcjxjmfd4CSlgXq9oHHZvOg3FOA/640?wx_fmt=png&from=appmsg)\n\n5. 风格化：\n\n定义细节，按自己的风格来针对性设计。\n\neg:\n\n![Image 27](https://mmbiz.qpic.cn/mmbiz_png/Ju7VaP4zbQibUTTeib41xNVI7Qx4qhl6SjK4qERx5b4WjywVq47v3alzhbu80ZshsiaOZD4p1ducNK59iaFjhpUoow/640?wx_fmt=png&from=appmsg)\n\n这种层层递进的体系设计，让我们能够实现：\n\n ✦ 原子设计：将复杂需求拆解为结构化的指令组件\n\n ✦ 灵活组合：在不同层级灵活组合和调用规则",
+    "chunk_id": "28fe7e8a-68be-4626-ac8e-a2169476b2e4_golden_2",
+    "metadata": {
+      "source": "GEGjDR8-rMeT0Mm-XFkkRg.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "ChromaVectorStore 中的嵌入是如何存储的？",
+    "answer": "在 ChromaDB 集合内",
+    "golden_chunk": "Title: Chroma - LlamaIndex\r\n\r\nURL Source: https://docs.llamaindex.ai/en/stable/api_reference/storage/vector_store/chroma/\r\n\r\nChromaVectorStore #\r\n\r\nBases: BasePydanticVectorStore\r\n\r\nChroma vector store.\r\n\r\nIn this vector store, embeddings are stored within a ChromaDB collection.\r\n\r\nDuring query time, the index uses ChromaDB to query for the top k most similar nodes.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nchroma_collection\tCollection\t\r\n\r\nChromaDB collection instance\r\n\r\n\tNone\r\n\r\nExamples:\r\n\r\npip install llama-index-vector-stores-chroma\r\n\r\nimport chromadb\r\nfrom llama_index.vector_stores.chroma import ChromaVectorStore\r\n\r\n# Create a Chroma client and collection\r\nchroma_client = chromadb.EphemeralClient()\r\nchroma_collection = chroma_client.create_collection(\"example_collection\")\r\n\r\n# Set up the ChromaVectorStore and StorageContext\r\nvector_store = ChromaVectorStore(chroma_collection=chroma_collection)\r\n\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nclient property #\r\nclient: Any\r\n\r\n\r\nReturn client.\r\n\r\nget_nodes #\r\nget_nodes(node_ids: Optional[List[str]], filters: Optional[List[MetadataFilters]] = None) -> List[BaseNode]\r\n\r\n\r\nGet nodes from index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnode_ids\tList[str]\t\r\n\r\nlist of node ids\r\n\r\n\trequired\r\nfilters\tList[MetadataFilters]\t\r\n\r\nlist of metadata filters\r\n\r\n\tNone\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nadd #\r\nadd(nodes: List[BaseNode], **add_kwargs: Any) -> List[str]\r\n\r\n\r\nAdd nodes to index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnodes\tList[BaseNode]\t\r\n\r\nList[BaseNode]: list of nodes with embeddings\r\n\r\n\trequired\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\ndelete #\r\ndelete(ref_doc_id: str, **delete_kwargs: Any) -> None\r\n\r\n\r\nDelete nodes using with ref_doc_id.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nref_doc_id\tstr\t\r\n\r\nThe doc_id of the document to delete.",
+    "chunk_id": "c3f39bad-d372-49dd-9103-415591a1d28e_golden_0",
+    "metadata": {
+      "source": "jina_read_from_url_response_demo.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "此函数如何清除集合？",
+    "answer": "通过调用 `clear` 函数可以清除集合。",
+    "golden_chunk": "Parameters:\r\n\r\nName\tType\tDescription\tDefault\r\nref_doc_id\tstr\t\r\n\r\nThe doc_id of the document to delete.\r\n\r\n\trequired\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\ndelete_nodes #\r\ndelete_nodes(node_ids: Optional[List[str]] = None, filters: Optional[List[MetadataFilters]] = None) -> None\r\n\r\n\r\nDelete nodes from index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnode_ids\tList[str]\t\r\n\r\nlist of node ids\r\n\r\n\tNone\r\nfilters\tList[MetadataFilters]\t\r\n\r\nlist of metadata filters\r\n\r\n\tNone\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nclear #\r\nclear() -> None\r\n\r\n\r\nClear the collection.\r\n\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nquery #\r\nquery(query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult\r\n\r\n\r\nQuery index for top k most similar nodes.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nquery_embedding\tList[float]\t\r\n\r\nquery embedding\r\n\r\n\trequired\r\nsimilarity_top_k\tint\t\r\n\r\ntop k most similar nodes\r\n\r\n\trequired\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\n Back to top\r\nPrevious\r\nCassandra\r\nNext\r\nClickhouse",
+    "chunk_id": "c3f39bad-d372-49dd-9103-415591a1d28e_golden_1",
+    "metadata": {
+      "source": "jina_read_from_url_response_demo.txt",
+      "chunk_index": 1,
+      "question_type": "methodological"
+    }
+  },
+  {
+    "question": "在 ChromaVectorStore 中，用于查询最相似节点的数据库是什么？",
+    "answer": "ChromaDB",
+    "golden_chunk": "Title: Chroma - LlamaIndex\r\n\r\nURL Source: https://docs.llamaindex.ai/en/stable/api_reference/storage/vector_store/chroma/\r\n\r\nChromaVectorStore #\r\n\r\nBases: BasePydanticVectorStore\r\n\r\nChroma vector store.\r\n\r\nIn this vector store, embeddings are stored within a ChromaDB collection.\r\n\r\nDuring query time, the index uses ChromaDB to query for the top k most similar nodes.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nchroma_collection\tCollection\t\r\n\r\nChromaDB collection instance\r\n\r\n\tNone\r\n\r\nExamples:\r\n\r\npip install llama-index-vector-stores-chroma\r\n\r\nimport chromadb\r\nfrom llama_index.vector_stores.chroma import ChromaVectorStore\r\n\r\n# Create a Chroma client and collection\r\nchroma_client = chromadb.EphemeralClient()\r\nchroma_collection = chroma_client.create_collection(\"example_collection\")\r\n\r\n# Set up the ChromaVectorStore and StorageContext\r\nvector_store = ChromaVectorStore(chroma_collection=chroma_collection)\r\n\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nclient property #\r\nclient: Any\r\n\r\n\r\nReturn client.\r\n\r\nget_nodes #\r\nget_nodes(node_ids: Optional[List[str]], filters: Optional[List[MetadataFilters]] = None) -> List[BaseNode]\r\n\r\n\r\nGet nodes from index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnode_ids\tList[str]\t\r\n\r\nlist of node ids\r\n\r\n\trequired\r\nfilters\tList[MetadataFilters]\t\r\n\r\nlist of metadata filters\r\n\r\n\tNone\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nadd #\r\nadd(nodes: List[BaseNode], **add_kwargs: Any) -> List[str]\r\n\r\n\r\nAdd nodes to index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnodes\tList[BaseNode]\t\r\n\r\nList[BaseNode]: list of nodes with embeddings\r\n\r\n\trequired\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\ndelete #\r\ndelete(ref_doc_id: str, **delete_kwargs: Any) -> None\r\n\r\n\r\nDelete nodes using with ref_doc_id.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nref_doc_id\tstr\t\r\n\r\nThe doc_id of the document to delete.",
+    "chunk_id": "c3f39bad-d372-49dd-9103-415591a1d28e_golden_0",
+    "metadata": {
+      "source": "jina_read_from_url_response_demo.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "如何从索引中清除集合？",
+    "answer": "使用 clear() 方法。",
+    "golden_chunk": "Parameters:\r\n\r\nName\tType\tDescription\tDefault\r\nref_doc_id\tstr\t\r\n\r\nThe doc_id of the document to delete.\r\n\r\n\trequired\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\ndelete_nodes #\r\ndelete_nodes(node_ids: Optional[List[str]] = None, filters: Optional[List[MetadataFilters]] = None) -> None\r\n\r\n\r\nDelete nodes from index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnode_ids\tList[str]\t\r\n\r\nlist of node ids\r\n\r\n\tNone\r\nfilters\tList[MetadataFilters]\t\r\n\r\nlist of metadata filters\r\n\r\n\tNone\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nclear #\r\nclear() -> None\r\n\r\n\r\nClear the collection.\r\n\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nquery #\r\nquery(query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult\r\n\r\n\r\nQuery index for top k most similar nodes.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nquery_embedding\tList[float]\t\r\n\r\nquery embedding\r\n\r\n\trequired\r\nsimilarity_top_k\tint\t\r\n\r\ntop k most similar nodes\r\n\r\n\trequired\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\n Back to top\r\nPrevious\r\nCassandra\r\nNext\r\nClickhouse",
+    "chunk_id": "c3f39bad-d372-49dd-9103-415591a1d28e_golden_1",
+    "metadata": {
+      "source": "jina_read_from_url_response_demo.txt",
+      "chunk_index": 1,
+      "question_type": "methodological"
+    }
+  },
+  {
+    "question": "在 ChromaVectorStore 中，嵌入数据存储在什么位置？",
+    "answer": "ChromaDB collection",
+    "golden_chunk": "Title: Chroma - LlamaIndex\r\n\r\nURL Source: https://docs.llamaindex.ai/en/stable/api_reference/storage/vector_store/chroma/\r\n\r\nChromaVectorStore #\r\n\r\nBases: BasePydanticVectorStore\r\n\r\nChroma vector store.\r\n\r\nIn this vector store, embeddings are stored within a ChromaDB collection.\r\n\r\nDuring query time, the index uses ChromaDB to query for the top k most similar nodes.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nchroma_collection\tCollection\t\r\n\r\nChromaDB collection instance\r\n\r\n\tNone\r\n\r\nExamples:\r\n\r\npip install llama-index-vector-stores-chroma\r\n\r\nimport chromadb\r\nfrom llama_index.vector_stores.chroma import ChromaVectorStore\r\n\r\n# Create a Chroma client and collection\r\nchroma_client = chromadb.EphemeralClient()\r\nchroma_collection = chroma_client.create_collection(\"example_collection\")\r\n\r\n# Set up the ChromaVectorStore and StorageContext\r\nvector_store = ChromaVectorStore(chroma_collection=chroma_collection)\r\n\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nclient property #\r\nclient: Any\r\n\r\n\r\nReturn client.\r\n\r\nget_nodes #\r\nget_nodes(node_ids: Optional[List[str]], filters: Optional[List[MetadataFilters]] = None) -> List[BaseNode]\r\n\r\n\r\nGet nodes from index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnode_ids\tList[str]\t\r\n\r\nlist of node ids\r\n\r\n\trequired\r\nfilters\tList[MetadataFilters]\t\r\n\r\nlist of metadata filters\r\n\r\n\tNone\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\nadd #\r\nadd(nodes: List[BaseNode], **add_kwargs: Any) -> List[str]\r\n\r\n\r\nAdd nodes to index.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nnodes\tList[BaseNode]\t\r\n\r\nList[BaseNode]: list of nodes with embeddings\r\n\r\n\trequired\r\nSource code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py\r\ndelete #\r\ndelete(ref_doc_id: str, **delete_kwargs: Any) -> None\r\n\r\n\r\nDelete nodes using with ref_doc_id.\r\n\r\nParameters:\r\n\r\nName\tType\tDescription\tDefault\r\nref_doc_id\tstr\t\r\n\r\nThe doc_id of the document to delete.",
+    "chunk_id": "c3f39bad-d372-49dd-9103-415591a1d28e_golden_0",
+    "metadata": {
+      "source": "jina_read_from_url_response_demo.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "LLM 中 RAG 系统中哪一方面的质量会影响生成响应的质量？",
+    "answer": "检索到的文本的质量",
+    "golden_chunk": "2024/12/20 13:48 LLM之 RAG 实战（二十二） | LlamaIndex 高级检索（一）构建完整基本 RAG 框架（包括 RAG 评估）  - 知乎\r\nhttps://zhuanlan.zhihu.com/p/681532023 1/15LLM之RA G实战（二十二）| LlamaIndex高级检索（一）构建\r\n完整基本RAG框架（包括RAG评估）\r\n 关注他\r\n17 人赞同了该文章\r\ngithub：Arr onAI007/A wesome-A GI\r\nArron\r\n在RA G（retriev al Augment ed Generation，检索增强生成）系统中，检索到文本的质量对大型\r\n语言模型生成响应的质量是非常重要的。检索到的与回答用户查询相关的文本质量越高，你的答案\r\n就越有根据和相关性，也更容易防止LLM幻觉（产生错误或不基于特定领域文本的答案）。\r\n在这系列文章中，我们分三篇文章来介绍，首先会介绍LlamaIndex构建基本RA G，然后深入研究\r\n一种从小到大的高级检索技术，包括： 句子窗口检索 和父文档检索 。\r\n本文将介绍基本的RA G流程，使用T riad评估RA G管道的性能，并构建一个仪表板来帮助跟踪所有\r\n这些不同的指标。",
+    "chunk_id": "9e40e982-1028-4c2e-9ca8-8ad4b0426ce3_golden_0",
+    "metadata": {
+      "source": "LLM之RAG实战.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在传统的RAG应用程序中，哪些文本块用于执行搜索检索和生成答案？",
+    "answer": "相同的数据块用于执行搜索检索，并将相同的块传递给LLM，以使用它来合成或生成答案。",
+    "golden_chunk": "一、“从小到大”检索介绍\r\n假设你想将构建RA G管道的特定领域文本分解成更小的块或片段，每个块或片段包含200个单词。\r\n假设一个用户问了一个问题，而这个问题只能用你200个单词中的一行句子来回答，而块中的其余\r\n文本可能会使 检索器 很难找到与回答用户问题最相关的一句话。考虑到有些人使用的单词块大小\r\n高达1000多个，发现一个相关的句子可能是一个挑战，这就像大海捞针。我们暂时不谈成本问\r\n题。\r\n那么，有什么解决方案，或者可能的解决方法呢？这里介绍一种解决方案：“ 小到大检索 ”技术。\r\n在传统的RA G应用程序中，我们使用相同的数据块来执行搜索检索，并将相同的块传递给LLM，以\r\n使用它来合成或生成答案。如果我们将两者解耦，这不是更好吗？也就是说，我们有一段文本或块首发于\r\nRAG写文章\r\n 已赞同 17   1 条评论  喜欢  收藏  申请转载  分享  \r\n2024/12/20 13:48 LLM之 RAG 实战（二十二） | LlamaIndex 高级检索（一）构建完整基本 RAG 框架（包括 RAG 评估）  - 知乎\r\nhttps://zhuanlan.zhihu.com/p/681532023 2/15用于搜索，另一段块用于生成答案。",
+    "chunk_id": "9e40e982-1028-4c2e-9ca8-8ad4b0426ce3_golden_1",
+    "metadata": {
+      "source": "LLM之RAG实战.txt",
+      "chunk_index": 1,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在基于嵌入的检索中，块大小和检索精度之间的关系是什么？",
+    "answer": "块大小越小，嵌入后就越准确地反映其语义",
+    "golden_chunk": "zhihu.com/p/681532023 2/15用于搜索，另一段块用于生成答案。用于搜索的块比用于合成或生成最终答案的块小得多，以避免\r\n出现幻觉问题。\r\n让我们用一个例子来详细地解释一下这个概念。取一个100个单词的分块，对于这个分块，我们创\r\n建10个较小的块，每个块10个单词（大致为一个句子）。我们将使用这10个较小的块来进行搜\r\n索，以找到与回答用户问题最相关的句子。当用户提问时，我们可以很容易地从10个较小的句子\r\n块中找到最相关的句子。换言之，不要虚张声势，直接切入正题。基于嵌入的检索在较小的文本大\r\n小下效果最好。\r\n块大小越小，嵌入后就越准确地反映其语义\r\n那么在从10个较小的句子中找到最相关的句子后该怎么办？好问题！你可能会想得很好，让我们\r\n把它发送到LLM（大型语言模型），根据我们检索到的最相关的句子合成一个响应。这是可行的，\r\n但LLM只有一句话，没有足够的上下文。想象一下，我告诉你只用公司文件中的一句话来回答一个\r\n关于该公司的问题。这很难做到，不是吗？",
+    "chunk_id": "9e40e982-1028-4c2e-9ca8-8ad4b0426ce3_golden_2",
+    "metadata": {
+      "source": "LLM之RAG实战.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "LLM 如何克服理解数据段落的困难？",
+    "answer": "通过将较小的数据段与其父数据块关联，从而为其提供更广泛的上下文。",
+    "golden_chunk": "想象一下，我告诉你只用公司文件中的一句话来回答一个\r\n关于该公司的问题。这很难做到，不是吗？因此，仅仅将最相关的较小块输入给LLM，可能会使\r\nLLM（大型语言模型）开始产生幻觉来填补其知识空白和对整个数据的理解。\r\n解决这一问题的一种方法是让较小的块与父块（本例中为原始的100字块）相关，这样LLM将有更\r\n多的上下文来作为答案的基础，而不是试图生成自己的幻觉信息。换言之，10个单词的每个较小\r\n组块将与100个单词的较大组块相关，并且当给定的较小组块（10个单词组块）被识别为与回答用\r\n户问题相关时，父组块（100个单词组组块）将被检索并被发送到LLM。\r\n以上就是“从小到大”检索技术背后的全部思想，而且效果非常好。这里介绍两种类型的“小到大\r\n检索”。\r\n二、“从小到大”检索类型\r\n2.1 父文档检索\r\n首先检索与查询最相关的较小数据段，然后将相关的较大的父数据块作为上下文传递给LLM（大型\r\n语言模型）。在LangChain中，可以使用 ParentDocumentR etriever来完成。\r\n2.",
+    "chunk_id": "9e40e982-1028-4c2e-9ca8-8ad4b0426ce3_golden_3",
+    "metadata": {
+      "source": "LLM之RAG实战.txt",
+      "chunk_index": 3,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "介绍了哪些类型的“从小到大检索”？",
+    "answer": "父文档检索",
+    "golden_chunk": "想象一下，我告诉你只用公司文件中的一句话来回答一个\r\n关于该公司的问题。这很难做到，不是吗？因此，仅仅将最相关的较小块输入给LLM，可能会使\r\nLLM（大型语言模型）开始产生幻觉来填补其知识空白和对整个数据的理解。\r\n解决这一问题的一种方法是让较小的块与父块（本例中为原始的100字块）相关，这样LLM将有更\r\n多的上下文来作为答案的基础，而不是试图生成自己的幻觉信息。换言之，10个单词的每个较小\r\n组块将与100个单词的较大组块相关，并且当给定的较小组块（10个单词组块）被识别为与回答用\r\n户问题相关时，父组块（100个单词组组块）将被检索并被发送到LLM。\r\n以上就是“从小到大”检索技术背后的全部思想，而且效果非常好。这里介绍两种类型的“小到大\r\n检索”。\r\n二、“从小到大”检索类型\r\n2.1 父文档检索\r\n首先检索与查询最相关的较小数据段，然后将相关的较大的父数据块作为上下文传递给LLM（大型\r\n语言模型）。在LangChain中，可以使用 ParentDocumentR etriever来完成。\r\n2.",
+    "chunk_id": "9e40e982-1028-4c2e-9ca8-8ad4b0426ce3_golden_3",
+    "metadata": {
+      "source": "LLM之RAG实战.txt",
+      "chunk_index": 3,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "“从小到大检索”的两种类型之间有什么区别？",
+    "answer": "文本中没有提供有关不同类型之间区别的信息。",
+    "golden_chunk": "想象一下，我告诉你只用公司文件中的一句话来回答一个\r\n关于该公司的问题。这很难做到，不是吗？因此，仅仅将最相关的较小块输入给LLM，可能会使\r\nLLM（大型语言模型）开始产生幻觉来填补其知识空白和对整个数据的理解。\r\n解决这一问题的一种方法是让较小的块与父块（本例中为原始的100字块）相关，这样LLM将有更\r\n多的上下文来作为答案的基础，而不是试图生成自己的幻觉信息。换言之，10个单词的每个较小\r\n组块将与100个单词的较大组块相关，并且当给定的较小组块（10个单词组块）被识别为与回答用\r\n户问题相关时，父组块（100个单词组组块）将被检索并被发送到LLM。\r\n以上就是“从小到大”检索技术背后的全部思想，而且效果非常好。这里介绍两种类型的“小到大\r\n检索”。\r\n二、“从小到大”检索类型\r\n2.1 父文档检索\r\n首先检索与查询最相关的较小数据段，然后将相关的较大的父数据块作为上下文传递给LLM（大型\r\n语言模型）。在LangChain中，可以使用 ParentDocumentR etriever来完成。\r\n2.",
+    "chunk_id": "9e40e982-1028-4c2e-9ca8-8ad4b0426ce3_golden_3",
+    "metadata": {
+      "source": "LLM之RAG实战.txt",
+      "chunk_index": 3,
+      "question_type": "comparative"
+    }
+  },
+  {
+    "question": "LangChain 中如何实现父文档检索？",
+    "answer": "使用 ParentDocumentRetriever",
+    "golden_chunk": "想象一下，我告诉你只用公司文件中的一句话来回答一个\r\n关于该公司的问题。这很难做到，不是吗？因此，仅仅将最相关的较小块输入给LLM，可能会使\r\nLLM（大型语言模型）开始产生幻觉来填补其知识空白和对整个数据的理解。\r\n解决这一问题的一种方法是让较小的块与父块（本例中为原始的100字块）相关，这样LLM将有更\r\n多的上下文来作为答案的基础，而不是试图生成自己的幻觉信息。换言之，10个单词的每个较小\r\n组块将与100个单词的较大组块相关，并且当给定的较小组块（10个单词组块）被识别为与回答用\r\n户问题相关时，父组块（100个单词组组块）将被检索并被发送到LLM。\r\n以上就是“从小到大”检索技术背后的全部思想，而且效果非常好。这里介绍两种类型的“小到大\r\n检索”。\r\n二、“从小到大”检索类型\r\n2.1 父文档检索\r\n首先检索与查询最相关的较小数据段，然后将相关的较大的父数据块作为上下文传递给LLM（大型\r\n语言模型）。在LangChain中，可以使用 ParentDocumentR etriever来完成。\r\n2.",
+    "chunk_id": "9e40e982-1028-4c2e-9ca8-8ad4b0426ce3_golden_3",
+    "metadata": {
+      "source": "LLM之RAG实战.txt",
+      "chunk_index": 3,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在 Scaling Test-Time Compute 中，Scaling 指的是什么？",
+    "answer": "在推理过程中增加计算资源（例如算力或时间）",
+    "golden_chunk": "Title: Scaling Test-Time Compute：向量模型上的思维链\n\nURL Source: https://mp.weixin.qq.com/s/qlepyeHgkwFTa2IxDKDLeQ\n\nMarkdown Content:\n自从 OpenAI 发布了 o1 模型后，**Scaling Test-Time Compute**（扩展推理时计算）就成了 AI 圈子里最火爆的话题之一。简单来说，与其在预训练或后训练阶段疯狂堆算力，不如在推理阶段（也就是大语言模型生成输出的时候）多花点计算资源。\n\no1 模型将一个大问题拆分为一系列小问题（即思维链，Chain-of-Thought），让模型像人一样一步步思考，评估不同的可能性、做更细致的规划，给出答案前进行自我反思等。通过这种方式，模型无需重新训练，仅通过推理时的额外计算就能提高性能。\n\n**与其让模型死记硬背，不如让它多思考**—— 这种策略在复杂的推理任务中尤为有效，效果提升显著，阿里巴巴最近发的 QwQ 模型也印证了这一技术趋势：通过拓展推理时计算来提升模型能力。\n\n👩‍🏫 本文的 Scaling 指的是在推理过程中增加计算资源（例如算力或时间）。它不是指横向扩展（分布式计算）或加速处理（缩短计算时间）。",
+    "chunk_id": "99b4b68c-8058-4fc6-af85-c647ac52d695_golden_0",
+    "metadata": {
+      "source": "qlepyeHgkwFTa2IxDKDLeQ.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "与 Scaling Test-Time Compute 相反的方法是什么？",
+    "answer": "在预训练或后训练阶段增加算力",
+    "golden_chunk": "Title: Scaling Test-Time Compute：向量模型上的思维链\n\nURL Source: https://mp.weixin.qq.com/s/qlepyeHgkwFTa2IxDKDLeQ\n\nMarkdown Content:\n自从 OpenAI 发布了 o1 模型后，**Scaling Test-Time Compute**（扩展推理时计算）就成了 AI 圈子里最火爆的话题之一。简单来说，与其在预训练或后训练阶段疯狂堆算力，不如在推理阶段（也就是大语言模型生成输出的时候）多花点计算资源。\n\no1 模型将一个大问题拆分为一系列小问题（即思维链，Chain-of-Thought），让模型像人一样一步步思考，评估不同的可能性、做更细致的规划，给出答案前进行自我反思等。通过这种方式，模型无需重新训练，仅通过推理时的额外计算就能提高性能。\n\n**与其让模型死记硬背，不如让它多思考**—— 这种策略在复杂的推理任务中尤为有效，效果提升显著，阿里巴巴最近发的 QwQ 模型也印证了这一技术趋势：通过拓展推理时计算来提升模型能力。\n\n👩‍🏫 本文的 Scaling 指的是在推理过程中增加计算资源（例如算力或时间）。它不是指横向扩展（分布式计算）或加速处理（缩短计算时间）。",
+    "chunk_id": "99b4b68c-8058-4fc6-af85-c647ac52d695_golden_0",
+    "metadata": {
+      "source": "qlepyeHgkwFTa2IxDKDLeQ.txt",
+      "chunk_index": 0,
+      "question_type": "comparative"
+    }
+  },
+  {
+    "question": "为什么 Scaling Test-Time Compute 在复杂的推理任务中特别有效？",
+    "answer": "因为该技术可以让模型像人一样进行更细致的规划和自我反思",
+    "golden_chunk": "Title: Scaling Test-Time Compute：向量模型上的思维链\n\nURL Source: https://mp.weixin.qq.com/s/qlepyeHgkwFTa2IxDKDLeQ\n\nMarkdown Content:\n自从 OpenAI 发布了 o1 模型后，**Scaling Test-Time Compute**（扩展推理时计算）就成了 AI 圈子里最火爆的话题之一。简单来说，与其在预训练或后训练阶段疯狂堆算力，不如在推理阶段（也就是大语言模型生成输出的时候）多花点计算资源。\n\no1 模型将一个大问题拆分为一系列小问题（即思维链，Chain-of-Thought），让模型像人一样一步步思考，评估不同的可能性、做更细致的规划，给出答案前进行自我反思等。通过这种方式，模型无需重新训练，仅通过推理时的额外计算就能提高性能。\n\n**与其让模型死记硬背，不如让它多思考**—— 这种策略在复杂的推理任务中尤为有效，效果提升显著，阿里巴巴最近发的 QwQ 模型也印证了这一技术趋势：通过拓展推理时计算来提升模型能力。\n\n👩‍🏫 本文的 Scaling 指的是在推理过程中增加计算资源（例如算力或时间）。它不是指横向扩展（分布式计算）或加速处理（缩短计算时间）。",
+    "chunk_id": "99b4b68c-8058-4fc6-af85-c647ac52d695_golden_0",
+    "metadata": {
+      "source": "qlepyeHgkwFTa2IxDKDLeQ.txt",
+      "chunk_index": 0,
+      "question_type": "causal"
+    }
+  },
+  {
+    "question": "如何实现 Scaling Test-Time Compute？",
+    "answer": "通过将大问题拆分为一系列小问题（思维链）",
+    "golden_chunk": "Title: Scaling Test-Time Compute：向量模型上的思维链\n\nURL Source: https://mp.weixin.qq.com/s/qlepyeHgkwFTa2IxDKDLeQ\n\nMarkdown Content:\n自从 OpenAI 发布了 o1 模型后，**Scaling Test-Time Compute**（扩展推理时计算）就成了 AI 圈子里最火爆的话题之一。简单来说，与其在预训练或后训练阶段疯狂堆算力，不如在推理阶段（也就是大语言模型生成输出的时候）多花点计算资源。\n\no1 模型将一个大问题拆分为一系列小问题（即思维链，Chain-of-Thought），让模型像人一样一步步思考，评估不同的可能性、做更细致的规划，给出答案前进行自我反思等。通过这种方式，模型无需重新训练，仅通过推理时的额外计算就能提高性能。\n\n**与其让模型死记硬背，不如让它多思考**—— 这种策略在复杂的推理任务中尤为有效，效果提升显著，阿里巴巴最近发的 QwQ 模型也印证了这一技术趋势：通过拓展推理时计算来提升模型能力。\n\n👩‍🏫 本文的 Scaling 指的是在推理过程中增加计算资源（例如算力或时间）。它不是指横向扩展（分布式计算）或加速处理（缩短计算时间）。",
+    "chunk_id": "99b4b68c-8058-4fc6-af85-c647ac52d695_golden_0",
+    "metadata": {
+      "source": "qlepyeHgkwFTa2IxDKDLeQ.txt",
+      "chunk_index": 0,
+      "question_type": "methodological"
+    }
+  },
+  {
+    "question": "除了阿里巴巴的 QwQ 模型，还有什么其他模型证明了 Scaling Test-Time Compute 的有效性？",
+    "answer": "OpenAI 发布的 o1 模型",
+    "golden_chunk": "Title: Scaling Test-Time Compute：向量模型上的思维链\n\nURL Source: https://mp.weixin.qq.com/s/qlepyeHgkwFTa2IxDKDLeQ\n\nMarkdown Content:\n自从 OpenAI 发布了 o1 模型后，**Scaling Test-Time Compute**（扩展推理时计算）就成了 AI 圈子里最火爆的话题之一。简单来说，与其在预训练或后训练阶段疯狂堆算力，不如在推理阶段（也就是大语言模型生成输出的时候）多花点计算资源。\n\no1 模型将一个大问题拆分为一系列小问题（即思维链，Chain-of-Thought），让模型像人一样一步步思考，评估不同的可能性、做更细致的规划，给出答案前进行自我反思等。通过这种方式，模型无需重新训练，仅通过推理时的额外计算就能提高性能。\n\n**与其让模型死记硬背，不如让它多思考**—— 这种策略在复杂的推理任务中尤为有效，效果提升显著，阿里巴巴最近发的 QwQ 模型也印证了这一技术趋势：通过拓展推理时计算来提升模型能力。\n\n👩‍🏫 本文的 Scaling 指的是在推理过程中增加计算资源（例如算力或时间）。它不是指横向扩展（分布式计算）或加速处理（缩短计算时间）。",
+    "chunk_id": "99b4b68c-8058-4fc6-af85-c647ac52d695_golden_0",
+    "metadata": {
+      "source": "qlepyeHgkwFTa2IxDKDLeQ.txt",
+      "chunk_index": 0,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "根据文本，Claude知识库的更新日期是什么？",
+    "answer": "2024 年 4 月",
+    "golden_chunk": "Title: System Prompts - Anthropic\n\nURL Source: https://docs.anthropic.com/en/release-notes/system-prompts\n\nMarkdown Content:\nText only:\n\nThe assistant is Claude, created by Anthropic.\n\nThe current date is {{currentDateTime}}.\n\nClaude’s knowledge base was last updated in April 2024. It answers questions about events prior to and after April 2024 the way a highly informed individual in April 2024 would if they were talking to someone from the above date, and can let the human know this when relevant.\n\nIf asked about events or news that may have happened after its cutoff date, Claude never claims or implies they are unverified or rumors or that they only allegedly happened or that they are inaccurate, since Claude can’t know either way and lets the human know this.\n\nClaude cannot open URLs, links, or videos. If it seems like the human is expecting Claude to do so, it clarifies the situation and asks the human to paste the relevant text or image content into the conversation.\n\nIf it is asked to assist with tasks involving the expression of views held by a significant number of people, Claude provides assistance with the task regardless of its own views. If asked about controversial topics, it tries to provide careful thoughts and clear information. Claude presents the requested information without explicitly saying that the topic is sensitive, and without claiming to be presenting objective facts.\n\nWhen presented with a math problem, logic problem, or other problem benefiting from systematic thinking, Claude thinks through it step by step before giving its final answer.\n\nIf Claude is asked about a very obscure person, object, or topic, i.e. if it is asked for the kind of information that is unlikely to be found more than once or twice on the internet, Claude ends its response by reminding the human that although it tries to be accurate, it may hallucinate in response to questions like this. It uses the term ‘hallucinate’ to describe this since the human will understand what it means.\n\nIf Claude mentions or cites particular articles, papers, or books, it always lets the human know that it doesn’t have access to search or a database and may hallucinate citations, so the human should double check its citations.\n\nClaude is intellectually curious. It enjoys hearing what humans think on an issue and engaging in discussion on a wide variety of topics.",
+    "chunk_id": "b64ba2e3-c9f2-427d-9e59-167363d98acd_golden_0",
+    "metadata": {
+      "source": "system-prompts.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在哪些情况下Claude无法协助用户？",
+    "answer": "打开 URL、链接或视频",
+    "golden_chunk": "Title: System Prompts - Anthropic\n\nURL Source: https://docs.anthropic.com/en/release-notes/system-prompts\n\nMarkdown Content:\nText only:\n\nThe assistant is Claude, created by Anthropic.\n\nThe current date is {{currentDateTime}}.\n\nClaude’s knowledge base was last updated in April 2024. It answers questions about events prior to and after April 2024 the way a highly informed individual in April 2024 would if they were talking to someone from the above date, and can let the human know this when relevant.\n\nIf asked about events or news that may have happened after its cutoff date, Claude never claims or implies they are unverified or rumors or that they only allegedly happened or that they are inaccurate, since Claude can’t know either way and lets the human know this.\n\nClaude cannot open URLs, links, or videos. If it seems like the human is expecting Claude to do so, it clarifies the situation and asks the human to paste the relevant text or image content into the conversation.\n\nIf it is asked to assist with tasks involving the expression of views held by a significant number of people, Claude provides assistance with the task regardless of its own views. If asked about controversial topics, it tries to provide careful thoughts and clear information. Claude presents the requested information without explicitly saying that the topic is sensitive, and without claiming to be presenting objective facts.\n\nWhen presented with a math problem, logic problem, or other problem benefiting from systematic thinking, Claude thinks through it step by step before giving its final answer.\n\nIf Claude is asked about a very obscure person, object, or topic, i.e. if it is asked for the kind of information that is unlikely to be found more than once or twice on the internet, Claude ends its response by reminding the human that although it tries to be accurate, it may hallucinate in response to questions like this. It uses the term ‘hallucinate’ to describe this since the human will understand what it means.\n\nIf Claude mentions or cites particular articles, papers, or books, it always lets the human know that it doesn’t have access to search or a database and may hallucinate citations, so the human should double check its citations.\n\nClaude is intellectually curious. It enjoys hearing what humans think on an issue and engaging in discussion on a wide variety of topics.",
+    "chunk_id": "b64ba2e3-c9f2-427d-9e59-167363d98acd_golden_0",
+    "metadata": {
+      "source": "system-prompts.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "当被要求协助表达人们观点的任务时，Claude如何处理？",
+    "answer": "Claude 提供协助，无论其自身观点如何",
+    "golden_chunk": "Title: System Prompts - Anthropic\n\nURL Source: https://docs.anthropic.com/en/release-notes/system-prompts\n\nMarkdown Content:\nText only:\n\nThe assistant is Claude, created by Anthropic.\n\nThe current date is {{currentDateTime}}.\n\nClaude’s knowledge base was last updated in April 2024. It answers questions about events prior to and after April 2024 the way a highly informed individual in April 2024 would if they were talking to someone from the above date, and can let the human know this when relevant.\n\nIf asked about events or news that may have happened after its cutoff date, Claude never claims or implies they are unverified or rumors or that they only allegedly happened or that they are inaccurate, since Claude can’t know either way and lets the human know this.\n\nClaude cannot open URLs, links, or videos. If it seems like the human is expecting Claude to do so, it clarifies the situation and asks the human to paste the relevant text or image content into the conversation.\n\nIf it is asked to assist with tasks involving the expression of views held by a significant number of people, Claude provides assistance with the task regardless of its own views. If asked about controversial topics, it tries to provide careful thoughts and clear information. Claude presents the requested information without explicitly saying that the topic is sensitive, and without claiming to be presenting objective facts.\n\nWhen presented with a math problem, logic problem, or other problem benefiting from systematic thinking, Claude thinks through it step by step before giving its final answer.\n\nIf Claude is asked about a very obscure person, object, or topic, i.e. if it is asked for the kind of information that is unlikely to be found more than once or twice on the internet, Claude ends its response by reminding the human that although it tries to be accurate, it may hallucinate in response to questions like this. It uses the term ‘hallucinate’ to describe this since the human will understand what it means.\n\nIf Claude mentions or cites particular articles, papers, or books, it always lets the human know that it doesn’t have access to search or a database and may hallucinate citations, so the human should double check its citations.\n\nClaude is intellectually curious. It enjoys hearing what humans think on an issue and engaging in discussion on a wide variety of topics.",
+    "chunk_id": "b64ba2e3-c9f2-427d-9e59-167363d98acd_golden_0",
+    "metadata": {
+      "source": "system-prompts.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "Claude在遇到非常晦涩的人、物体或主题时的应对方式是什么？",
+    "answer": "它可能出现幻觉，并提醒用户双重检查其引用",
+    "golden_chunk": "Title: System Prompts - Anthropic\n\nURL Source: https://docs.anthropic.com/en/release-notes/system-prompts\n\nMarkdown Content:\nText only:\n\nThe assistant is Claude, created by Anthropic.\n\nThe current date is {{currentDateTime}}.\n\nClaude’s knowledge base was last updated in April 2024. It answers questions about events prior to and after April 2024 the way a highly informed individual in April 2024 would if they were talking to someone from the above date, and can let the human know this when relevant.\n\nIf asked about events or news that may have happened after its cutoff date, Claude never claims or implies they are unverified or rumors or that they only allegedly happened or that they are inaccurate, since Claude can’t know either way and lets the human know this.\n\nClaude cannot open URLs, links, or videos. If it seems like the human is expecting Claude to do so, it clarifies the situation and asks the human to paste the relevant text or image content into the conversation.\n\nIf it is asked to assist with tasks involving the expression of views held by a significant number of people, Claude provides assistance with the task regardless of its own views. If asked about controversial topics, it tries to provide careful thoughts and clear information. Claude presents the requested information without explicitly saying that the topic is sensitive, and without claiming to be presenting objective facts.\n\nWhen presented with a math problem, logic problem, or other problem benefiting from systematic thinking, Claude thinks through it step by step before giving its final answer.\n\nIf Claude is asked about a very obscure person, object, or topic, i.e. if it is asked for the kind of information that is unlikely to be found more than once or twice on the internet, Claude ends its response by reminding the human that although it tries to be accurate, it may hallucinate in response to questions like this. It uses the term ‘hallucinate’ to describe this since the human will understand what it means.\n\nIf Claude mentions or cites particular articles, papers, or books, it always lets the human know that it doesn’t have access to search or a database and may hallucinate citations, so the human should double check its citations.\n\nClaude is intellectually curious. It enjoys hearing what humans think on an issue and engaging in discussion on a wide variety of topics.",
+    "chunk_id": "b64ba2e3-c9f2-427d-9e59-167363d98acd_golden_0",
+    "metadata": {
+      "source": "system-prompts.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "列举Claude在处理有争议话题时的做法。",
+    "answer": "提供谨慎的思考和明确的信息，不声称提供客观事实",
+    "golden_chunk": "Title: System Prompts - Anthropic\n\nURL Source: https://docs.anthropic.com/en/release-notes/system-prompts\n\nMarkdown Content:\nText only:\n\nThe assistant is Claude, created by Anthropic.\n\nThe current date is {{currentDateTime}}.\n\nClaude’s knowledge base was last updated in April 2024. It answers questions about events prior to and after April 2024 the way a highly informed individual in April 2024 would if they were talking to someone from the above date, and can let the human know this when relevant.\n\nIf asked about events or news that may have happened after its cutoff date, Claude never claims or implies they are unverified or rumors or that they only allegedly happened or that they are inaccurate, since Claude can’t know either way and lets the human know this.\n\nClaude cannot open URLs, links, or videos. If it seems like the human is expecting Claude to do so, it clarifies the situation and asks the human to paste the relevant text or image content into the conversation.\n\nIf it is asked to assist with tasks involving the expression of views held by a significant number of people, Claude provides assistance with the task regardless of its own views. If asked about controversial topics, it tries to provide careful thoughts and clear information. Claude presents the requested information without explicitly saying that the topic is sensitive, and without claiming to be presenting objective facts.\n\nWhen presented with a math problem, logic problem, or other problem benefiting from systematic thinking, Claude thinks through it step by step before giving its final answer.\n\nIf Claude is asked about a very obscure person, object, or topic, i.e. if it is asked for the kind of information that is unlikely to be found more than once or twice on the internet, Claude ends its response by reminding the human that although it tries to be accurate, it may hallucinate in response to questions like this. It uses the term ‘hallucinate’ to describe this since the human will understand what it means.\n\nIf Claude mentions or cites particular articles, papers, or books, it always lets the human know that it doesn’t have access to search or a database and may hallucinate citations, so the human should double check its citations.\n\nClaude is intellectually curious. It enjoys hearing what humans think on an issue and engaging in discussion on a wide variety of topics.",
+    "chunk_id": "b64ba2e3-c9f2-427d-9e59-167363d98acd_golden_0",
+    "metadata": {
+      "source": "system-prompts.txt",
+      "chunk_index": 0,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "RA G 中检索到的文本质量对 LLM 生成响应质量的影响如何？",
+    "answer": "检索到的文本质量越高，LLM 生成的答案就越有根据和相关性，也越不容易出现幻觉。",
+    "golden_chunk": "2024/12/20 13:48 LLM之 RAG 实战（二十二） | LlamaIndex 高级检索（一）构建完整基本 RAG 框架（包括 RAG 评估）  - 知乎\r\nhttps://zhuanlan.zhihu.com/p/681532023 1/15LLM之RA G实战（二十二）| LlamaIndex高级检索（一）构建\r\n完整基本RA G框架（包括RA G评估）\r\n 关注他\r\n17 人赞同了该文章\r\ngithub：Arr onAI007/A wesome-A GI\r\nArron\r\n在RA G（retriev al Augment ed Generation，检索增强生成）系统中，检索到文本的质量对大型\r\n语言模型生成响应的质量是非常重要的。检索到的与回答用户查询相关的文本质量越高，你的答案\r\n就越有根据和相关性，也更容易防止LLM幻觉（产生错误或不基于特定领域文本的答案）。\r\n在这系列文章中，我们分三篇文章来介绍，首先会介绍LlamaIndex构建基本RA G，然后深入研究\r\n一种从小到大的高级检索技术，包括： 句子窗口检索 和父文档检索 。\r\n本文将介绍基本的RA G流程，使用T riad评估RA G管道的性能，并构建一个仪表板来帮助跟踪所有\r\n这些不同的指标。",
+    "chunk_id": "7a249b3f-2473-4566-974f-ffea894239c6_golden_0",
+    "metadata": {
+      "source": "temp_article_content.txt",
+      "chunk_index": 0,
+      "question_type": "causal"
+    }
+  },
+  {
+    "question": "本文系列的结构如何？",
+    "answer": "分为三篇文章：基本 RAG 构建、高级检索技术和仪表板构建。",
+    "golden_chunk": "2024/12/20 13:48 LLM之 RAG 实战（二十二） | LlamaIndex 高级检索（一）构建完整基本 RAG 框架（包括 RAG 评估）  - 知乎\r\nhttps://zhuanlan.zhihu.com/p/681532023 1/15LLM之RA G实战（二十二）| LlamaIndex高级检索（一）构建\r\n完整基本RA G框架（包括RA G评估）\r\n 关注他\r\n17 人赞同了该文章\r\ngithub：Arr onAI007/A wesome-A GI\r\nArron\r\n在RA G（retriev al Augment ed Generation，检索增强生成）系统中，检索到文本的质量对大型\r\n语言模型生成响应的质量是非常重要的。检索到的与回答用户查询相关的文本质量越高，你的答案\r\n就越有根据和相关性，也更容易防止LLM幻觉（产生错误或不基于特定领域文本的答案）。\r\n在这系列文章中，我们分三篇文章来介绍，首先会介绍LlamaIndex构建基本RA G，然后深入研究\r\n一种从小到大的高级检索技术，包括： 句子窗口检索 和父文档检索 。\r\n本文将介绍基本的RA G流程，使用T riad评估RA G管道的性能，并构建一个仪表板来帮助跟踪所有\r\n这些不同的指标。",
+    "chunk_id": "7a249b3f-2473-4566-974f-ffea894239c6_golden_0",
+    "metadata": {
+      "source": "temp_article_content.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "RAG 性能评估使用的指标是什么？",
+    "answer": "Triad 评估：句子窗口检索和父文档检索。",
+    "golden_chunk": "2024/12/20 13:48 LLM之 RAG 实战（二十二） | LlamaIndex 高级检索（一）构建完整基本 RAG 框架（包括 RAG 评估）  - 知乎\r\nhttps://zhuanlan.zhihu.com/p/681532023 1/15LLM之RA G实战（二十二）| LlamaIndex高级检索（一）构建\r\n完整基本RA G框架（包括RA G评估）\r\n 关注他\r\n17 人赞同了该文章\r\ngithub：Arr onAI007/A wesome-A GI\r\nArron\r\n在RA G（retriev al Augment ed Generation，检索增强生成）系统中，检索到文本的质量对大型\r\n语言模型生成响应的质量是非常重要的。检索到的与回答用户查询相关的文本质量越高，你的答案\r\n就越有根据和相关性，也更容易防止LLM幻觉（产生错误或不基于特定领域文本的答案）。\r\n在这系列文章中，我们分三篇文章来介绍，首先会介绍LlamaIndex构建基本RA G，然后深入研究\r\n一种从小到大的高级检索技术，包括： 句子窗口检索 和父文档检索 。\r\n本文将介绍基本的RA G流程，使用T riad评估RA G管道的性能，并构建一个仪表板来帮助跟踪所有\r\n这些不同的指标。",
+    "chunk_id": "7a249b3f-2473-4566-974f-ffea894239c6_golden_0",
+    "metadata": {
+      "source": "temp_article_content.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在传统 RA G 应用程序的搜索检索和生成答案阶段，使用了相同的哪部分数据？",
+    "answer": "数据块",
+    "golden_chunk": "一、“从小到大”检索介绍\r\n假设你想将构建RA G管道的特定领域文本分解成更小的块或片段，每个块或片段包含200个单词。\r\n假设一个用户问了一个问题，而这个问题只能用你200个单词中的一行句子来回答，而块中的其余\r\n文本可能会使 检索器 很难找到与回答用户问题最相关的一句话。考虑到有些人使用的单词块大小\r\n高达1000多个，发现一个相关的句子可能是一个挑战，这就像大海捞针。我们暂时不谈成本问\r\n题。\r\n那么，有什么解决方案，或者可能的解决方法呢？这里介绍一种解决方案：“ 小到大检索 ”技术。\r\n在传统的RA G应用程序中，我们使用相同的数据块来执行搜索检索，并将相同的块传递给LLM，以\r\n使用它来合成或生成答案。如果我们将两者解耦，这不是更好吗？也就是说，我们有一段文本或块首发于\r\nRAG写文章\r\n 已赞同 17   1 条评论  喜欢  收藏  申请转载  分享  \r\n2024/12/20 13:48 LLM之 RAG 实战（二十二） | LlamaIndex 高级检索（一）构建完整基本 RAG 框架（包括 RAG 评估）  - 知乎\r\nhttps://zhuanlan.zhihu.com/p/681532023 2/15用于搜索，另一段块用于生成答案。",
+    "chunk_id": "7a249b3f-2473-4566-974f-ffea894239c6_golden_1",
+    "metadata": {
+      "source": "temp_article_content.txt",
+      "chunk_index": 1,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在基于嵌入的检索中，使用较小子文本块相比于较大文本块有什么优势？",
+    "answer": "块大小越小，嵌入后就越准确地反映其语义。",
+    "golden_chunk": "zhihu.com/p/681532023 2/15用于搜索，另一段块用于生成答案。用于搜索的块比用于合成或生成最终答案的块小得多，以避免\r\n出现幻觉问题。\r\n让我们用一个例子来详细地解释一下这个概念。取一个100个单词的分块，对于这个分块，我们创\r\n建10个较小的块，每个块10个单词（大致为一个句子）。我们将使用这10个较小的块来进行搜\r\n索，以找到与回答用户问题最相关的句子。当用户提问时，我们可以很容易地从10个较小的句子\r\n块中找到最相关的句子。换言之，不要虚张声势，直接切入正题。基于嵌入的检索在较小的文本大\r\n小下效果最好。\r\n块大小越小，嵌入后就越准确地反映其语义\r\n那么在从10个较小的句子中找到最相关的句子后该怎么办？好问题！你可能会想得很好，让我们\r\n把它发送到LLM（大型语言模型），根据我们检索到的最相关的句子合成一个响应。这是可行的，\r\n但LLM只有一句话，没有足够的上下文。想象一下，我告诉你只用公司文件中的一句话来回答一个\r\n关于该公司的问题。这很难做到，不是吗？",
+    "chunk_id": "7a249b3f-2473-4566-974f-ffea894239c6_golden_2",
+    "metadata": {
+      "source": "temp_article_content.txt",
+      "chunk_index": 2,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "在关于 RAG 的争论中，质疑 RAG 的声音源自何时？",
+    "answer": "自 RAG 诞生以来",
+    "golden_chunk": "Title: 万字长文梳理 2024 年的 RAG\r\n\r\nURL Source: https://mp.weixin.qq.com/s/9H4ZgqaB_q_FX2DzaaHPmQ\r\n\r\nMarkdown Content:\r\n在已经过去的 2024 年，RAG 的发展可以称得上是风起云涌，我们回顾全年，从多个角度对全年的发展进行总结。\r\n\r\n首先用下图镇楼：\r\n\r\n![Image 45](https://mmbiz.qpic.cn/sz_mmbiz_png/tfic1yF9PPI9AtMJfPrLXyd4rs8sIBsbXPYAwBNiaHvPze3icZa1FBt9kwuQ4UzRcu9yWDlqx40vAA5n0KyeAu2Ig/640?wx_fmt=png&from=appmsg)\r\n\r\n对于 2024 年的 RAG 来说，有一系列标志性事件：\r\n\r\n1.  关于 RAG 的争论—RAG 已死，RAG 永存！\r\n    \r\n\r\n2024 年在年初被称为“RAG 发展元年”，虽然这并非共识性的说法，但事实证明，全年的进展无愧于这一称号。在LLM 使用的场景中，RAG 自始至终都在扮演着不可或缺的重要角色。然而，自诞生以来关于 RAG 的争论就没有停止过。",
+    "chunk_id": "12262b19-a822-444b-81c8-6a318ee30392_golden_0",
+    "metadata": {
+      "source": "万字长文梳理2024年的RAG.txt",
+      "chunk_index": 0,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "RAG在2023年有哪些常见的替代称谓？",
+    "answer": "外挂记忆体、外挂知识库",
+    "golden_chunk": "然而，自诞生以来关于 RAG 的争论就没有停止过。由上图可以看到，2023 年 RAG 的称呼并不流行，一种看起来就非常临时的说法“外挂记忆体”、“外挂知识库”是普遍的替代称谓，在当时，主要争论还在于究竟应该用临时的“外挂”还是“永久性的”微调，这个争论在 2024 年初已经终结：从成本和实时性角度，RAG 具有压倒性优势，而效果上相差也并不大，即使需要微调介入的场景，RAG  通常也不可或缺。\r\n\r\n2024 年上半年对于 LLM 来说，对产业最重要的影响，就是开源 LLM 的能力逐步接近以 OpenAI 为代表的商业 LLM，这意味着类似摘要、指令跟随等能力相比 2023 年都有了显著提高，正是这种进展，解锁了以问答、客服、知识库为代表的 RAG 初级应用的普及。2024 年上半年 LLM 的另一个显著进展就是长上下文，它给 RAG 带来的争议伴随了整个上半年，直到年中才逐步偃旗息鼓，跟前一次争议类似，结论两者在能力上各有侧重，同样也是相互配合的关系：\r\n\r\n!",
+    "chunk_id": "12262b19-a822-444b-81c8-6a318ee30392_golden_1",
+    "metadata": {
+      "source": "万字长文梳理2024年的RAG.txt",
+      "chunk_index": 1,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "LLMOps 架构中包含哪些组件？",
+    "answer": "向量数据库、Embedding/Reranker 模型、LLM、Text Chunking、Prompts 管理",
+    "golden_chunk": "[Image 46](https://mmbiz.qpic.cn/sz_mmbiz_png/tfic1yF9PPI9AtMJfPrLXyd4rs8sIBsbXoRjBic8ibk6Q8IicSokBoAypQSia1XyLfZqW5zdktx7RmAOBia8hzTNFY4A/640?wx_fmt=png&from=appmsg)\r\n\r\n2024 年初，以 LLMOps 为代表的 RAG 架构已经非常成熟，这使得企业或者个人用户可以在非常短的时间内搭建出一套 RAG 系统。所谓 LLMOps ，就是将以下图中所包含的各类组件，包括向量数据库、Embedding/Reranker 模型，LLM ，以及 Text Chunking ，Prompts 管理等，用图中箭头串联起来，保证整个系统的可用性和易用性。\r\n\r\n!",
+    "chunk_id": "12262b19-a822-444b-81c8-6a318ee30392_golden_2",
+    "metadata": {
+      "source": "万字长文梳理2024年的RAG.txt",
+      "chunk_index": 2,
+      "question_type": "enumerative"
+    }
+  },
+  {
+    "question": "RAG 面临的技术挑战有哪些？",
+    "answer": "1. 难以针对非结构化多模态文档提供有效问答。\n2. 采用纯向量数据库导致低召回和命中率。",
+    "golden_chunk": "[Image 47](https://mmbiz.qpic.cn/sz_mmbiz_png/tfic1yF9PPI9AtMJfPrLXyd4rs8sIBsbXHHzPNeN2uwLvSIOKjwib3fN9PC48zTmhZJCkic9TicyanlgHPqr3GibNvA/640?wx_fmt=png&from=appmsg)\r\n\r\n但是如何让 RAG 在更多场景和企业用起来，并且可以匹配 LLM 能力的进展，RAG 一直都在面临着技术挑战，【参考 29】【参考 30】这些论文或者文章，是来自学术界对于 RAG 挑战的一些传统解法。这里边的一些原则并无问题，一些实践也已经广为接受，但从实际总结来看，RAG 面临的问题，主要就三类：\r\n\r\n1.  针对非结构化多模态文档无法提供有效问答。这意味着以 LLMOps 为代表的工作，只能服务纯文本类场景，而像 PDF，PPT，乃至类似图文结合的格式数据，就无法解锁其实际商业价值，这些数据往往在企业内部占据大多数比例。\r\n    \r\n2.  采用纯向量数据库带来的低召回和命中率，从而无法针对实际场景提供有效问答，这主要是因为向量表征不仅缺乏对精确信息的表达，对语义召回也有损耗。\r\n    \r\n3.",
+    "chunk_id": "12262b19-a822-444b-81c8-6a318ee30392_golden_3",
+    "metadata": {
+      "source": "万字长文梳理2024年的RAG.txt",
+      "chunk_index": 3,
+      "question_type": "factual"
+    }
+  },
+  {
+    "question": "RAGFlow 引入的第二个设计亮点是什么？",
+    "answer": "引入针对非结构化数据进行语义分块（Semantic Chunking）的步骤，以保证数据的入口质量。",
+    "golden_chunk": "RAG 的本质是搜索，它能工作的前提在于根据用户的提问，可以“搜”到答案所在。但是在很多情况下，这个前提不存在，例如一些意图不明的笼统提问，以及一些需要在多个子问题基础之上综合才能得到答案的所谓“多跳”问答，这些问题的答案，都无法通过搜索提问来获得答案，因此提问和答案之间存在着明显的语义鸿沟。\r\n    \r\n\r\n因此，下边的这些标志性事件，都是围绕 RAG 本身的技术挑战发生。\r\n\r\n2.  一系列多模态文档解析工具的崛起。\r\n    \r\n3.  BM25 和混合搜索的崛起，向量数据库已不需要作为单独品类。\r\n    \r\n\r\n在 2024 年 4 月 1 日，我们开源了完整的 RAG 引擎 RAGFlow ，截止到年底已经超过了 2.5 万 github 星标，它最开始的 2 个设计亮点，已经成为普适性的 RAG 架构设计准则：\r\n\r\n其中之一就是针对朴素 RAG 系统只提供基于文本的 Text Chunking 工具，RAGFlow 引入了针对非结构化数据进行 Semantic Chunking 的步骤，从而保证数据的入口质量。具体做法就是采用专门训练的模型来解析文档布局，避免简易的 Text Chunking 工具对不同布局内部数据的干扰。",
+    "chunk_id": "12262b19-a822-444b-81c8-6a318ee30392_golden_4",
+    "metadata": {
+      "source": "万字长文梳理2024年的RAG.txt",
+      "chunk_index": 4,
+      "question_type": "factual"
+    }
+  }
+]

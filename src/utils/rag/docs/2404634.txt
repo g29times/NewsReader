@@ -1,0 +1,444 @@
+Title: 👾打开 RAG 对接大模型的黑盒 —— 9  大隐藏问题-腾讯云开发者社区-腾讯云
+
+URL Source: https://cloud.tencent.com/developer/article/2404634
+
+Markdown Content:
+前一段时间，各个大模型在争斗：谁能携带更长、更大的上下文 Prompt，比如 Kimi 说 200 万字，阿里通义千问又说自己能达 1000 万字；大家都知道 Prompt 很重要，但是 RAG 和 长的上下文文本携带 是两个不同的技术方向。
+
+### RAG
+
+先来简单介绍一下什么是 RAG （增强搜索生成），很简单：
+
+当我们问 ChatGPT 一个比较专业的问题时，他就是开始回答轱辘话了，通用大模型在专业领域的应答能力有限；
+
+所有这个时候，我们通过丰富 Prompt 给他介绍一下相关背景，然后大模型就有更专业的应答能力了。
+
+这个丰富 Prompt 的过程就是 RAG —— 增强搜索生成。
+
+实际操作会更复杂一点，但是原理就是这么一个原理，如图：
+
+![Image 23](https://developer.qcloudimg.com/http-save/yehe-7738744/878677f2afa0832538b7a180b662d637.webp)
+
+如上图，当我们问大模型：“五四运动的历史意义”，它可能泛泛而谈；此时，此时，我们引入了专业知识库（书、教材、论文文献等），然后通过提取文本形成区块，形成向量库；当我们再次提问的时候，会结合向量库形成一个更加完备的Prompt ，此时，大模型就能很好地回答我们的专业问题了！
+
+言而总之，大数据时代，很多公司都拥有大量的专有数据，如果能基于它们创建 RAG，将显著提升大模型的特异性。
+
+### 构建 RAG
+
+本篇不是想讲 RAG 概念，而是想再深入探索一下：RAG 的构建；
+
+通常来说，构建 RAG 的过程有：
+
+*   将文档分割成均匀的块，每个块都是一段原始文本；
+*   为每个块生成嵌入（例如 OpenAl 嵌入，sentence_transformer）；
+*   将每个块存储在向量数据库中；
+*   从向量数据库集合中找到最相似的Top-k块；
+*   接入LLM响应合成模块；
+
+![Image 24](https://developer.qcloudimg.com/http-save/yehe-7738744/d7bd927811691d45a8f95ba46c96cb52.webp)
+
+![Image 25](https://developer.qcloudimg.com/http-save/yehe-7738744/b2ed2a65fdcbef0ba7c051999d8bf9f5.webp)
+
+简易 RAG：
+
+```
+!pip install llama-index
+
+# My OpenAI Key
+import os
+os.environ['OPENAI_API_KEY'] = ""
+
+
+import logging
+import sys
+import requests
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
+
+from llama_index import VectorStoreIndex, SimpleDirectoryReader
+from IPython.display import Markdown, display
+
+# download paul graham's essay
+response = requests.get("https://www.dropbox.com/s/f6bmb19xdg0xedm/paul_graham_essay.txt?dl=1")
+essay_txt = response.text
+with open("pg_essay.txt", "w") as fp:
+  fp.write(essay_txt)
+  
+  
+  # load documents
+documents = SimpleDirectoryReader(input_files=['pg_essay.txt']).load_data()
+
+
+index = VectorStoreIndex.from_documents(documents)
+
+
+# set Logging to DEBUG for more detailed outputs
+query_engine = index.as_query_engine(similarity_top_k=2)
+
+response = query_engine.query(
+    "What did the author do growing up?",
+)
+
+
+print(response.source_nodes[0].node.get_text())
+```
+
+以上代码是一个简单的 RAG 管道，演示了加载一篇专业文章，对其进行分块，并使用 llama-index 库创建 RAG 管道。这种简易的 RAG 适合一些小而美的专业问题。
+
+现实世界中，专业问题往往会更加复杂。
+
+对于很多人来说，RAG 的引入、与大模型的对接是一个黑盒，任何微小参数的变动都将引起结果发生很大的变化。
+
+![Image 26: image.png](https://developer.qcloudimg.com/http-save/yehe-7738744/24f10e69c34a2503ebba73edbaffaa33.webp)
+
+image.png
+
+广泛理解，在检索中，容易造成的问题有：
+
+*   低精度：检索集合中并非所有片段都相关—— 存在幻觉问题和中间丢失问题
+*   低召回率：并非所有相关片段都被检索到——缺乏足够的上下文让LLM合成答案（这也印证了扩张上下文容量的必要性）
+*   信息过时：数据冗余或已过时
+
+这样会导致：模型编造不符合上下文语义的答案/模型没有回答问题/模型编造有害的或带有偏见的答案
+
+接下来，一起揭秘：RAG 对接大模型的黑盒 —— 9 大问题
+
+![Image 27](https://developer.qcloudimg.com/http-save/yehe-7738744/9697e3d8d827c1ad0a647d173edc6269.webp)
+
+来源：[Seven Failure Points When Engineering a Retrieval Augmented Generation System](https://cloud.tencent.com/developer/tools/blog-entry?target=https%3A%2F%2Flink.juejin.cn%2F%3Ftarget%3Dhttps%253A%252F%252Farxiv.org%252Fpdf%252F2401.05856.pdf&objectId=2404634&objectType=1&isNewArticle=undefined)
+
+#### 1. 源数据本身缺少上下文
+
+这个很好理解， 你想要问专业的历史问题，就需要建立历史知识库，而不是对接一个生物数据库；
+
+如果源数据质量较差，例如包含冲突信息，无论我们如何构建 RAG 管道，最终也无法从提供的垃圾中生成黄金。
+
+有一些常见的策略可以清理数据，举几个例子：
+
+*   去除噪声和不相关信息：包括去除特殊字符、停顿词（像“the”和“a”这样的常用词）和HTML标签。
+*   识别并纠正错误：包括拼写错误、打字错误和语法错误；拼写检查器和语言模型之类的工具可以帮助解决这些问题。
+*   去重：移除重复记录或在偏置检索过程的相似记录。
+
+这里推荐：[Unstructured.io](https://cloud.tencent.com/developer/tools/blog-entry?target=https%3A%2F%2Flink.juejin.cn%2F%3Ftarget%3DUnstructured.io&objectId=2404634&objectType=1&isNewArticle=undefined) 是一套核心库，能帮助解决数清理，值得一试。
+
+![Image 28](https://developer.qcloudimg.com/http-save/yehe-7738744/3f5213f27c25090a0959f4d5f2738ea1.webp)
+
+还有一个提示的小技巧：直接告诉大模型，“如果你遇到了你不懂的知识点，请直接告诉我：不知道”；
+
+或者你还可以在每个 chunk 里面添加上下文；
+
+#### 2. 关键信息出现权重较低
+
+理论上来讲，重要的信息都要出现在提示语的头部，如果其被忽视，将导致大模型无法准确响应。
+
+所以，RAG 应该给关键信息以足够高的权重设置，一般有两种解决方案：
+
+*   调整块-chunk_size 的大小
+*   调整相似度 top-k（similarity_top_k）参数
+
+对检索过程中的效率和有效性进行设置，代码示例如下：
+
+```
+# contains the parameters that need to be tuned
+param_dict = {"chunk_size": [256, 512, 1024], "top_k": [1, 2, 5]}
+
+# contains parameters remaining fixed across all runs of the tuning process
+fixed_param_dict = {
+    "docs": documents,
+    "eval_qs": eval_qs,
+    "ref_response_strs": ref_response_strs,
+}
+
+def objective_function_semantic_similarity(params_dict):
+    chunk_size = params_dict["chunk_size"]
+    docs = params_dict["docs"]
+    top_k = params_dict["top_k"]
+    eval_qs = params_dict["eval_qs"]
+    ref_response_strs = params_dict["ref_response_strs"]
+
+    # build index
+    index = _build_index(chunk_size, docs)
+
+    # query engine
+    query_engine = index.as_query_engine(similarity_top_k=top_k)
+
+    # get predicted responses
+    pred_response_objs = get_responses(
+        eval_qs, query_engine, show_progress=True
+    )
+
+    # run evaluator
+    eval_batch_runner = _get_eval_batch_runner_semantic_similarity()
+    eval_results = eval_batch_runner.evaluate_responses(
+        eval_qs, responses=pred_response_objs, reference=ref_response_strs
+    )
+
+    # get semantic similarity metric
+    mean_score = np.array(
+        [r.score for r in eval_results["semantic_similarity"]]
+    ).mean()
+
+    return RunResult(score=mean_score, params=params_dict)
+
+
+param_tuner = ParamTuner(
+    param_fn=objective_function_semantic_similarity,
+    param_dict=param_dict,
+    fixed_param_dict=fixed_param_dict,
+    show_progress=True,
+)
+
+results = param_tuner.tune()
+```
+
+#### 3. 重排序后缺少上下文
+
+数据表明，将 RAG 检索结果发送给大模型前，对其重排序会显著提高 RAG 性能：
+
+```
+import os
+from llama_index.postprocessor.cohere_rerank import CohereRerank
+
+api_key = os.environ["COHERE_API_KEY"]
+cohere_rerank = CohereRerank(api_key=api_key, top_n=2) # return top 2 nodes from reranker
+
+query_engine = index.as_query_engine(
+    similarity_top_k=10, # we can set a high top_k here to ensure maximum relevant retrieval
+    node_postprocessors=[cohere_rerank], # pass the reranker to node_postprocessors
+)
+
+response = query_engine.query(
+    "What did Elon Musk do?",
+)
+```
+
+这段 LlamaIndex 代码显示了二者区别，不使用重排器导致结果不准确；
+
+但是，通过重排可能导致上下文的缺失，所以需要更好的检索策略：
+
+*   对每个索引基本检索
+*   高级检索和搜索
+*   自动检索
+*   知识图谱检索器
+*   组合/层次化检索器
+
+![Image 29](https://developer.qcloudimg.com/http-save/yehe-7738744/deeb873fb13bd13ebc26f341b9789691.webp)
+
+如果检索效果仍不强，可以考虑基于数据微调模型，加入嵌入模型，通过自定义嵌入模型帮助原始数据更准确的转为向量数据库。
+
+#### 4. 未提取上下文
+
+当信息过载时，还可能出现：未提取上下文，关键信息遗漏，影响回答质量。
+
+我们可以尝试将提示压缩，在检索步骤之后，把数据喂给 LLM 之前通过 LongLLMLingua 压缩上下文，可以使成本更低、性能更好。
+
+```
+from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.response_synthesizers import CompactAndRefine
+from llama_index.postprocessor.longllmlingua import LongLLMLinguaPostprocessor
+from llama_index.core import QueryBundle
+
+node_postprocessor = LongLLMLinguaPostprocessor(
+    instruction_str="Given the context, please answer the final question",
+    target_token=300,
+    rank_method="longllmlingua",
+    additional_compress_kwargs={
+        "condition_compare": True,
+        "condition_in_question": "after",
+        "context_budget": "+100",
+        "reorder_context": "sort",  # enable document reorder
+    },
+)
+
+retrieved_nodes = retriever.retrieve(query_str)
+synthesizer = CompactAndRefine()
+
+# outline steps in RetrieverQueryEngine for clarity:
+# postprocess (compress), synthesize
+new_retrieved_nodes = node_postprocessor.postprocess_nodes(
+    retrieved_nodes, query_bundle=QueryBundle(query_str=query_str)
+)
+
+print("nn".join([n.get_content() for n in new_retrieved_nodes]))
+
+response = synthesizer.synthesize(query_str, new_retrieved_nodes)
+```
+
+就像人写文章一样，虎头凤尾猪肚，重要的东西放在首位，对于大模型提示语也是一样：
+
+![Image 30](https://developer.qcloudimg.com/http-save/yehe-7738744/3847f6c55509bacae316c4820c1f9e8c.webp)
+
+研究表明：自注意力机制对头部信息关注更多。
+
+#### 5. 输出格式错误
+
+RAG 通道需要输出 JSON 答案，我们也要保证输出格式:
+
+*   使用OpenAI函数调用+ JSON模式
+*   使用令牌级提示（LMQL，Guidance）
+*   LlamaIndex支持与其他框架提供的输出解析模块集成，例如Guardrails和LangChain。
+
+参见以下 LangChain 输出解析模块的示例代码：
+
+```
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core.output_parsers import LangchainOutputParser
+from llama_index.llms.openai import OpenAI
+from langchain.output_parsers import StructuredOutputParser, ResponseSchema
+
+# load documents, build index
+documents = SimpleDirectoryReader("../paul_graham_essay/data").load_data()
+index = VectorStoreIndex.from_documents(documents)
+
+# define output schema
+response_schemas = [
+    ResponseSchema(
+        name="Education",
+        description="Describes the author's educational experience/background.",
+    ),
+    ResponseSchema(
+        name="Work",
+        description="Describes the author's work experience/background.",
+    ),
+]
+
+# define output parser
+lc_output_parser = StructuredOutputParser.from_response_schemas(
+    response_schemas
+)
+output_parser = LangchainOutputParser(lc_output_parser)
+
+# Attach output parser to LLM
+llm = OpenAI(output_parser=output_parser)
+
+# obtain a structured response
+query_engine = index.as_query_engine(llm=llm)
+response = query_engine.query(
+    "What are a few things the author did growing up?",
+)
+print(str(response))
+```
+
+Pydantic 库可提供大型语言模型结构化：
+
+```
+from pydantic import BaseModel
+from typing import List
+
+from llama_index.program.openai import OpenAIPydanticProgram
+
+# Define output schema (without docstring)
+class Song(BaseModel):
+    title: str
+    length_seconds: int
+
+
+class Album(BaseModel):
+    name: str
+    artist: str
+    songs: List[Song]
+
+# Define openai pydantic program
+prompt_template_str = """
+Generate an example album, with an artist and a list of songs. 
+Using the movie {movie_name} as inspiration.
+"""
+program = OpenAIPydanticProgram.from_defaults(
+    output_cls=Album, prompt_template_str=prompt_template_str, verbose=True
+)
+
+# Run program to get structured output
+output = program(
+    movie_name="The Shining", description="Data model for an album."
+)
+```
+
+#### 6. 输出不清晰
+
+还有问题是：输出的内容不清晰，导致大模型回答也不尽如人意，需要多轮对话、检索才能得到答案；
+
+解决方案，同样可以优化检索策略：
+
+*   检索从小到大
+*   使用句子窗口检索
+*   递归检索
+
+#### 7. 输出不完整
+
+有时候问法不一样，结果就不一样：比如问：
+
+*   “文档A、B、C的主要观点”；
+*   “文档A的观点、文档B的观点、文档C的观点、”
+
+这两个问题结果是不一样的，后者会更加全面；改进 RAG 推理能力的一个好方法是添加一个查询理解层 —— 在实际查询向量存储之前添加查询转换。
+
+有 4 种不同的查询转换：
+
+*   路由：保留初始查询，同时精确定位它所涉及的适当工具子集。然后，指定这些工具为合适的选项。
+*   查询重写：保留选定的工具，以多种方式重新构建查询，以便在同一组工具上应用。
+*   子问题：将查询分解为几个较小的问题，每个问题针对由其元数据确定的不同工具。
+*   ReAct代理工具选择：基于原始查询，确定使用哪个工具，并制定在该工具上运行的具体查询。
+
+![Image 31](https://developer.qcloudimg.com/http-save/yehe-7738744/cf7bafff3920d2b7dc61b37d9fac8909.webp)
+
+#### 8. 无法扩展到更大的数据量
+
+当处理很大的专业数据库、私人数据库时，RAG 通道会出现处理很慢甚至无法处理的情况；
+
+可以采取并行化提取管道，比如：
+
+● 并行化文档处理
+
+● HuggingFace TEI
+
+● RabbitMQ 消息队列
+
+● AWS EKS 集群
+
+![Image 32](https://developer.qcloudimg.com/http-save/yehe-7738744/c5ccb6bdc91474292119a76d903ccd43.webp)
+
+实际上，LlamaIndex 已经提供并行处理功能，文档处理速度提高 15 倍：
+
+```
+# load data
+documents = SimpleDirectoryReader(input_dir="./data/source_files").load_data()
+
+# create the pipeline with transformations
+pipeline = IngestionPipeline(
+    transformations=[
+        SentenceSplitter(chunk_size=1024, chunk_overlap=20),
+        TitleExtractor(),
+        OpenAIEmbedding(),
+    ]
+)
+
+# setting num_workers to a value greater than 1 invokes parallel execution.
+nodes = pipeline.run(documents=documents, num_workers=4)
+```
+
+#### 9. 速率限制
+
+如果大模型的 API 允许配置多个密钥、一个应用轮番调用，可以采用分布式系统，将请求分散到多个 RAG 通道，即使通道有速率限制，也能通过负载均衡、动态分配请求的方式来解决这个速率限制问题。
+
+### 总结
+
+本篇提供了开发 RAG 通道 9 个痛点，并针对每个痛点都给了相应的解决思路。
+
+RAG 是非常重要的专用检索+通用大模型的技术手段，在赋能模型、满足特定化场景中非常重要！
+
+后续有机会，本瓜还会介绍相关内容，敬请期待。
+
+**参考：**
+
+[medium.com/aiguys/solv…](https://cloud.tencent.com/developer/tools/blog-entry?target=https%3A%2F%2Flink.juejin.cn%2F%3Ftarget%3Dhttps%253A%252F%252Fmedium.com%252Faiguys%252Fsolving-production-issues-in-modern-rag-systems-b7c31802167c&objectId=2404634&objectType=1&isNewArticle=undefined)
+
+[discussion.coggle.club/t/topic/30](https://cloud.tencent.com/developer/tools/blog-entry?target=https%3A%2F%2Flink.juejin.cn%2F%3Ftarget%3Dhttp%253A%252F%252Fdiscussion.coggle.club%252Ft%252Ftopic%252F30&objectId=2404634&objectType=1&isNewArticle=undefined)
+
+[www.zhihu.com/question/63…](https://cloud.tencent.com/developer/tools/blog-entry?target=https%3A%2F%2Flink.juejin.cn%2F%3Ftarget%3Dhttps%253A%252F%252Fwww.zhihu.com%252Fquestion%252F637421964%252Fanswer%252F3344775790&objectId=2404634&objectType=1&isNewArticle=undefined)
+
+本文参与 [腾讯云自媒体同步曝光计划](https://cloud.tencent.com/developer/support-plan)，分享自作者个人站点/博客。
+
+原始发表：2024-04-04，
+
+如有侵权请联系 [cloudcommunity@tencent.com](mailto:cloudcommunity@tencent.com) 删除

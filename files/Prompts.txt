@@ -1,11 +1,24 @@
 问题集
 
-1 设定集
+# 模式
+Simple模式可以使用chat_repl接口进行对话测试
+https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_repl/
+ReAct/Best/OpenAI模式支持重复问之前问过的问题
+https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_react/
+Condense模式首先查询改写，不佳 answering meta questions like "what did I ask you before?"
+https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_condense_question/
+
+# 模板（如莎士比亚风格）
+https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_personality/
+
+# 问题集
+- Gemi，帮我把这几篇文章讲的梳理一下，形成一篇新的读书笔记，在最后记得告诉我你具体参考了哪几篇（原文标题即可）
+- 词典 https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/q_and_a/terms_definitions_tutorial/#conclusiontldr
 - 抽取文章的标题、摘要和关键词
     You have 3 tasks for the following content: 1. Fetch the title from the content, its format should have a title like 'Title: ...' in its first line, if not, you will return 'NO TITLE' for a fallback); 2. Summarize the content concisely and translate into Chinese; 3. Extract Key-Words(only words, no explanation) in a format like '**1. Primary Domains** Web Applications, ...(no more than 5) **2. Specific Topics** React, ...(no more than 10)'. Your response must contain the title, summarize and key words in the fix format: '**Title:** ...\n\n**Summarize:** ...\n\n**Key-Words:** ...'
 
 
-2 问答对
+# 问答对
 - [ ] 问题：我想把室内设计的生成图片的质量粒度优化一下，有什么建议吗？ - 答：可以看看《ICML24 | VLM细粒度图文对齐：局部区域匹配优于整体图像》
 - [ ] 问题：我想快速调用多个不同厂商的LLM，有什么办法吗？ - 答：可以看看《吴恩达开源大模型套件》
 - [ ] 问题：业界有哪些产学研联动的成功案例？ - 答：可以看看《美团AutoConsis：UI内容一致性智能检测》

@@ -7,7 +7,8 @@ import os
 
 # 初始化Chroma客户端
 chroma_client = chromadb.PersistentClient(path="./src/database/chroma_db")
-# chroma_client.delete_collection("news_reader_demo")
+# 在测试时，首次运行，先清理库，后续轮次注掉
+chroma_client.delete_collection("news_reader_demo") # collection_name
 collection = chroma_client.get_or_create_collection("news_reader_demo") # 注意替换
 
 # 创建向量存储
@@ -22,19 +23,27 @@ embed_model = VoyageEmbedding(
     model_name=model_name, voyage_api_key=voyage_api_key
 )
 # 阅读文档
-documents = SimpleDirectoryReader("./src/utils/rag/docs").load_data()
+documents = SimpleDirectoryReader("./src/utils/rag/test").load_data()
 # 1 创建索引（首次索引）
-# index = VectorStoreIndex.from_documents(
-#     documents,
-#     show_progress=True,
-#     storage_context=storage_context,
-#     embed_model=embed_model
-# )
-# or 2 加载索引
-index = VectorStoreIndex.from_vector_store(
-    vector_store, storage_context=storage_context,
+# 不存到向量数据库，只是创建索引
+index = VectorStoreIndex.from_documents(
+    documents,
+    show_progress=True,
+    embed_model=embed_model # 替换掉默认的openai embedding器， 默认情况下，LlamaIndex 使用text-embedding-ada-002
+)
+# 1 首次使用storage_context将索引存到向量数据库 注意配合上面的清理库
+index = VectorStoreIndex.from_documents(
+    documents,
+    show_progress=True,
+    storage_context=storage_context,
     embed_model=embed_model
 )
+# or 2 加载索引
+# index = VectorStoreIndex.from_vector_store(
+#     vector_store,
+#     embed_model=embed_model
+# )
+# print(index.ref_doc_info)
 
 # 配置查询引擎 - query
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -63,8 +72,14 @@ chat_memory = ChatMemoryBuffer.from_defaults(
 # https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_repl/
 # https://tarzan.blog.csdn.net/article/details/144108655
 # https://blog.csdn.net/weixin_40986713/article/details/144510238
+# 模式1 simple
+# from llama_index.core.chat_engine import SimpleChatEngine
+# chat_engine = SimpleChatEngine.from_defaults(llm=llm)
+# chat_engine.chat_repl()
+
+# 模式2 context
 chat_engine = index.as_chat_engine(
-    chat_mode="condense_plus_context",
+    chat_mode="context",
     llm=llm,
     memory=chat_memory,
     verbose=False,
@@ -75,12 +90,13 @@ chat_engine = index.as_chat_engine(
         # "Instruction: Use the previous chat history, or the context, to interact and help the user."
     # ),
 )
-response = chat_engine.chat("这篇文档说了什么? 中文回答") # stream_chat
+response = chat_engine.chat("资料是关于什么的? 中文回答") # stream_chat
 print(response)
-response = chat_engine.chat("小到大的第二种方式是什么?")
+print("----------")
+response = chat_engine.chat("谁觉得LLM还不如猫?")
 print(response)
 
-# 持久化
+# 持久化对话
 chat_store.persist(persist_path="chat_store_test.json")
 loaded_chat_store = SimpleChatStore.from_persist_path(
     persist_path="chat_store_test.json"
