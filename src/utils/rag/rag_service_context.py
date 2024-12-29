@@ -52,16 +52,16 @@ class ContextualRAGService(RAGService):
             self.current_collection_name = current_collection_name
         
         # 创建数据集生成器（用于文档分割和上下文生成）
-        self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
+        # self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
 
     def semantic_search(self, query: str, top_k: int = 5) -> List[SearchResult]:
         """使用语义检索方法进行检索"""
         try:
-            # 获取collection
-            collection = self.chroma_client.get_collection(
-                name=self.current_collection_name,
-                embedding_function=self._embed_doc_voyage
-            )
+            # 获取collection TODO 改为milvus
+            # collection = self.chroma_client.get_collection(
+            #     name=self.current_collection_name,
+            #     embedding_function=self._embed_doc_voyage
+            # )
             
             # 进行语义检索
             results = collection.query(
@@ -106,10 +106,10 @@ class ContextualRAGService(RAGService):
         """使用BM25算法进行检索"""
         try:
             # 获取collection中的所有文档
-            collection = self.chroma_client.get_collection(
-                name=self.current_collection_name,
-                embedding_function=self._embed_doc_voyage
-            )
+            # collection = self.chroma_client.get_collection(
+            #     name=self.current_collection_name,
+            #     embedding_function=self._embed_doc_voyage
+            # )
             
             # 获取所有文档
             all_docs = collection.get()

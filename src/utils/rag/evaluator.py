@@ -16,6 +16,7 @@ from src.utils.rag.dataset_generator import DatasetGenerator
 from src.utils.rag.context_generator import ContextGenerator
 from src.database.milvus_client import Milvus
 from llama_index.core import Document, SimpleDirectoryReader
+from src.utils.rag.rag_service_context import ContextualRAGService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ class RAGEvaluator:
         # 初始化数据集生成器和上下文生成器
         self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
         self.context_generator = ContextGenerator()
+
+        self.rag_context_service = ContextualRAGService()
             
     def _load_evaluation_set(self, path: str) -> List[Dict[str, Any]]:
         """加载评估数据集
@@ -57,7 +60,7 @@ class RAGEvaluator:
         except Exception as e:
             logger.error(f"加载评估集失败: {e}")
             return []
-            
+    # 使用文本相似度计算Pass@k
     def _calculate_pass_at_k(self, retrieved_chunks: List[Dict], golden_chunk: str) -> Dict[str, float]:
         """使用文本相似度计算Pass@k
         
@@ -75,24 +78,25 @@ class RAGEvaluator:
         if not hasattr(self, '_encoder'):
             self._encoder = SentenceTransformer('all-MiniLM-L6-v2')
             
-        # 编码golden_chunk
-        golden_embedding = self._encoder.encode([golden_chunk], convert_to_tensor=True)
+        # 编码golden_chunk GPU convert_to_tensor=True
+        golden_embedding = self._encoder.encode([golden_chunk], convert_to_tensor=False)
         
         results = {}
         for k in [5, 10, 20]:
-            top_k_chunks = retrieved_chunks[:k]
+            top_k_chunks = retrieved_chunks[0][:k]
             
             # 获取检索结果的文本内容
-            chunk_texts = [chunk.get('text', chunk.get('content', '')) for chunk in top_k_chunks]
+            chunk_texts = [chunk.get('entity', chunk.get('text', '')) for chunk in top_k_chunks]
             
             if not chunk_texts:
                 results[f'pass@{k}'] = 0.0
                 continue
                 
             # 计算每个检索结果与golden_chunk的相似度
-            chunk_embeddings = self._encoder.encode(chunk_texts, convert_to_tensor=True)
-            similarities = cosine_similarity(golden_embedding.cpu().numpy(), 
-                                          chunk_embeddings.cpu().numpy())[0]
+            chunk_embeddings = self._encoder.encode(chunk_texts, convert_to_tensor=False)
+            similarities = cosine_similarity(golden_embedding, chunk_embeddings)[0]
+            # FOR GPU : similarities = cosine_similarity(golden_embedding.cpu().numpy(), 
+            #                               chunk_embeddings.cpu().numpy())[0]
             
             # 如果最高相似度超过阈值，认为找到了正确答案
             threshold = 0.8  # 可以根据实际情况调整阈值
@@ -104,8 +108,8 @@ class RAGEvaluator:
             if max_sim > threshold:
                 max_idx = similarities.argmax()
                 logger.info(f"Found matching chunk with similarity {max_sim:.4f}")
-                logger.info(f"Retrieved: {chunk_texts[max_idx][:200]}...")
-                logger.info(f"Golden: {golden_chunk[:200]}...")
+                # logger.info(f"Retrieved: {chunk_texts[max_idx][:20]}...")
+                logger.info(f"Ground Truth Golden: {golden_chunk[:20].encode('utf-8').decode('utf-8')}...")
         
         return results
         
@@ -173,48 +177,28 @@ class RAGEvaluator:
             query = eval_item['question']
             golden_chunk = eval_item['golden_chunk']
             # 新的一轮
-            logger.info(f' +++++++++++++++ Query: {query}')
+            logger.info(f' ???????? Question: {query} ???????? ')
+            logger.info(f' ============= Ground truth: {golden_chunk} ============= ')
 
             # 使用基础RAG进行检索
             retrieved_results = self.milvus_basic.search("rag_basic", query, limit=20)
-            # logger.info(f' +++++++++++++++ Expected chunk: {golden_chunk}')
-            logger.info(f' +++++++++++++++ Retrieved {len(retrieved_results)} results')
-            
-            # 检查golden chunk是否在不同的top-k结果中
-            # 需要考虑chunk_id可能有后缀的情况
-            retrieved_texts = []
-            for result in retrieved_results:
-                result_text = result.get('text', result.get('content', ''))
-                retrieved_texts.append(result_text)
-            # logger.info(f' +++++++++++++++ Retrieved texts: {retrieved_texts}...')
-            
+            logger.info(f' +++++++++++++++ Basic Retrieved {len(retrieved_results[0])}')
             # 计算指标
             sample_metrics = self._calculate_pass_at_k(retrieved_results, golden_chunk)
-            
             # 累加指标
             for k, v in sample_metrics.items():
                 metrics['basic_rag'][k] += v
-                
-            logger.info(f'----------------- basic_rag metrics: {metrics}')
+            logger.info(f' +++++++++++++++ Basic metrics: {metrics}')
 
             # 使用上下文增强RAG进行检索
-            retrieved_results = self.milvus_context.search("rag_context", query, limit=20)
-            logger.info(f' +++++++++++++++ Contextual Retrieved {len(retrieved_results)} results')
-            
-            # 检查golden chunk是否在不同的top-k结果中
-            retrieved_texts = []
-            for result in retrieved_results:
-                result_text = result.get('text', result.get('content', ''))
-                retrieved_texts.append(result_text)
-            
+            retrieved_results = self.rag_context_service.retrieve(query, top_k=20)
+            logger.info(f' +++++++++++++++ Contextual Retrieved {len(retrieved_results[0])}')
             # 计算指标
             sample_metrics = self._calculate_pass_at_k(retrieved_results, golden_chunk)
-            
             # 累加指标
             for k, v in sample_metrics.items():
                 metrics['contextual_rag'][k] += v
-        
-            logger.info(f'----------------- contextual_rag metrics: {metrics}')
+            logger.info(f'----------------- Contextual metrics: {metrics}')
         
         # 计算平均值
         for k in metrics:
@@ -244,7 +228,7 @@ class RAGEvaluator:
         milvus_instance = self.milvus_context if with_context else self.milvus_basic
         
         # 创建collection
-        milvus_instance.create_db(collection_name)
+        milvus_instance.create_collection(collection_name)
         
         # 准备文档
         documents = []
@@ -320,8 +304,8 @@ if __name__ == "__main__":
     # 初始化评估器
     evaluator = RAGEvaluator()
 
-    # 1. 初始化数据库
-    # 基础版本（不带上下文）
+    # # 1. 初始化数据库
+    # # 基础版本（不带上下文）
     # evaluator._add_documents_to_vector_store("rag_basic", with_context=False)
     # # 上下文增强版本
     # evaluator._add_documents_to_vector_store("rag_context", with_context=True)

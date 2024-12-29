@@ -3,43 +3,137 @@ RAG service for handling multi-document conversations
 """
 from math import log
 import os
+import sys
 import logging
 import time
-from typing import List, Optional
+import requests
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any, Optional, Tuple
 from chromadb.utils import embedding_functions
 from llama_index.core import Settings
 from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.voyageai import VoyageEmbedding
 from llama_index.embeddings.jinaai import JinaEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.vector_stores.milvus import MilvusVectorStore
 from llama_index.core import Document, VectorStoreIndex, ServiceContext, StorageContext
 import chromadb
 import asyncio
 from chromadb import Documents, EmbeddingFunction, Embeddings
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
-import requests
 
-from typing import List, Dict, Any, Optional, Tuple
-import sys
-import os
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
+from src.database.milvus_client import Milvus
 from src.models.article import Article
 from src.models.article_crud import *
 from src.database.connection import db_session
 from src import VECTOR_DB_ARTICLES, VECTOR_DB_CHATS, VECTOR_DB_NOTES
 import src.utils.embeddings.voyager as voyager
+from src.utils.text_input_handler import TextInputHandler as textUtils
 
 logger = logging.getLogger(__name__)
+# 向量数据库抽象接口
+class VectorDB(ABC):
+    @abstractmethod
+    def create_collection(self, collection_name: str, embedding_fn=None):
+        pass
+        
+    @abstractmethod
+    def get_collection(self, collection_name: str, embedding_fn=None):
+        pass
+        
+    @abstractmethod
+    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
+        pass
+        
+    @abstractmethod
+    def search(self, collection_name: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        pass
+
+    @abstractmethod
+    def delete_items(self, collection_name: str, item_ids: List[str]):
+        pass
+
+    @abstractmethod
+    def delete_collection(self, collection_name: str):
+        pass
+
+    @abstractmethod
+    def count_collection(self, collection_name: str) -> int:
+        pass
+
+# Chroma实现
+class ChromaDB(VectorDB):
+    def __init__(self):
+        self.client = chromadb.Client()
+        
+    def create_collection(self, collection_name: str, embedding_fn=None):
+        return self.client.create_collection(
+            name=collection_name,
+            embedding_function=embedding_fn
+        )
+        
+    def get_collection(self, collection_name: str, embedding_fn=None):
+        return self.client.get_collection(
+            name=collection_name,
+            embedding_function=embedding_fn
+        )
+        
+    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
+        collection = self.get_collection(collection_name)
+        collection.upsert(
+            documents=[doc["text"] for doc in documents],
+            metadatas=[{k: v for k, v in doc.items() if k != "text"} for doc in documents],
+            embeddings=embeddings
+        )
+        
+    def search(self, collection_name: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        collection = self.get_collection(collection_name)
+        results = collection.query(
+            query_texts=[query],
+            n_results=limit
+        )
+        return results
+
+# Milvus实现
+class MilvusDB(VectorDB):
+    def __init__(self):
+        self.client = Milvus()
+        
+    def create_collection(self, collection_name: str, embedding_fn=None):
+        return self.client.create_collection(collection_name)
+        
+    def get_collection(self, collection_name: str, embedding_fn=None):
+        return self.client.get_collection(collection_name)
+        
+    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
+        self.client.upsert_docs(collection_name, documents)
+        
+    def search(self, collection_name: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+        return self.client.search(collection_name, query, limit=limit)
+
+    def delete_items(self, collection_name: str, item_ids: List[str]):
+        self.client.delete_items(collection_name, item_ids)
+        
+    def delete_collection(self, collection_name: str):
+        self.client.delete_collection(collection_name)
+        
+    def count_collection(self, collection_name: str) -> int:
+        return self.client.count_collection(collection_name)
 
 class RAGService:
     """RAG service for handling document-based conversations"""
     
-    def __init__(self):
-        """Initialize RAG service"""
+    def __init__(self, vector_db_type: str = "milvus"):
+        """Initialize RAG service
+        
+        Args:
+            vector_db_type: 向量数据库类型，可选 "chroma" 或 "milvus"
+        """
         # Load API keys
         self.voyage_api_key = os.getenv("VOYAGE_API_KEY")
         self.google_api_key = os.getenv("GEMINI_API_KEY")
@@ -47,6 +141,15 @@ class RAGService:
         self.JINA_API_KEY = os.getenv("JINA_API_KEY")
         if not self.voyage_api_key or not self.google_api_key:
             raise ValueError("Missing required API keys")
+            
+        # 初始化向量数据库
+        self.vector_db_type = vector_db_type
+        if vector_db_type == "chroma":
+            self.vector_db = ChromaDB()
+        elif vector_db_type == "milvus":
+            self.vector_db = MilvusDB()
+        else:
+            raise ValueError(f"Unsupported vector database type: {vector_db_type}")
             
         # 模块1 嵌入 Initialize embedding model
         self.voyage = VoyageEmbedding(
@@ -72,7 +175,7 @@ class RAGService:
         # 模块3 存储 Initialize Chroma client
         # 向量数据库优化 https://docs.trychroma.com/docs/collections/configure
         # https://www.llamaindex.ai/blog/evaluating-the-ideal-chunk-size-for-a-rag-system-using-llamaindex-6207e5d3fec5
-        self.chroma_client = chromadb.PersistentClient(path="src/database/chroma_db")
+        # self.chroma_client = chromadb.PersistentClient(path="src/database/chroma_db")
         # Client_Server_Mode `chroma run --path /db_path`
         # self.chroma_client = chromadb.HttpClient(host='localhost', port=8000)
         # Current collection name
@@ -108,12 +211,12 @@ class RAGService:
 
         # 全局配置 Global 默认值
         Settings.llm = self.genimi
-        Settings.embed_model = self.jina
+        Settings.embed_model = self.voyage
         # Settings.context_window=8192
-        # Settings.text_splitter = SentenceSplitter(chunk_size=1024)
+        # Settings.text_splitter = SentenceSplitter(chunk_size=1024) # JINA 1024 最佳
         Settings.chunk_size = 1024
         Settings.chunk_overlap = 50
-        # Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
+        # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
         
 
     # 直接聊天
@@ -158,19 +261,24 @@ class RAGService:
         try:
             logger.info(f"用户选择了文章: {article_ids}")
             # Create collection for these documents
-            collection = self.chroma_client.get_or_create_collection(
-                name=VECTOR_DB_ARTICLES,
-                embedding_function = self._embed_query
+            collection = self.vector_db.get_collection(
+                collection_name = VECTOR_DB_ARTICLES,
+                embedding_fn = self._embed_doc_voyage
             )
             logger.info(f"Got collection: {VECTOR_DB_ARTICLES}")
             
             # Create vector store
-            vector_store = ChromaVectorStore(chroma_collection=collection)
+            if self.vector_db_type == "chroma":
+                vector_store = ChromaVectorStore(chroma_collection=collection)
+            elif self.vector_db_type == "milvus":
+                vector_store = MilvusVectorStore(collection_name=VECTOR_DB_ARTICLES)
+            else:
+                raise ValueError(f"Unsupported vector database type: {self.vector_db_type}")
             # 如果collection不为空，从向量库加载索引
-            if collection.count() > 0:
+            if collection.count() > 0: # TODO countCollection
                 logger.info("使用现有向量表查询")
                 index = VectorStoreIndex.from_vector_store(
-                    vector_store
+                    vector_store # 从向量存储调出索引
                 )
             else: # 如果collection为空，用文档创建索引（数据库转向量库）
                 logger.info("创建新向量表")
@@ -186,7 +294,7 @@ class RAGService:
                 storage_context = StorageContext.from_defaults(vector_store=vector_store)
                 index = VectorStoreIndex.from_documents(
                     documents,
-                    storage_context=storage_context,
+                    storage_context=storage_context, # 将文档加入向量存储
                     show_progress=True,
                     # embed_model=self.embed_model
                 )
@@ -297,45 +405,13 @@ class RAGService:
                 for node in response.source_nodes:
                     if "url" in node.metadata and node.metadata["url"] not in response_text:
                         response_text += f"- {node.metadata['url']}\n"
-            
             # 清理 临时collection
             self.cleanup_collection()
-
             return response_text
-            
         except Exception as e:
             logger.error(f"Error in chat_with_articles: {e}")
             return f"处理请求时发生错误: {str(e)}"
     
-    def _split_text_with_jina(self, text: str, max_chunk_length: int = 1000) -> List[str]:
-        """使用JINA API切分文本
-        Args:
-            text: 要切分的文本
-            max_chunk_length: 最大块长度
-        Returns:
-            切分后的文本块列表
-        """
-        url = 'https://segment.jina.ai/'
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.JINA_API_KEY}'
-        }
-        data = {
-            "content": text,
-            "return_tokens": False,
-            "return_chunks": True,
-            "max_chunk_length": max_chunk_length
-        }
-        try:
-            response = requests.post(url, headers=headers, json=data)
-            response.raise_for_status()
-            result = response.json()
-            return [chunk for chunk in result.get("chunks", [])]
-        except Exception as e:
-            logger.error(f"JINA切片失败: {str(e)}")
-            # 如果JINA API失败，使用简单的长度切分作为后备方案
-            return [text[i:i+max_chunk_length] for i in range(0, len(text), max_chunk_length)]
-
     def _articles_to_documents(self, articles: List[Article]) -> List[Document]:
         """Convert articles to LlamaIndex documents
         Args:
@@ -373,16 +449,15 @@ class RAGService:
             if collection_name is None:
                 collection_name = f"{self.current_collection_name}_{int(time.time())}"
 
-            collection = self.chroma_client.get_or_create_collection(
-                name=collection_name,
-                embedding_function = self._embed_doc
-                # lambda texts: [self.voyage.get_text_embedding(t) for t in texts]
-            )
-            logger.info(f"chroma collection: {collection_name}")
+            # collection = self.chroma_client.get_or_create_collection(
+            #     name=collection_name,
+            #     embedding_function = self._embed_doc
+            # )
+            # logger.info(f"chroma collection: {collection_name}")
             
             # 切分文本并入库
             for article in articles:
-                chunks = self._split_text_with_jina(article.content or article.summary)
+                chunks = textUtils.split_text_with_jina(article.content or article.summary)
                 if not chunks:
                     logger.warning(f"文章 {article.id} 没有有效内容可切分")
                     continue
@@ -390,16 +465,17 @@ class RAGService:
                 chunk_ids = [f"article_{article.id}_chunk_{i}" for i in range(len(chunks))]
                 logger.info(f"JINA 将文章 {article.id} 切分成 {len(chunks)} 个chunk")
                 # 添加到ChromaDB
-                collection.upsert(
-                    ids=chunk_ids,
-                    documents=chunks,
-                    metadatas=[{"article_id": article.id, "chunk_index": i} for i in range(len(chunks))]
-                )
+                # collection.upsert(
+                #     ids=chunk_ids,
+                #     documents=chunks,
+                #     metadatas=[{"article_id": article.id, "chunk_index": i} for i in range(len(chunks))]
+                # )
+                self.vector_db.add_documents(collection_name, [{"text": chunk} for chunk in chunks])
                 # 更新sqlite数据库 文章的vector_ids
                 article.vector_ids = ",".join(chunk_ids)
                 update_article(db_session, article.id, {"vector_ids": article.vector_ids})
 
-            logger.info(f"成功将 {len(articles)} 个文档添加到ChromaDB向量库 {collection_name} 集合中，总计 {collection.count()} 个文档")
+            logger.info(f"成功将 {len(articles)} 个文档添加到向量库 {collection_name} 集合中，总计 {self.vector_db.get_collection(collection_name).count()} 个文档")
             return True
         except Exception as e:
             logger.error(f"添加文章到向量数据库失败: {str(e)}")
@@ -415,7 +491,7 @@ class RAGService:
         try:
             if collection_name is None:
                 collection_name = self.current_collection_name
-            collection = self.chroma_client.get_collection(name=collection_name)
+            # collection = self.chroma_client.get_collection(name=collection_name)
             
             for article in articles:
                 if not article.vector_ids:
@@ -424,17 +500,31 @@ class RAGService:
                 # 获取文章的所有向量ID
                 vector_ids = article.vector_ids.split(",")
                 
-                # 从ChromaDB中删除
-                collection.delete(ids=vector_ids)
+                # 从VectorDB中删除
+                # collection.delete(ids=vector_ids)
+                self.vector_db.delete_items(collection_name, vector_ids)
                 
                 # 清空文章的vector_ids
-                article.vector_ids = None
+                update_article(db_session, article.id, {"vector_ids": None})
                 
-            logger.info(f"成功从ChromaDB向量库 {collection_name} 删除 {len(articles)} 个文档")
+            logger.info(f"成功从向量库 {collection_name} 删除 {len(articles)} 个文档")
             return True
         except Exception as e:
             logger.error(f"从向量数据库删除文章失败: {str(e)}")
             return False
+
+    def cleanup_collection(self):
+        """Clean up temporary collection
+        """
+        try:
+            if not self.current_collection_name:
+                return
+            # self.chroma_client.delete_collection(self.current_collection_name)
+            self.vector_db.delete_collection(self.current_collection_name)
+            logger.info(f"Deleted collection: {self.current_collection_name}")
+            self.current_collection_name = None
+        except Exception as e:
+            logger.error(f"Error cleaning up collection: {e}")
 
     def retrieve(self, query: str, top_k: int = 20) -> List[Dict]:
         """统一的检索接口，用于评估
@@ -448,17 +538,18 @@ class RAGService:
         """
         try:
             # 获取集合
-            collection = self.chroma_client.get_or_create_collection(
-                name=self.current_collection_name, # news_reader_rag
-                embedding_function=self._embed_doc_voyage
-            )
+            # collection = self.chroma_client.get_or_create_collection(
+            #     name=self.current_collection_name, # news_reader_rag
+            #     embedding_function=self._embed_doc_voyage
+            # )
             
             # 执行查询
-            results = collection.query(
-                query_texts=[query],
-                n_results=top_k,
-                include=["documents", "distances", "metadatas"]
-            )
+            # results = collection.query(
+            #     query_texts=[query],
+            #     n_results=top_k,
+            #     include=["documents", "distances", "metadatas"]
+            # )
+            results = self.vector_db.search(self.current_collection_name, query, limit=top_k)
             
             # 格式化结果
             formatted_results = []
@@ -469,26 +560,10 @@ class RAGService:
                         'score': float(results['distances'][0][i]) if 'distances' in results else 0.0,
                         'content': results['documents'][0][i] if 'documents' in results else ""
                     })
-            
             return formatted_results
-            
         except Exception as e:
             logger.error(f"Error in retrieve: {e}")
             return []
-
-    def cleanup_collection(self):
-        """Clean up temporary collection
-        """
-        try:
-            if not self.current_collection_name:
-                return
-                
-            self.chroma_client.delete_collection(self.current_collection_name)
-            logger.info(f"Deleted collection: {self.current_collection_name}")
-            self.current_collection_name = None
-            
-        except Exception as e:
-            logger.error(f"Error cleaning up collection: {e}")
 
 # main
 if __name__ == "__main__":
@@ -501,14 +576,14 @@ if __name__ == "__main__":
     # chroma_client.delete_collection(name=VECTOR_DB_ARTICLES)
 
     # 查询测试
-    chroma_client = chromadb.HttpClient(host='localhost', port=8000)
-    class EmbeddingVoyage(EmbeddingFunction):
-            def __call__(self, input: Documents) -> Embeddings:
-                return voyager.get_doc_embeddings(documents=input)
-    collection = chroma_client.get_collection("news_reader_rag",
-        embedding_function = EmbeddingVoyage())
-    results = collection.query(
-        query_texts=["RAGFlow 引入的第二个设计亮点是什么？"], # Chroma will embed this for you
-        n_results=3 # how many results to return
-    )
-    print(results)
+    # chroma_client = chromadb.HttpClient(host='localhost', port=8000)
+    # class EmbeddingVoyage(EmbeddingFunction):
+    #         def __call__(self, input: Documents) -> Embeddings:
+    #             return voyager.get_doc_embeddings(documents=input)
+    # collection = chroma_client.get_collection("news_reader_rag",
+    #     embedding_function = EmbeddingVoyage())
+    # results = collection.query(
+    #     query_texts=["RAGFlow 引入的第二个设计亮点是什么？"], # Chroma will embed this for you
+    #     n_results=3 # how many results to return
+    # )
+    # print(results)
