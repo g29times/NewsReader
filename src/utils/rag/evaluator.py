@@ -22,6 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class RAGEvaluator:
+
     def __init__(self):
         """初始化评估器"""
         self.evaluation_set_path = "./src/utils/rag/data/evaluation_set.json"
@@ -43,7 +44,7 @@ class RAGEvaluator:
         self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
         self.context_generator = ContextGenerator()
 
-        self.rag_context_service = ContextualRAGService()
+        self.rag_context_service = ContextualRAGService(current_collection_name=self.rag_context)
             
     def _load_evaluation_set(self, path: str) -> List[Dict[str, Any]]:
         """加载评估数据集
@@ -83,7 +84,7 @@ class RAGEvaluator:
         
         results = {}
         for k in [5, 10, 20]:
-            top_k_chunks = retrieved_chunks[0][:k]
+            top_k_chunks = retrieved_chunks[:k]
             
             # 获取检索结果的文本内容
             chunk_texts = [chunk.get('entity', chunk.get('text', '')) for chunk in top_k_chunks]
@@ -99,7 +100,7 @@ class RAGEvaluator:
             #                               chunk_embeddings.cpu().numpy())[0]
             
             # 如果最高相似度超过阈值，认为找到了正确答案
-            threshold = 0.8  # 可以根据实际情况调整阈值
+            threshold = 0.75  # 可以根据实际情况调整阈值
             results[f'pass@{k}'] = 1.0 if max(similarities) > threshold else 0.0
             
             # 记录日志
@@ -113,50 +114,6 @@ class RAGEvaluator:
         
         return results
         
-    def evaluate_basic_rag(self):
-        """评估基础RAG系统"""
-        total_samples = len(self.evaluation_set)
-        
-        for qa_pair in self.evaluation_set:
-            query = qa_pair['question']
-            golden_chunk = qa_pair['golden_chunk']  # 直接使用golden_chunk内容
-            
-            # 使用基础RAG进行检索
-            retrieved_chunks = self.milvus_basic.search(query, limit=20)
-            
-            # 计算指标
-            sample_metrics = self._calculate_pass_at_k(retrieved_chunks, golden_chunk)
-            
-            # 累加指标
-            for k, v in sample_metrics.items():
-                self.metrics['basic_rag'][k] += v
-                
-        # 计算平均值
-        for k in self.metrics['basic_rag']:
-            self.metrics['basic_rag'][k] /= total_samples
-            
-    def evaluate_contextual_rag(self):
-        """评估上下文增强RAG系统"""
-        total_samples = len(self.evaluation_set)
-        
-        for qa_pair in self.evaluation_set:
-            query = qa_pair['question']
-            golden_chunk = qa_pair['golden_chunk']  # 直接使用golden_chunk内容
-            
-            # 使用上下文增强RAG进行检索
-            retrieved_chunks = self.milvus_context.search(query, limit=20)
-            
-            # 计算指标
-            sample_metrics = self._calculate_pass_at_k(retrieved_chunks, golden_chunk)
-            
-            # 累加指标
-            for k, v in sample_metrics.items():
-                self.metrics['contextual_rag'][k] += v
-                
-        # 计算平均值
-        for k in self.metrics['contextual_rag']:
-            self.metrics['contextual_rag'][k] /= total_samples
-            
     def evaluate(self) -> Dict[str, Dict[str, float]]:
         """评估RAG系统的性能
         
@@ -172,28 +129,37 @@ class RAGEvaluator:
         total_queries = len(self.evaluation_set)
         logger.info(f'Evaluating {total_queries} queries.')
         
+        documents = []
+        for eval_item in self.evaluation_set:  
+            documents.append({
+                "content": eval_item['golden_chunk'],
+                "chunk_id": eval_item['chunk_id']
+            })
         # 遍历每个评估样本
         for eval_item in self.evaluation_set:  
             query = eval_item['question']
             golden_chunk = eval_item['golden_chunk']
             # 新的一轮
             logger.info(f' ???????? Question: {query} ???????? ')
-            logger.info(f' ============= Ground truth: {golden_chunk} ============= ')
+            logger.info(f' ============= Answer: {eval_item["answer"]} ============= ')
 
             # 使用基础RAG进行检索
             retrieved_results = self.milvus_basic.search("rag_basic", query, limit=20)
             logger.info(f' +++++++++++++++ Basic Retrieved {len(retrieved_results[0])}')
             # 计算指标
-            sample_metrics = self._calculate_pass_at_k(retrieved_results, golden_chunk)
+            sample_metrics = self._calculate_pass_at_k(retrieved_results[0], golden_chunk)
             # 累加指标
             for k, v in sample_metrics.items():
                 metrics['basic_rag'][k] += v
             logger.info(f' +++++++++++++++ Basic metrics: {metrics}')
 
             # 使用上下文增强RAG进行检索
-            retrieved_results = self.rag_context_service.retrieve(query, top_k=20)
-            logger.info(f' +++++++++++++++ Contextual Retrieved {len(retrieved_results[0])}')
+            retrieved_results = self.rag_context_service.retrieve(documents, query, top_k=20)
+            logger.info(f' +++++++++++++++ Contextual Retrieved {len(retrieved_results)}')
             # 计算指标
+            for r in retrieved_results:
+                r['text'] = r['content']
+                r.pop('content')
             sample_metrics = self._calculate_pass_at_k(retrieved_results, golden_chunk)
             # 累加指标
             for k, v in sample_metrics.items():
@@ -208,9 +174,8 @@ class RAGEvaluator:
             
         return metrics
         
-    def _add_documents_to_vector_store(self, collection_name: str, with_context: bool = False):
+    def _add_documents_to_vector_store(self, collection_name: str, with_context: bool = False, schema=None, index_params=None):
         """将文档添加到向量库
-        
         Args:
             collection_name: 集合名称
             with_context: 是否添加上下文（使用answer作为上下文）
@@ -226,9 +191,10 @@ class RAGEvaluator:
         
         # 选择对应的Milvus实例
         milvus_instance = self.milvus_context if with_context else self.milvus_basic
-        
+        # 设置schema
+        schema, index_params = self.set_schema(milvus_instance.client, with_context)
         # 创建collection
-        milvus_instance.create_collection(collection_name)
+        milvus_instance.create_collection(collection_name, schema, index_params)
         
         # 准备文档
         documents = []
@@ -242,7 +208,6 @@ class RAGEvaluator:
             else:
                 # basic版本：直接使用golden_chunk
                 content = item['golden_chunk']
-            
             documents.append(content)
         
         # 批量添加到Milvus
@@ -252,53 +217,51 @@ class RAGEvaluator:
             subject="evaluation_set",  # 统一的subject
             author="evaluation"        # 统一的author
         )
-            
         logger.info(f"Added {len(documents)} documents to {collection_name}")
-    
-    def _add_document(self, milvus_instance: Milvus, collection_name: str, 
-                     document_id: str, document: Document, 
-                     metadata: Optional[Dict] = None, with_context: bool = False) -> bool:
-        """添加单个文档到向量数据库
         
-        Args:
-            milvus_instance: Milvus实例
-            collection_name: 集合名称
-            document_id: 文档ID
-            document: 文档对象
-            metadata: 元数据
-            with_context: 是否添加上下文
-        """
-        try:
-            # 分割文档
-            chunks = self.dataset_generator._split_document(document)
-            chunk_texts = []
-            
-            # 处理每个chunk
-            for i, chunk in enumerate(chunks):
-                content = chunk.text if hasattr(chunk, 'text') else chunk
-                
-                # 如果需要上下文，则生成
-                if with_context:
-                    context = self.context_generator.generate_context(content, document.text)
-                    content = self.context_generator.add_context_to_chunk(content, context)
-                
-                chunk_texts.append(content)
-            
-            # 使用upsert_docs添加到Milvus
-            # metadata会被自动添加到每个chunk中
-            milvus_instance.upsert_docs(
-                collection_name=collection_name,
-                docs=chunk_texts,
-                subject=document_id,  # 用document_id作为subject便于后续查询
-                author=metadata.get('file_name', '') if metadata else ''
+    from pymilvus import MilvusClient
+    def set_schema(self, client: MilvusClient, with_context: bool = False, dense_dim: int = 1024):
+        if not with_context:
+            return None, None
+        schema = client.create_schema(
+            auto_id=False,
+            enable_dynamic_field=True,
+        )
+
+        # Add fields to schema
+        schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
+        schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=512, enable_analyzer=True)
+        schema.add_field(field_name="sparse_bm25", datatype=DataType.SPARSE_FLOAT_VECTOR)
+        schema.add_field(field_name="dense", datatype=DataType.FLOAT_VECTOR, dim=dense_dim)
+
+        from pymilvus import Function
+        from pymilvus import FunctionType
+        bm25_function = Function(
+                name="bm25",
+                function_type=FunctionType.BM25,
+                input_field_names=["text"],
+                output_field_names="sparse_bm25",
             )
-            
-            logger.info(f"DocumentId: {document_id} saved into {collection_name}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to add document: {str(e)}")
-            return False
+        schema.add_function(bm25_function)
+
+        index_params = client.prepare_index_params()
+
+        # Add indexes
+        index_params.add_index(
+            field_name="dense",
+            index_name="dense_index",
+            index_type="IVF_FLAT",
+            metric_type="IP",
+            params={"nlist": 128},
+        )
+
+        index_params.add_index(
+            field_name="sparse_bm25",
+            index_name="sparse_bm25_index",
+            index_type="SPARSE_WAND", 
+            metric_type="BM25"
+        )
+        return schema, index_params
 
 if __name__ == "__main__":
     # 初始化评估器
@@ -313,3 +276,95 @@ if __name__ == "__main__":
     # 2. 评估
     results = evaluator.evaluate()
     print(results)
+
+
+
+
+    # def evaluate_basic_rag(self):
+    #     """评估基础RAG系统"""
+    #     total_samples = len(self.evaluation_set)
+        
+    #     for qa_pair in self.evaluation_set:
+    #         query = qa_pair['question']
+    #         golden_chunk = qa_pair['golden_chunk']  # 直接使用golden_chunk内容
+            
+    #         # 使用基础RAG进行检索
+    #         retrieved_chunks = self.milvus_basic.search(query, limit=20)
+            
+    #         # 计算指标
+    #         sample_metrics = self._calculate_pass_at_k(retrieved_chunks, golden_chunk)
+            
+    #         # 累加指标
+    #         for k, v in sample_metrics.items():
+    #             self.metrics['basic_rag'][k] += v
+                
+    #     # 计算平均值
+    #     for k in self.metrics['basic_rag']:
+    #         self.metrics['basic_rag'][k] /= total_samples
+            
+    # def evaluate_contextual_rag(self):
+    #     """评估上下文增强RAG系统"""
+    #     total_samples = len(self.evaluation_set)
+        
+    #     for qa_pair in self.evaluation_set:
+    #         query = qa_pair['question']
+    #         golden_chunk = qa_pair['golden_chunk']  # 直接使用golden_chunk内容
+            
+    #         # 使用上下文增强RAG进行检索
+    #         retrieved_chunks = self.milvus_context.search(query, limit=20)
+            
+    #         # 计算指标
+    #         sample_metrics = self._calculate_pass_at_k(retrieved_chunks, golden_chunk)
+            
+    #         # 累加指标
+    #         for k, v in sample_metrics.items():
+    #             self.metrics['contextual_rag'][k] += v
+                
+    #     # 计算平均值
+    #     for k in self.metrics['contextual_rag']:
+    #         self.metrics['contextual_rag'][k] /= total_samples
+            
+    # def _add_document(self, milvus_instance: Milvus, collection_name: str, 
+    #                  document_id: str, document: Document, 
+    #                  metadata: Optional[Dict] = None, with_context: bool = False) -> bool:
+    #     """添加单个文档到向量数据库
+        
+    #     Args:
+    #         milvus_instance: Milvus实例
+    #         collection_name: 集合名称
+    #         document_id: 文档ID
+    #         document: 文档对象
+    #         metadata: 元数据
+    #         with_context: 是否添加上下文
+    #     """
+    #     try:
+    #         # 分割文档
+    #         chunks = self.dataset_generator._split_document(document)
+    #         chunk_texts = []
+            
+    #         # 处理每个chunk
+    #         for i, chunk in enumerate(chunks):
+    #             content = chunk.text if hasattr(chunk, 'text') else chunk
+                
+    #             # 如果需要上下文，则生成
+    #             if with_context:
+    #                 context = self.context_generator.generate_context(content, document.text)
+    #                 content = self.context_generator.add_context_to_chunk(content, context)
+                
+    #             chunk_texts.append(content)
+            
+    #         # 使用upsert_docs添加到Milvus
+    #         # metadata会被自动添加到每个chunk中
+    #         milvus_instance.upsert_docs(
+    #             collection_name=collection_name,
+    #             docs=chunk_texts,
+    #             subject=document_id,  # 用document_id作为subject便于后续查询
+    #             author=metadata.get('file_name', '') if metadata else ''
+    #         )
+            
+    #         logger.info(f"DocumentId: {document_id} saved into {collection_name}")
+    #         return True
+            
+    #     except Exception as e:
+    #         logger.error(f"Failed to add document: {str(e)}")
+    #         return False

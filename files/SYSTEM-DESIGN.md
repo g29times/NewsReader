@@ -1,3 +1,11 @@
+# 系统设计专题
+关于笔记和认知 https://help.flomoapp.com/basic/xgbj.html
+上下文检索 https://www.anthropic.com/news/contextual-retrieval
+NoteBookLM
+设计数据库 https://milvus.io/docs/zh/schema-hands-on.md#Schema-Design-Hands-On
+RAG最佳实践 https://mp.weixin.qq.com/s/VYWoluo2BFXhWVRBjeP5IA
+设计RAG工作流 https://docs.llamaindex.ai/en/stable/
+
 # Project Background
 背景：V1 1205
 I like to read AI news and papers, but I need a system to help me collect them, let's design a system together

@@ -14,16 +14,15 @@ import sys
 import json
 import logging
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from chromadb import EmbeddingFunction
 from chromadb.api.types import Documents, Embeddings
 from llama_index.core import Document, SimpleDirectoryReader
 
 from src.utils.rag.rag_service import RAGService
-from src.utils.rag.bm25 import BM25Search
-from src.utils.rag.dataset_generator import DatasetGenerator
 import src.utils.embeddings.voyager as voyager
+from src.utils.rag.bm25 import BM25Search
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -39,13 +38,14 @@ class SearchResult:
 class ContextualRAGService(RAGService):
     """上下文增强的RAG服务"""
     
-    def __init__(self, current_collection_name: str = None):
-        """初始化服务
+    def __init__(self, vector_db_type: str = "milvus", current_collection_name: str = None):
+        """Initialize contextual RAG service
         
         Args:
+            vector_db_type: Type of vector database to use ("chroma" or "milvus")
             current_collection_name: 当前collection名称
         """
-        super().__init__()
+        super().__init__(vector_db_type=vector_db_type)
         
         # 设置collection名称
         if current_collection_name:
@@ -53,107 +53,54 @@ class ContextualRAGService(RAGService):
         
         # 创建数据集生成器（用于文档分割和上下文生成）
         # self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
-
-    def semantic_search(self, query: str, top_k: int = 5) -> List[SearchResult]:
+        
+        self.bm25 = None
+        
+    # 密集向量
+    def semantic_search(self, query: str, top_k: int = 20) -> List[Dict]:
         """使用语义检索方法进行检索"""
         try:
-            # 获取collection TODO 改为milvus
-            # collection = self.chroma_client.get_collection(
-            #     name=self.current_collection_name,
-            #     embedding_function=self._embed_doc_voyage
-            # )
-            
-            # 进行语义检索
-            results = collection.query(
-                query_texts=[query],
-                n_results=top_k
-            )
-            logger.info(f" +++++++++++++++ Semantic search returned {len(results['ids'][0])} results")
-            
-            # 转换为SearchResult格式
-            search_results = []
-            if 'distances' in results and results['distances'][0]:
-                # 归一化距离到[0,1]区间
-                distances = np.array(results['distances'][0])
-                min_dist = np.min(distances)
-                max_dist = np.max(distances)
-                if max_dist > min_dist:
-                    normalized_distances = (distances - min_dist) / (max_dist - min_dist)
-                else:
-                    normalized_distances = np.zeros_like(distances)
-                    
-                # 转换为相似度分数
-                scores = 1.0 - normalized_distances
-            else:
-                scores = np.zeros(len(results['ids'][0]))
-            
-            for i in range(len(results['ids'][0])):
-                chunk_id = results['ids'][0][i]
-                search_results.append(SearchResult(
-                    chunk_id=chunk_id,  # 保持原始chunk_id
-                    score=float(scores[i]),  # 使用归一化后的分数
-                    content=results['documents'][0][i],
-                    metadata=results['metadatas'][0][i] if results['metadatas'] else {}
-                ))
-                
-            return search_results
-            
+            # 使用基类的retrieve方法进行语义搜索
+            results = super().retrieve(self.current_collection_name, query, top_k=top_k)
+            logger.info(f" +++++++++++++++ semantic_search {len(results)} results")
+            return results
         except Exception as e:
-            logger.error(f" -------------------------- Semantic search failed: {str(e)}")
+            logger.error(f"Error in semantic search: {e}")
             return []
-            
-    def bm25_search(self, query: str, top_k: int = 5) -> List[SearchResult]:
+    
+    # 稀疏
+    def bm25_search(self, documents: List[Dict], query: str, top_k: int = 20) -> List[SearchResult]:
         """使用BM25算法进行检索"""
-        try:
-            # 获取collection中的所有文档
-            # collection = self.chroma_client.get_collection(
-            #     name=self.current_collection_name,
-            #     embedding_function=self._embed_doc_voyage
-            # )
+        
+        # 使用BM25搜索前top_k个
+        bm25_searcher = BM25Search()
+        bm25_searcher.add_documents(documents)
+        results = bm25_searcher.search(query, top_k)
+        
+        logger.info(f" +++++++++++++++ BM25 search returned {len(results)} results")
+        
+        # 转换为SearchResult格式
+        search_results = []
+        for result in results:
+            search_results.append(SearchResult(
+                chunk_id=result["chunk_id"],
+                score=result["score"],
+                content=result["content"],
+                metadata={}
+            ))
+        return search_results
             
-            # 获取所有文档
-            all_docs = collection.get()
-            documents = []
-            for i in range(len(all_docs['ids'])):
-                documents.append({
-                    "chunk_id": all_docs['ids'][i],
-                    "content": all_docs['documents'][i]
-                })
-            
-            # 使用BM25搜索前top_k个
-            bm25_searcher = BM25Search()
-            bm25_searcher.add_documents(documents)
-            results = bm25_searcher.search(query, top_k)
-            
-            logger.info(f" +++++++++++++++ BM25 search returned {len(results)} results")
-            
-            # 转换为SearchResult格式
-            search_results = []
-            for result in results:
-                search_results.append(SearchResult(
-                    chunk_id=result["chunk_id"],
-                    score=result["score"],
-                    content=result["content"],
-                    metadata={}
-                ))
-                
-            return search_results
-            
-        except Exception as e:
-            logger.error(f" -------------------------- BM25 search failed: {str(e)}")
-            return []
-            
-    def hybrid_search(self, query: str, top_k: int = 5) -> List[SearchResult]:
+    def hybrid_search(self, documents: List[Dict], query: str, top_k: int = 20) -> List[SearchResult]:
         """混合检索方法，融合语义检索和BM25检索结果"""
         # 分别进行语义检索和BM25检索
         semantic_results = self.semantic_search(query, top_k=top_k)
-        bm25_results = self.bm25_search(query, top_k=top_k)
+        bm25_results = self.bm25_search(documents, query, top_k=top_k)
         
         # 合并结果，使用字典去重
         chunk_scores = {}
         
         # 归一化语义检索分数
-        semantic_scores = np.array([r.score for r in semantic_results])
+        semantic_scores = np.array([r['score'] for r in semantic_results])
         if len(semantic_scores) > 0:
             semantic_max = np.max(semantic_scores)
             semantic_min = np.min(semantic_scores)
@@ -170,11 +117,11 @@ class ContextualRAGService(RAGService):
         
         # 添加归一化后的语义检索结果
         for i, result in enumerate(semantic_results):
-            chunk_scores[result.chunk_id] = {
+            chunk_scores[result['id']] = {
                 'semantic_score': float(semantic_scores[i]) if i < len(semantic_scores) else 0.0,
                 'bm25_score': 0.0,
-                'content': result.content,
-                'metadata': result.metadata
+                'content': result['content'],
+                'metadata': {}
             }
             
         # 添加归一化后的BM25结果
@@ -186,7 +133,7 @@ class ContextualRAGService(RAGService):
                     'semantic_score': 0.0,
                     'bm25_score': float(bm25_scores[i]) if i < len(bm25_scores) else 0.0,
                     'content': result.content,
-                    'metadata': result.metadata
+                    'metadata': {}
                 }
                 
         # 计算最终得分 (加权平均)
@@ -213,7 +160,7 @@ class ContextualRAGService(RAGService):
         # 对结果进行重排序 results[:top_k]
         return self.rerank_results_voyage(query, results, top_k)
             
-    def rerank_results_voyage(self, query: str, results: List[SearchResult], top_k: int = 5) -> List[SearchResult]:
+    def rerank_results_voyage(self, query: str, results: List[SearchResult], top_k: int = 20) -> List[SearchResult]:
         """使用voyage-ai的rerank对结果重排序"""
         if not results:
             return []
@@ -242,8 +189,8 @@ class ContextualRAGService(RAGService):
             
             # 重新组织结果
             reranked = []
-            gamma = 0.6  # rerank权重，降低以减少过度依赖rerank
-            delta = 0.4  # 原始分数权重，增加以保留更多原始排序信息
+            gamma = 0.5  # rerank权重，降低以减少过度依赖rerank
+            delta = 0.5  # 原始分数权重，增加以保留更多原始排序信息
             
             for i, result in enumerate(rerank_results):
                 original_result = results[result.index]
@@ -271,7 +218,7 @@ class ContextualRAGService(RAGService):
             logger.error(f" -------------------------- Voyage rerank failed: {str(e)}")
             return results[:top_k]
             
-    def retrieve(self, query: str, top_k: int = 5) -> List[Dict]:
+    def retrieve(self, documents: List[Dict], query: str, top_k: int = 20) -> List[Dict]:
         """检索接口，返回检索结果"""
-        results = self.hybrid_search(query, top_k=top_k)
+        results = self.hybrid_search(documents, query, top_k=top_k)
         return [{'id': r.chunk_id, 'score': r.score, 'content': r.content} for r in results]

@@ -7,12 +7,15 @@ import configparser
 from dotenv import load_dotenv
 
 # Docs
+# 版本 https://milvus.io/api-reference/pymilvus/v2.5.x/About.md
+# 增删改查 https://zhuanlan.zhihu.com/p/617972545
+# https://blog.csdn.net/weixin_41338279/article/details/144185954
 # 使用 https://milvus.io/api-reference/pymilvus/v2.4.x/MilvusClient/Vector/get.md
-# 接入三方 https://milvus.io/docs/embed-with-voyage.md
 # 原理 https://milvus.io/docs/metric.md?tab=floating
 # 原理 https://milvus.io/docs/index.md?tab=sparse
+# 使用模型 https://milvus.io/docs/embed-with-voyage.md
 # 接入三方 https://docs.llamaindex.ai/en/stable/examples/vector_stores/MilvusHybridIndexDemo/?h=milvus
-# 接入三方 https://docs.zilliz.com.cn/reference/restful/query-v2?_highlight=%E6%9F%A5%E8%AF%A2
+# 云服务器 https://docs.zilliz.com.cn/reference/restful/query-v2?_highlight=%E6%9F%A5%E8%AF%A2
 
 from pymilvus.model.dense import VoyageEmbeddingFunction
 from pymilvus.model.dense import JinaEmbeddingFunction
@@ -54,12 +57,14 @@ class Milvus:
         self.embedding_fn = embedding_fn
 
     # 1 Create db self.embedding_fn.dim
-    def create_collection(self, collection_name, dim=1024):
+    def create_collection(self, collection_name, dim=1024, schema=None, index_params=None):
         if self.client.has_collection(collection_name=collection_name):
             self.client.drop_collection(collection_name=collection_name)
         self.client.create_collection(
             collection_name=collection_name,
-            dimension=dim,  # The vectors we will use in this demo has 768 dimensions
+            dimension=dim,
+            schema=schema,
+            index_params=index_params
         )
         print("create_db with dimension", dim)
 

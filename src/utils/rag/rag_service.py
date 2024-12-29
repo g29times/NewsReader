@@ -526,7 +526,7 @@ class RAGService:
         except Exception as e:
             logger.error(f"Error cleaning up collection: {e}")
 
-    def retrieve(self, query: str, top_k: int = 20) -> List[Dict]:
+    def retrieve(self, collection_name, query: str, top_k: int = 20) -> List[Dict]:
         """统一的检索接口，用于评估
         
         Args:
@@ -549,16 +549,17 @@ class RAGService:
             #     n_results=top_k,
             #     include=["documents", "distances", "metadatas"]
             # )
-            results = self.vector_db.search(self.current_collection_name, query, limit=top_k)
+            results = self.vector_db.search(collection_name, query, limit=top_k)
             
             # 格式化结果
             formatted_results = []
-            if results and results['ids']:
-                for i in range(len(results['ids'][0])):
+            if results and results[0]:
+                results = results[0]
+                for i in range(len(results)):
                     formatted_results.append({
-                        'id': results['ids'][0][i],
-                        'score': float(results['distances'][0][i]) if 'distances' in results else 0.0,
-                        'content': results['documents'][0][i] if 'documents' in results else ""
+                        'id': results[i].get('id'),
+                        'score': results[i].get('distance'),
+                        'content': results[i].get('entity').get('text')
                     })
             return formatted_results
         except Exception as e:
