@@ -118,7 +118,7 @@ class RAGEvaluator:
             golden_chunk = qa_pair['golden_chunk']  # 直接使用golden_chunk内容
             
             # 使用基础RAG进行检索
-            retrieved_chunks = self.milvus_basic.search(query, top_k=20)
+            retrieved_chunks = self.milvus_basic.search(query, limit=20)
             
             # 计算指标
             sample_metrics = self._calculate_pass_at_k(retrieved_chunks, golden_chunk)
@@ -140,7 +140,7 @@ class RAGEvaluator:
             golden_chunk = qa_pair['golden_chunk']  # 直接使用golden_chunk内容
             
             # 使用上下文增强RAG进行检索
-            retrieved_chunks = self.milvus_context.search(query, top_k=20)
+            retrieved_chunks = self.milvus_context.search(query, limit=20)
             
             # 计算指标
             sample_metrics = self._calculate_pass_at_k(retrieved_chunks, golden_chunk)
@@ -176,7 +176,7 @@ class RAGEvaluator:
             logger.info(f' +++++++++++++++ Query: {query}')
 
             # 使用基础RAG进行检索
-            retrieved_results = self.milvus_basic.search(query, top_k=20)
+            retrieved_results = self.milvus_basic.search("rag_basic", query, limit=20)
             # logger.info(f' +++++++++++++++ Expected chunk: {golden_chunk}')
             logger.info(f' +++++++++++++++ Retrieved {len(retrieved_results)} results')
             
@@ -198,7 +198,7 @@ class RAGEvaluator:
             logger.info(f'----------------- basic_rag metrics: {metrics}')
 
             # 使用上下文增强RAG进行检索
-            retrieved_results = self.milvus_context.search(query, top_k=20)
+            retrieved_results = self.milvus_context.search("rag_context", query, limit=20)
             logger.info(f' +++++++++++++++ Contextual Retrieved {len(retrieved_results)} results')
             
             # 检查golden chunk是否在不同的top-k结果中
@@ -322,10 +322,10 @@ if __name__ == "__main__":
 
     # 1. 初始化数据库
     # 基础版本（不带上下文）
-    evaluator._add_documents_to_vector_store("rag_basic", with_context=False)
-    # 上下文增强版本
-    evaluator._add_documents_to_vector_store("rag_context", with_context=True)
+    # evaluator._add_documents_to_vector_store("rag_basic", with_context=False)
+    # # 上下文增强版本
+    # evaluator._add_documents_to_vector_store("rag_context", with_context=True)
 
     # 2. 评估
-    # results = evaluator.evaluate()
-    # print(results)
+    results = evaluator.evaluate()
+    print(results)
