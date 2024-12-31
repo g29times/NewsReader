@@ -27,18 +27,19 @@ http://www.haowu.space/
     rename it to '.env' after setting  
     2.2 setup python(>=3.10) & venv
         ```
+        sudo apt update
         sudo apt install python3.12-venv -y
+        sudo ln -s /usr/bin/python3 /usr/bin/python
         python -m venv .venv
         ```
     2.3 use venv
         ```
         [linux/mac] source .venv/bin/activate
-        [windows(using cmd, not powershell)] 1. cd .venv/Scripts; 2. activate
+        [windows](using cmd, not powershell) 1. cd .venv/Scripts; 2. activate
         ```
 3. Install dependencies(only first time): 
-    [windows] comment line 'milvus-lite==2.4.9' in requirements.txt
     `pip install -r requirements.txt`
-4. Run the application `python src/webapp/article.py`
+4. Run the application `python src/app.py`
 
 ## Technologies
 - Python
