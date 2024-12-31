@@ -1,6 +1,9 @@
 import re
 import os
 from typing import List, Dict, Any, Optional, Tuple
+import requests
+import logging
+logger = logging.getLogger(__name__)
 
 class TextInputHandler:
 
@@ -24,13 +27,13 @@ class TextInputHandler:
 
         return text
 
-    # 使用JINA API切分文本 免费
+    # 使用JINA API切分文本 不带token则免费 但速度慢
     @staticmethod
     def split_text_with_jina(text: str, max_chunk_length: int = 1000) -> List[str]:
         """使用JINA API切分文本
         Args:
             text: 要切分的文本
-            max_chunk_length: 最大块长度
+            max_chunk_length: 最大块长度 推荐1024 但是长文某些embedding会报错 可增大到2000 使得分段减少
         Returns:
             切分后的文本块列表
         """

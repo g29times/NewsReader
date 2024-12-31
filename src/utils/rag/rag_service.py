@@ -63,7 +63,7 @@ class VectorDB(ABC):
         pass
 
     @abstractmethod
-    def count_collection(self, collection_name: str) -> int:
+    def count_items(self, collection_name: str) -> int:
         pass
 
 # Chroma实现
@@ -99,6 +99,17 @@ class ChromaDB(VectorDB):
         )
         return results
 
+    def delete_items(self, collection_name: str, item_ids: List[str]):
+        collection = self.get_collection(collection_name)
+        collection.delete(ids=item_ids)
+        
+    def delete_collection(self, collection_name: str):
+        self.client.delete_collection(name=collection_name)
+        
+    def count_items(self, collection_name: str) -> int:
+        collection = self.get_collection(collection_name)
+        return collection.count()
+
 # Milvus实现
 class MilvusDB(VectorDB):
     def __init__(self):
@@ -108,7 +119,7 @@ class MilvusDB(VectorDB):
         return self.client.create_collection(collection_name)
         
     def get_collection(self, collection_name: str, embedding_fn=None):
-        return self.client.get_collection(collection_name)
+        return None # self.client.get_collection(collection_name)
         
     def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
         self.client.upsert_docs(collection_name, documents)
@@ -122,8 +133,8 @@ class MilvusDB(VectorDB):
     def delete_collection(self, collection_name: str):
         self.client.delete_collection(collection_name)
         
-    def count_collection(self, collection_name: str) -> int:
-        return self.client.count_collection(collection_name)
+    def count_items(self, collection_name: str) -> int:
+        return self.client.count_items(collection_name)
 
 class RAGService:
     """RAG service for handling document-based conversations"""
@@ -270,12 +281,12 @@ class RAGService:
             # Create vector store
             if self.vector_db_type == "chroma":
                 vector_store = ChromaVectorStore(chroma_collection=collection)
-            elif self.vector_db_type == "milvus":
+            elif self.vector_db_type == "milvus": # windows本地无法测试
                 vector_store = MilvusVectorStore(collection_name=VECTOR_DB_ARTICLES)
             else:
                 raise ValueError(f"Unsupported vector database type: {self.vector_db_type}")
             # 如果collection不为空，从向量库加载索引
-            if collection.count() > 0: # TODO countCollection
+            if self.vector_db.count_items(collection_name=VECTOR_DB_ARTICLES) > 0:
                 logger.info("使用现有向量表查询")
                 index = VectorStoreIndex.from_vector_store(
                     vector_store # 从向量存储调出索引
@@ -457,25 +468,25 @@ class RAGService:
             
             # 切分文本并入库
             for article in articles:
-                chunks = textUtils.split_text_with_jina(article.content or article.summary)
+                chunks = textUtils.split_text_with_jina(article.content or article.summary, max_chunk_length=2000)
                 if not chunks:
                     logger.warning(f"文章 {article.id} 没有有效内容可切分")
                     continue
                 # 为每个chunk生成唯一ID
                 chunk_ids = [f"article_{article.id}_chunk_{i}" for i in range(len(chunks))]
-                logger.info(f"JINA 将文章 {article.id} 切分成 {len(chunks)} 个chunk")
+                logger.info(f"JINA 将文章 <{article.title}> 切分成 {len(chunks)} 个chunk")
                 # 添加到ChromaDB
                 # collection.upsert(
                 #     ids=chunk_ids,
                 #     documents=chunks,
                 #     metadatas=[{"article_id": article.id, "chunk_index": i} for i in range(len(chunks))]
                 # )
-                self.vector_db.add_documents(collection_name, [{"text": chunk} for chunk in chunks])
+                self.vector_db.add_documents(collection_name, chunks)
                 # 更新sqlite数据库 文章的vector_ids
                 article.vector_ids = ",".join(chunk_ids)
                 update_article(db_session, article.id, {"vector_ids": article.vector_ids})
 
-            logger.info(f"成功将 {len(articles)} 个文档添加到向量库 {collection_name} 集合中，总计 {self.vector_db.get_collection(collection_name).count()} 个文档")
+            logger.info(f"成功将 {len(articles)} 个文档添加到向量库 {collection_name} 集合中")
             return True
         except Exception as e:
             logger.error(f"添加文章到向量数据库失败: {str(e)}")

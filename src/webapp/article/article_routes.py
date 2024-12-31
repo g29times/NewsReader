@@ -36,6 +36,15 @@ def add_article(type: str = "WEB"):
             'content': ''  # 将从URL获取内容
         }
         
+        # 先判断库内是否已经有同样url的文章，如果有，退出
+        article = get_article_by_url(db_session, article_data['url'])
+        if article:
+            logger.info(f"已经存在同样url的文章：{article.title}")
+            return jsonify({    
+                'success': False,
+                'message': '已经存在同样url的文章',
+                'data': None
+            }), 400
         # 如果有URL，通过JINA Reader获取web内容
         if article_data['url']:
             article_data['content'] = FileInputHandler.jina_read_from_url(article_data['url'])
@@ -79,7 +88,7 @@ def add_article(type: str = "WEB"):
         new_article = Article(**article_data)
         db_session.add(new_article)
         db_session.commit()
-        logger.info(f"成功添加文章: {new_article.title}")
+        logger.info(f"成功添加文章到数据库: {new_article.title}")
 
         # 每次添加文章后，将文章转存向量数据库
         add_articles_to_vector_store(new_article)

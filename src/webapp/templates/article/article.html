@@ -261,6 +261,11 @@
                     const row = document.querySelector(`tr:has(#article-${articleId})`);
                     if (row) {
                         row.remove();
+                        // 更新文章数量显示
+                        const resourcesText = document.getElementById('resources-text');
+                        const currentText = resourcesText.textContent;
+                        const currentCount = parseInt(currentText);
+                        resourcesText.textContent = `${currentCount - 1} 篇文章`;
                     }
                 } else {
                     showToast(result.message || '删除文章失败', 'error');

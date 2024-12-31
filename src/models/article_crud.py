@@ -19,11 +19,13 @@ def create_article(db: Session, article_data: dict):
     db.refresh(new_article)
     return new_article
 
-
 @logy
 def get_article_by_id(db: Session, article_id: int):
     return db.query(Article).filter(Article.id == article_id).first()
 
+@logy
+def get_article_by_url(db: Session, article_url: str):
+    return db.query(Article).filter(Article.url == article_url).first()
 
 @logy
 def get_articles(db: Session, skip: int = 0, limit: int = 10):

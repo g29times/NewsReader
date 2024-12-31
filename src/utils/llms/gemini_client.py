@@ -35,7 +35,7 @@ class GeminiClient:
     GENERATION_CONFIG = {
         "temperature": 1,
         "top_p": 0.95,
-        "top_k": 64,
+        "top_k": 32,
         "max_output_tokens": 8192,
         "response_mime_type": "text/plain",
     }
@@ -274,9 +274,9 @@ class GeminiClient:
             prompt = (
                 "Process the following content, Main tasks: "
                 "1. Get the title, if no title, return '[TITLE]NO TITLE[/TITLE]'"
-                f", 2. Summarize the content concisely in {language}, use markdown to highlight important parts" 
+                f", 2. Summarize the content concisely in {language} and use markdown to highlight important parts" 
                 ", 3. Extract 5 Key-Topics(only words, no explanation)."
-                "Your response must be in the fix format: "
+                "Your response must contain the title, summarize and key topics in the fix format: "
                 "'[TITLE]...[/TITLE]\n[SUMMARY]...[/SUMMARY]\n[KEY_TOPICS]...[/KEY_TOPICS]\n'"
                 ", Sub tasks(optional): "
                 "4. Get the authors, publication date, and up to 3 sources(website, github or paper etc.) "
