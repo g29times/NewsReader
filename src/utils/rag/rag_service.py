@@ -282,7 +282,7 @@ class RAGService:
             if self.vector_db_type == "chroma":
                 vector_store = ChromaVectorStore(chroma_collection=collection)
             elif self.vector_db_type == "milvus": # windows本地无法测试
-                vector_store = MilvusVectorStore(collection_name=VECTOR_DB_ARTICLES)
+                vector_store = MilvusVectorStore(uri="https://in05-a2375130220598d.serverless.ali-cn-hangzhou.cloud.zilliz.com.cn", token="db5bde077eb9a3f48c745706eb58a1c970ef3b556ff2119c7c2c0a0e38fb1222ca6f9e819837d0518a5eaa902ba5634deec7c804", collection_name=VECTOR_DB_ARTICLES)
             else:
                 raise ValueError(f"Unsupported vector database type: {self.vector_db_type}")
             # 如果collection不为空，从向量库加载索引
