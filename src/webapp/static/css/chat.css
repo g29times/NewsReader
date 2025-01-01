@@ -81,13 +81,13 @@ body {
 }
 
 .articles-panel.expanded {
-    width: 380px;
-    min-width: 380px;
+    width: 375px;
+    min-width: 375px;
 }
 
 .notes-panel.expanded {
-    width: 380px;
-    min-width: 380px;
+    width: 375px;
+    min-width: 375px;
 }
 
 /* 内容显示控制 */
@@ -304,7 +304,7 @@ body {
 
 .source-guide-content {
     padding: 16px;
-    max-height: 380px;
+    max-height: 375px;
     overflow-y: auto;
     display: none;
 }
