@@ -388,15 +388,42 @@
         // 复制消息内容
         function copyMessage(button) {
             const messageDiv = button.closest('.message');
-            const content = messageDiv.querySelector('.message-content').textContent;
+            const contentDiv = messageDiv.querySelector('.content');
+            const content = contentDiv ? contentDiv.textContent : '';
             
-            // 使用 Clipboard API 复制文本
-            navigator.clipboard.writeText(content).then(() => {
-                showToast('已复制到剪贴板', 'success');
-            }).catch(err => {
-                showToast('复制失败，请重试', 'error');
+            // 创建一个临时文本区域
+            const textarea = document.createElement('textarea');
+            textarea.value = content;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            
+            try {
+                // 选择文本并尝试复制
+                textarea.select();
+                const success = document.execCommand('copy');
+                if (success) {
+                    showToast('已复制到剪贴板', 'success');
+                } else {
+                    // 如果execCommand失败，尝试使用Clipboard API
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(content)
+                            .then(() => showToast('已复制到剪贴板', 'success'))
+                            .catch(err => {
+                                console.error('复制失败:', err);
+                                showToast('复制失败，请重试', 'error');
+                            });
+                    } else {
+                        throw new Error('不支持复制功能');
+                    }
+                }
+            } catch (err) {
                 console.error('复制失败:', err);
-            });
+                showToast('复制失败，请重试', 'error');
+            } finally {
+                // 清理临时文本区域
+                document.body.removeChild(textarea);
+            }
         }
 
         // 调用后端chat服务
