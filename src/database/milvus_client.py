@@ -21,6 +21,9 @@ log = logging.getLogger(__name__)
 # 使用模型 https://milvus.io/docs/embed-with-voyage.md
 # 接入三方 https://docs.llamaindex.ai/en/stable/examples/vector_stores/MilvusHybridIndexDemo/?h=milvus
 # 云服务器 https://docs.zilliz.com.cn/reference/restful/query-v2?_highlight=%E6%9F%A5%E8%AF%A2
+# https://blog.csdn.net/luxinfeng666/article/details/131506186
+# https://blog.csdn.net/csdn_xmj/article/details/143771359
+# https://docs.zilliz.com.cn/docs/get-and-scalar-query#count-entities
 
 from pymilvus.model.dense import VoyageEmbeddingFunction
 from pymilvus.model.dense import JinaEmbeddingFunction
@@ -128,29 +131,27 @@ class Milvus:
     # Embed 语句
     def encode_query(self, query):
         query_vectors = self.embedding_fn.encode_queries(query)
-        # print("Query Dim:", self.embedding_fn.dim, query_vectors[0].shape)
         return query_vectors
 
     # Embed 文档
     def encode_documents(self, docs):
         docs_embeddings = self.embedding_fn.encode_documents(docs)
         log.info("encode_documents: ", len(docs))
-        # print("Docs Dim:", self.embedding_fn.dim, docs_embeddings[0].shape)
         return docs_embeddings
 
     # Add、Update Data (入参data必须是向量表示)
-    def upsert_data(self, collection_name, data):
+    async def upsert_data(self, collection_name, data):
         res = self.client.upsert(collection_name=collection_name, data=data)
         log.info("upsert_data: ", res)
         return res
 
     # Update Docs 聚合方法 subject可用于后续partition
-    def upsert_docs(self, collection_name, docs, subject="criticism", author=""):
+    async def upsert_docs(self, collection_name, docs, subject="criticism", author=""):
         if not self.has_collection(collection_name=collection_name):
             self.create_collection(collection_name)
         docs_embeddings = self.encode_documents(docs)
         data = self.build_data(docs, docs_embeddings, subject, author)
-        res = self.upsert_data(collection_name=collection_name, data=data)
+        res = await self.upsert_data(collection_name=collection_name, data=data)
         log.info("upsert_docs: ", res)
         return res
 

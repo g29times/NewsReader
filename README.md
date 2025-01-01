@@ -22,7 +22,7 @@ http://www.haowu.space/
     2.1 setup safety env(password etc.)
         ```
         cd [projectRoot]
-        vi .env-demo
+        vi .env-demo or scp .env remote:~/NewsReader/
         ```
     rename it to '.env' after setting  
     2.2 setup python(>=3.10) & venv
@@ -39,7 +39,9 @@ http://www.haowu.space/
         ```
 3. Install dependencies(only first time): 
     `pip install -r requirements.txt`
-4. Run the application `python src/app.py`
+4. Run the application
+    [linux/mac]`.venv/bin/python src/app.py`
+    [windows]`.venv/Scripts/python src/app.py`
 
 ## Technologies
 - Python

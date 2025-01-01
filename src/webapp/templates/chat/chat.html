@@ -14,79 +14,89 @@
 
     <div class="chat-container">
         <!-- 左侧文章面板 -->
-        <div class="articles-panel">
-            <div class="toolbar">
-                <input type="text" placeholder="搜索文章..." class="form-control">
+        <div class="articles-panel collapsed">
+            <div class="panel-header">
+                <div class="toolbar">
+                    <input type="text" placeholder="搜索文章..." class="form-control">
+                </div>
+                <button class="toggle-panel-btn" onclick="toggleArticlesPanel()">⬅</button>
             </div>
-            <div id="articleList" class="article-list">
-                <div class="article-list-header">
-                    <input type="checkbox" id="selectAll" class="article-checkbox">
-                    <label for="selectAll">全选</label>
-                </div>
-                <div class="article-items">
-                    {% for article in articles %}
-                    <div class="article-item">
-                        <input type="checkbox" class="article-checkbox" data-article-id="{{ article.id }}">
-                        <div class="article-title" onclick="fetchArticleDetails('{{ article.id }}')">{{ article.title }}</div>
+            <div class="panel-content">
+                <div id="articleList" class="article-list">
+                    <div class="article-list-header">
+                        <input type="checkbox" id="selectAll" class="article-checkbox">
+                        <label for="selectAll">全选</label>
                     </div>
-                    {% endfor %}
-                </div>
-            </div>
-            <div id="expandedArticle">
-                <div class="article-header">
-                    <h2>Sources</h2>
-                    <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">Collapse</button>
-                </div>
-                <h2 class="article-title" id="expandedArticleTitle"></h2>
-                <div class="source-guide-container">
-                    <div class="source-guide-header" onclick="toggleSourceGuide(this)">
-                        <!-- <span class="source-guide-icon">📚</span> -->
-                        <h5 class="source-guide-title btn btn-outline-primary">Source guide</h5>
-                        <span class="expand-text">展开</span>
-                    </div>
-                    <div class="source-guide-content">
-                        <div class="summary">
-                            <h4>Summary</h4>
-                            <div id="expandedArticleSummary"></div>
+                    <div class="article-items">
+                        {% for article in articles %}
+                        <div class="article-item">
+                            <input type="checkbox" class="article-checkbox" data-article-id="{{ article.id }}">
+                            <div class="article-title" onclick="fetchArticleDetails('{{ article.id }}')">{{ article.title }}</div>
                         </div>
-                        <div class="key-topics">
-                            <h4>Key Topics</h4>
-                            <div id="expandedArticleTopics"></div>
-                        </div>
-                        <div class="tags">
-                            <h4>Tags</h4>
-                            <ul id="expandedArticleTags"></ul>
-                        </div>
-                        <div class="source">
-                            <h4>Source</h4>
-                            <div id="expandedArticleSource"></div>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                <div class="article-body" id="expandedArticleContent"></div>
+                <div id="expandedArticle" style="display: none;">
+                    <div class="article-header">
+                        <h2>Sources</h2>
+                        <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">Collapse</button>
+                    </div>
+                    <h2 class="article-title" id="expandedArticleTitle"></h2>
+                    <div class="source-guide-container">
+                        <div class="source-guide-header" onclick="toggleSourceGuide(this)">
+                            <h5 class="source-guide-title btn btn-outline-primary">Source guide</h5>
+                            <span class="arrow">▶</span>
+                        </div>
+                        <div class="source-guide-content">
+                            <div class="summary">
+                                <h4>Summary</h4>
+                                <div id="expandedArticleSummary"></div>
+                            </div>
+                            <div class="key-topics">
+                                <h4>Key Topics</h4>
+                                <div id="expandedArticleTopics"></div>
+                            </div>
+                            <div class="tags">
+                                <h4>Tags</h4>
+                                <ul id="expandedArticleTags"></ul>
+                            </div>
+                            <div class="source">
+                                <h4>Source</h4>
+                                <div id="expandedArticleSource"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="article-body" id="expandedArticleContent"></div>
+                </div>
             </div>
         </div>
 
         <!-- 中间聊天区域 -->
         <div class="chat-area">
             <div class="chat-toolbar">
-                <button class="btn btn-outline-secondary" onclick="uploadFile()">上传文件</button>
-                <button class="btn btn-outline-secondary" onclick="startRecording()">录音</button>
-                <button class="btn btn-outline-secondary" onclick="openCamera()">相机</button>
+                <button class="btn btn-outline-secondary" onclick="toNote()">转为笔记</button>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <!-- 聊天消息将在这里动态添加 -->
             </div>
             <div class="chat-input-area">
                 <textarea id="messageInput" class="chat-input" placeholder="输入消息..."></textarea>
-                <button class="btn btn-primary" onclick="sendChatMessage()">发送</button>
+                <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
+                <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
+                <button class="btn btn-outline-secondary" onclick="startRecording()">录音</button>
+                <button class="btn btn-outline-secondary" onclick="openCamera()">相机</button>
             </div>
         </div>
 
         <!-- 右侧笔记区域 -->
-        <div class="notes-panel">
-            <!-- 笔记功能将在后续添加 -->
-            <h4>笔记区域</h4>
+        <div class="notes-panel collapsed">
+            <div class="panel-header">
+                <button class="toggle-panel-btn" onclick="toggleNotesPanel()">➡</button>
+                <h4>笔记</h4>
+            </div>
+            <div class="panel-content">
+                <!-- 笔记功能将在后续添加 -->
+            </div>
         </div>
     </div>
 
@@ -96,87 +106,148 @@
         
         // 获取文章详情
         async function fetchArticleDetails(articleId) {
-            if (currentArticle === articleId && isExpanded) {
-                toggleArticlePanel();
-                return;
-            }
-
             try {
                 const response = await fetch(`/chat/api/articles/${articleId}`);
-                const data = await response.json();
-                if (data.success) {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch article details');
+                }
+                const article = await response.json();
+                
+                // 如果点击的是同一篇文章，切换展开状态
+                if (currentArticle === articleId) {
+                    toggleArticleExpand();
+                } else {
+                    // 如果是新文章，展示内容并展开面板
                     currentArticle = articleId;
-                    displayArticleContent(data.data.article);
-                    if (!isExpanded) {
-                        toggleArticlePanel();
-                    }
+                    displayArticleContent(article.data.article);
+                    expandArticlesPanel();
                 }
             } catch (error) {
-                console.error('Error fetching article details:', error);
+                showToast(error.message, 'error');
             }
         }
-        
-        // 切换文章面板
-        function toggleArticlePanel() {
-            const chatContainer = document.querySelector('.chat-container');
-            isExpanded = !isExpanded;
+
+        // 切换文章面板展开/收起
+        function toggleArticlesPanel() {
+            const panel = document.querySelector('.articles-panel');
+            const button = panel.querySelector('.toggle-panel-btn');
             
-            if (!isExpanded) {
-                currentArticle = null;
+            if (panel.classList.contains('expanded')) {
+                // 如果是展开状态，先恢复到默认宽度
+                panel.classList.remove('expanded');
+                button.textContent = '⬅';
+            } else if (panel.classList.contains('collapsed')) {
+                // 如果是收起状态，恢复到默认宽度
+                panel.classList.remove('collapsed');
+                button.textContent = '⬅';
+            } else {
+                // 如果是默认状态，收起面板
+                panel.classList.add('collapsed');
+                button.textContent = '➡';
             }
-            
-            chatContainer.classList.toggle('expanded', isExpanded);
         }
-        
+
+        // 切换笔记面板
+        function toggleNotesPanel() {
+            const panel = document.querySelector('.notes-panel');
+            const button = panel.querySelector('.toggle-panel-btn');
+            
+            if (panel.classList.contains('expanded')) {
+                // 如果是展开状态，先恢复到默认宽度
+                panel.classList.remove('expanded');
+                button.textContent = '➡';
+            } else if (panel.classList.contains('collapsed')) {
+                // 如果是收起状态，恢复到默认宽度
+                panel.classList.remove('collapsed');
+                button.textContent = '➡';
+            } else {
+                // 如果是默认状态，收起面板
+                panel.classList.add('collapsed');
+                button.textContent = '⬅';
+            }
+        }
+
+        // 展开文章面板（用于显示文章详情）
+        function expandArticlesPanel() {
+            const panel = document.querySelector('.articles-panel');
+            const button = panel.querySelector('.toggle-panel-btn');
+            
+            // 移除收起状态（如果有的话）
+            panel.classList.remove('collapsed');
+            // 添加展开状态
+            panel.classList.add('expanded');
+            button.textContent = '⬅';
+        }
+
+        // 切换文章展开/收起状态
+        function toggleArticleExpand() {
+            const panel = document.querySelector('.articles-panel');
+            if (panel.classList.contains('expanded')) {
+                panel.classList.remove('expanded');
+                showArticleList();
+            } else {
+                panel.classList.add('expanded');
+                hideArticleList();
+            }
+        }
+
+        // 显示文章列表
+        function showArticleList() {
+            document.querySelector('.article-list').style.display = 'block';
+            document.getElementById('expandedArticle').style.display = 'none';
+        }
+
+        // 隐藏文章列表
+        function hideArticleList() {
+            document.querySelector('.article-list').style.display = 'none';
+            document.getElementById('expandedArticle').style.display = 'block';
+        }
+
         // 显示文章内容
         function displayArticleContent(article) {
-            const chatContainer = document.querySelector('.chat-container');
-            chatContainer.classList.add('expanded');
+            console.log(article);
+            // 展开面板
+            expandArticlesPanel();
             
-            // 设置标题
-            const titleElement = document.getElementById('expandedArticleTitle');
-            titleElement.textContent = article.title;
+            const articleList = document.getElementById('articleList');
 
-            // 创建Markdown转换器
+            const expandedArticle = document.getElementById('expandedArticle');
+            const title = document.getElementById('expandedArticleTitle');
+            const content = document.getElementById('expandedArticleContent');
+            const summary = document.getElementById('expandedArticleSummary');
+            const topics = document.getElementById('expandedArticleTopics');
+            const tags = document.getElementById('expandedArticleTags');
+            const source = document.getElementById('expandedArticleSource');
+            
+            // 隐藏文章列表
+            articleList.style.display = 'none';
+            // 显示文章详情
+            expandedArticle.style.display = 'block';
+            // 设置文章内容
+            title.textContent = article.title || '';
+            // 使用showdown转换Markdown为HTML
             const converter = new showdown.Converter();
-            
-            // 转换所有Markdown内容
-            const contentHtml = converter.makeHtml(article.content || '');
-            const summaryHtml = converter.makeHtml(article.summary || '');
+            content.innerHTML = article.content ? converter.makeHtml(article.content) : '';
+            summary.innerHTML = article.summary ? converter.makeHtml(article.summary) : '';
             const topicsHtml = article.topics ? converter.makeHtml(article.topics.map(topic => `- ${topic}`).join('\n')) : '';
-            const tagsHtml = article.tags;
-            const sourceHtml = article.source ? converter.makeHtml(`- ${article.source}`) : '';
-            
-            // 设置转换后的HTML内容
-            document.getElementById('expandedArticleSummary').innerHTML = summaryHtml;
-            document.getElementById('expandedArticleTopics').innerHTML = topicsHtml;
-            document.getElementById('expandedArticleTags').innerHTML = tagsHtml;
-            document.getElementById('expandedArticleSource').innerHTML = sourceHtml;
-            document.getElementById('expandedArticleContent').innerHTML = contentHtml || '暂无内容';
-            
-            // 确保Source Guide默认是收起的
-            const sourceGuideContent = document.querySelector('.source-guide-content');
-            sourceGuideContent.classList.remove('expanded');
-            const expandText = document.querySelector('.expand-text');
-            expandText.textContent = '展开';
-            
+            topics.innerHTML = topicsHtml;
+            tags.innerHTML = article.tags || '';
+            source.innerHTML = article.source ? `- ${article.source}` : '';
         }
-        
-        // 切换Source Guide
-        function toggleSourceGuide(header) {
-            const content = header.nextElementSibling;
-            const expandText = header.querySelector('.expand-text');
-            
-            content.classList.toggle('expanded');
-            expandText.textContent = content.classList.contains('expanded') ? '收缩' : '展开';
-        }
-        
+
         // 折叠文章
         function collapseArticle() {
-            const chatContainer = document.querySelector('.chat-container');
-            chatContainer.classList.remove('expanded');
+            const panel = document.querySelector('.articles-panel');
+            const articleList = document.getElementById('articleList');
+            const expandedArticle = document.getElementById('expandedArticle');
+            
+            // 移除展开状态
+            panel.classList.remove('expanded');
+            // 显示文章列表，隐藏文章详情
+            articleList.style.display = 'block';
+            expandedArticle.style.display = 'none';
         }
-
+        
         // 添加用户消息到聊天区域
         function addUserMessageToChat(content) {
             addMessageToChat('user', content);
@@ -264,7 +335,6 @@
 
         // 添加消息到聊天区域
         function addMessageToChat(role, content) {
-            
             // 创建Markdown转换器并转换内容
             const converter = new showdown.Converter();
             const htmlContent = role === 'assistant' ? converter.makeHtml(content) : content;
@@ -272,14 +342,61 @@
             const chatMessages = document.getElementById('chatMessages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
-            messageDiv.innerHTML = `
-                <div class="message-content">
-                    <strong>${role === 'user' ? '你' : '助手'}:</strong>
-                    <p>${htmlContent}</p>
-                </div>
+            
+            // 消息内容区域（包含角色和内容）
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.innerHTML = `
+                <strong>${role === 'user' ? '你' : '助手'}:</strong>
+                <div class="content">${htmlContent}</div>
             `;
+            
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'message-actions';
+            actionsDiv.innerHTML = `
+                <button class="action-btn save-note" title="转为笔记">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                </button>
+                <button class="action-btn copy" title="复制" onclick="copyMessage(this)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </button>
+                <button class="action-btn like" title="喜欢">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
+                    </svg>
+                </button>
+                <button class="action-btn dislike" title="不喜欢">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path>
+                    </svg>
+                </button>
+            `;
+            
+            messageDiv.appendChild(contentDiv);
+            messageDiv.appendChild(actionsDiv);
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // 复制消息内容
+        function copyMessage(button) {
+            const messageDiv = button.closest('.message');
+            const content = messageDiv.querySelector('.message-content').textContent;
+            
+            // 使用 Clipboard API 复制文本
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('已复制到剪贴板', 'success');
+            }).catch(err => {
+                showToast('复制失败，请重试', 'error');
+                console.error('复制失败:', err);
+            });
         }
 
         // 调用后端chat服务
@@ -413,6 +530,39 @@
                 document.getElementById('selectAll').checked = allChecked;
             });
         });
+
+        // 文章展开/收起相关函数
+        function toggleSourceGuide(element) {
+            const content = element.nextElementSibling;
+            content.classList.toggle('expanded');
+            
+            // 更新箭头方向
+            const arrow = element.querySelector('.arrow');
+            if (content.classList.contains('expanded')) {
+                arrow.textContent = '▼';
+            } else {
+                arrow.textContent = '▶';
+            }
+        }
+
+        // 加载历史记录
+        async function loadChatHistory(uid = '1') {  // 默认用户ID为1
+            try {
+                const response = await fetch(`/api/chat/history?uid=${uid}`);
+                const history = await response.json();
+                
+                // 显示每条历史消息
+                for (const message of history) {
+                    addMessageToChat(message.role, message.blocks[0].text);
+                }
+            } catch (error) {
+                console.error('加载历史记录失败:', error);
+                showToast('加载历史记录失败', 'error');
+            }
+        }
+
+        // 页面加载时调用
+        document.addEventListener('DOMContentLoaded', () => loadChatHistory());
     </script>
 </body>
 </html>

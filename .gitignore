@@ -5,12 +5,13 @@ package.json
 package-lock.json
 
 # ignore directories
+database
 __pycache__
 files/temp
 .idea
 node_modules
 chroma_db
-database
+my_index
 
 # ignore environment
 .venv

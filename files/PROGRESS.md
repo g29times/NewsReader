@@ -3,66 +3,10 @@
 - [x] Integrate LLM/VLM: Plan how to use LLMs to analyze articles and generate ideas.
 - [x] Develop Collection Mechanism: Implement the mechanism for collecting articles from various sources, including manual input and APIs.
 - [x] Design User Interface: Create a user-friendly interface for managing and exploring articles and ideas.
+- [] RAG
+- [] Agent
 
-
-# 1 DEGISN/TODO
-主要功能还差：1 聊天记录 2 做笔记 3 笔记反向生成文章
-1 看debug日志，retriver返回的信息只有100字符，不知是不是切片的问题
-2 Agent模型 - 让大模型在后台自己决定是否RAG，而不是给用户一个RAG - Agent
-	场景1 用户不选择知识
-		1.1聊与知识无关的问题 - 如：今天天气怎么样
-		1.2与知识有关的问题   - 如：JINA最近有什么新研究？
-			- 先RAG，然后大模型判断相关程度，如果很低，说明库里没有资料
-	2 用户有勾选
-		2.1与知识无关的问题 如：今天天气怎么样 - 大模型自己判断无关性
-		与知识有关的问题 如：
-			2.2聚焦：JINA最近有什么新研究？同1.2
-			2.3发散：这几篇文章讲了什么？不做RAG，直接用大模型合并回答
-3 配合2，落实5级提示词模板
-4 问题：llamaindex文 ：engine 和 retriver 的召回区别？
-将所有标题和摘要 压缩为一个新的向量 加入每次的查询
-基于项目的横切，是否提供通用知识库？
-
-- 产品驱动流程 File(Input) -> Summary -> Relation -> Note -> Idea -> Blog(Output)
-- 核心原则：
-flomo - 真正学会的含义
-有哪些是google没做的，notion做不到的？我的产品优势在哪里？
-相比google，支持了更灵活的llm输出和agent能力，但借鉴了其项目式文档管理和笔记闭环（播客未采用），相比notion，更加轻量，并且有和google一样的输入-输出闭环，相比kimi等浏览器插件，一是防丢（原文可能删除），因为一上来就做了summary，再就是跨聊天的记忆（未实现）
-少即是多，简单原则，哪些东西是会被LLM大厂逐渐取代的？（已取代：CoT框架、提示词框架）
-	复杂性案例：https://blog.csdn.net/juan9872/article/details/137658555
-		1. 层出不穷的设计模式：CoT、ReACT等框架，最初是因为LLM不具备（LLM厂商精力不在此），但是随着LLM的发展，这些模式逐渐被集成在了LLM内部（o1，gemini-thinking），框架变得臃肿多余。
-		2. Agent是否也会被取代？
-		3. 跨聊天记忆和跨文档记忆，哪个优先？
-- 需求辨别
-		场景：遗忘资料源：我的笔记哪去了？
-		写文章是真实需求吗？
-			买相机 买无人机是真实需求吗？
-			买课是真实需求吗？
-		主观优先级是真实需求吗？
-- 系统设计
-	每篇文章进来，先embedding并存储 + 数据库和向量库是否要关联起来 DONE
-	内容分类 筛选 聚合 归并 和笔记 课程 脑图打通
-	系统设计参考discord
-	关注LLM窗口上限
-	第四格 - 生成笔记博客 灵感来源 - https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/
-	LLM先 生成如何学习一篇文章 的 提示词模板
-	LLM自动维护知识词典 - 凝萃知识库 + 代码实训库
-		https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/q_and_a/terms_definitions_tutorial/#conclusiontldr
-		亟需提示词模板存放处：
-			1 帮我把这篇文章里面的专业术语（如token...）提取出来，如果文章内已经解释，则引用原文，如果没有，则加以简要的一句话解释，以 “· 概念A：A是指...” 的形式输出
-			2 （如果词典里已有）我们可以回顾下...，与新概念的联系 - *生图
-	由AI自主决定调chat还是知识库接口
-	思想实验：
-		灵感：New Yorker - 一图胜千言
-		灵感：Date设计 每次对话加入时间信息
-		1 吐槽小助手
-		2 多LLM 分布式共识
-		3 更了解用户 自身也更个性化
-			人类心理学 + 数据飞轮（新学） + SLM训练（灵感） + 论文（TODO）
-			了解用户笔记、划线习惯（具体小点研究）
-		用户反馈机制
-		用户激励机制 视觉 日历？点图？路径图？
-
+# 1 TODO
 ## BUG
 	多余的方法
 	数据库重构
@@ -116,8 +60,309 @@ flomo - 真正学会的含义
 [问答集](Prompts.txt)
 
 
+# 2 Daily Progress
 
-# 2 DONE
+## 2025.1.1 增强聊天界面
+1. 增强了聊天界面功能:
+   - 为每条消息添加了操作按钮（转为笔记、复制、喜欢、不喜欢）
+   - 实现了消息复制功能
+   - 优化了消息显示样式，包括角色标识和Markdown渲染
+2. 实现了聊天历史记录功能:
+   - 添加了`/api/chat/history`后端API
+   - 实现了前端历史记录加载
+   - 预留了多用户支持（uid参数）
+3. 优化了UI界面:
+   - 调整了笔记区域的标题显示
+   - 改进了消息内容的样式和布局
+
+## 2024.12.31 异步处理优化
+
+#### 问题描述
+在向量数据库操作过程中，由于涉及大量IO操作，需要优化异步处理机制以提高性能。
+
+#### 修改内容
+
+1. **简化异步处理逻辑**
+   - 将`RAGService.add_articles_to_vector_store_background`方法简化为使用单一后台线程执行异步任务
+   - 移除了复杂的事件循环和回调处理机制
+   - 添加了清晰的错误处理和日志记录
+
+2. **路由层优化**
+   - 将`article_routes.py`中的`add_article`和`update_article_route`改为同步函数
+   - 保持API响应迅速，将耗时操作放在后台处理
+
+3. **向量数据库客户端优化**
+   - 将`MilvusClient`中的`encode_query`和`encode_documents`方法改为同步方法
+   - 只保留真正需要异步的数据库操作（`upsert_data`和`upsert_docs`）
+
+#### 影响范围
+- `src/utils/rag/rag_service.py`
+- `src/webapp/article/article_routes.py`
+- `src/database/milvus_client.py`
+
+## 2024.12.29 RAG评估系统优化
+
+#### 问题描述
+为了准确评估RAG系统的性能，需要建立一个标准化的评估流程，包括数据准备和评估指标计算。
+
+#### 修改内容
+
+1. **向量数据库切换**
+   - 从ChromaDB切换到Milvus，以获得更好的性能和可扩展性
+   - 实现了基础版本和上下文增强版本的数据存储
+   - 使用evaluation_set作为标准测试集
+
+2. **评估数据准备**
+   - 基础版本：直接使用golden_chunk作为文档内容
+   - 上下文增强版本：使用answer作为上下文，golden_chunk作为主要内容
+   - 统一了文档ID和元数据的处理方式
+
+3. **相似度评估改进**
+   - 使用文本语义相似度替代精确匹配
+   - 实现了基于阈值的评分机制
+   - 添加了详细的评估日志输出
+
+#### 影响范围
+- `src/utils/rag/evaluator.py`
+- `src/database/milvus_client.py`
+
+## 2024.12.27 向量数据库文章管理优化
+
+#### 修改内容
+1. **文章删除功能增强**
+   - 实现了`delete_articles_from_vector_store`方法，支持从向量数据库中删除文章
+   - 使用文章ID作为向量库中的文档ID，确保一致性
+   - 添加了完整的错误处理和日志记录
+
+2. **文章添加功能优化**
+   - 修改了`add_articles_to_vector_store`方法，在添加文档时设置正确的文档ID
+   - 保持文章ID和向量库文档ID的一致性，便于管理和维护
+   - 优化了日志输出，提供更详细的操作信息
+
+#### 影响范围
+- `src/utils/rag/rag_service.py`
+- `src/webapp/article/article_routes.py`
+
+## 2024.12.26 优化
+1. 界面优化
+   - 使用原生title属性实现摘要悬停提示，遵循简单原则
+   - 简化添加文章表单，去除冗余字段
+   - 统一使用flex布局，实现搜索栏和添加表单的对齐
+   - 优化标签显示，支持长文本自动换行
+2. 代码精简
+   - 移除未使用的chat相关代码
+   - 统一中文界面文案
+   - 保持CSS样式简洁统一
+   
+## 2024.12.25 重构与优化
+1. 重构了RAG服务，增加了对Milvus向量数据库的支持：
+   - 实现了`VectorDB`抽象接口，统一了向量数据库的操作
+   - 添加了`MilvusDB`实现，支持Milvus作为向量存储
+   - 保留了原有的`ChromaDB`实现，实现了无缝切换
+2. 优化了混合检索功能：
+   - 实现了密集向量（语义）检索和稀疏向量（BM25）检索的结合
+   - 添加了基于Voyage的重排序功能
+   - 改进了评估器，支持新的向量数据库接口
+3. 技术细节：
+   - 使用`llama-index-vector-stores-milvus==0.5.0`作为Milvus集成
+   - 通过环境变量和配置文件管理数据库连接信息
+   - 保持了与原有代码的兼容性
+
+## 2024.12.22 聊天模块重构与优化
+
+#### 修改内容
+1. **聊天界面重构**
+   - 重构了聊天页面布局，添加了文章列表、聊天区域和笔记区域三栏布局
+   - 优化了文章选择和展示功能
+   - 添加了文章搜索功能
+   - 实现了文章详情的展开/收起功能
+
+2. **Gemini客户端优化**
+   - 改进了错误处理机制，增加了超时重试
+   - 优化了API响应的解析逻辑
+   - 重构了代码结构，将内部方法和业务方法分离
+   - 增加了详细的日志记录
+
+3. **系统配置优化**
+   - 将系统提示词移至环境变量配置
+   - 统一了提示词管理方式
+   - 优化了配置文件结构
+
+#### 影响范围
+- `src/webapp/templates/chat/chat.html`
+- [src/utils/llms/gemini_client.py](cci:7://file:///m:/WorkSpace/AI/NewsReader/src/utils/llms/gemini_client.py:0:0-0:0)
+- [src/utils/rag/rag_service.py](cci:7://file:///m:/WorkSpace/AI/NewsReader/src/utils/rag/rag_service.py:0:0-0:0)
+- [.env](cci:7://file:///m:/WorkSpace/AI/NewsReader/.env:0:0-0:0)
+
+## 2024.12.21 RAGService 初始化和内存管理
+
+#### 问题分析
+分析了 RAGService 的初始化机制和内存管理策略：
+1. RAGService 在 Flask 应用启动时只初始化一次，这是合理的，因为：
+   - 避免了重复加载 API 密钥
+   - 避免了重复初始化 embedding 模型
+   - 避免了重复设置系统提示词
+
+2. 聊天记忆（Memory）管理机制：
+   - 使用 SimpleChatStore 持久化对话历史到 chat_store.json
+   - 每次对话后通过 chat_store.persist() 更新持久化存储
+   - 服务重启时会自动加载持久化的对话历史
+
+### 优化LLM响应解析机制
+
+#### 问题描述
+在使用LLM提取文章的标题、概要和关键词时，原有的使用`**`作为分隔符的方式容易与Markdown格式冲突，导致解析失败。
+
+#### 修改内容
+1. **提示词模板优化**
+   - 将原有的`**`分隔符改为更清晰的标签式分隔符：`[TITLE]...[/TITLE]`
+   - 简化了关键词格式，避免使用嵌套的Markdown标记
+   - 保持了提示词的主要功能不变，仅优化了输出格式
+
+2. **解析逻辑优化**
+   - 使用正则表达式进行内容提取，提高解析的可靠性
+   - 采用类XML标签格式，使解析更加直观和稳定
+   - 保持了与原有代码的兼容性
+
+#### 影响范围
+- `src/utils/llms/gemini_client.py`
+
+## 2024.12.20 聊天界面优化与Markdown渲染增强
+
+#### 修改内容
+1. **优化消息发送流程**
+   - 实现了发送按钮在等待响应时的禁用状态
+   - 添加了"思考中..."的临时消息提示
+   - 优化了消息显示的时序，立即显示用户消息，等待AI响应
+
+2. **改进错误处理**
+   - 优化了错误提示的显示逻辑
+   - 确保在各种异常情况下都能恢复按钮状态
+
+3. **用户体验优化**
+   - 提供了更好的视觉反馈
+   - 优化了消息流转换的流畅度
+
+4. **文章内容Markdown渲染**
+   - 添加了showdown.js库支持
+   - 实现了文章内容的Markdown渲染
+   - 优化了文章显示布局
+
+5. **聊天消息Markdown渲染**
+   - 为AI助手返回的消息添加了Markdown渲染支持
+   - 保持用户消息为纯文本格式
+   - 改进了消息显示样式
+
+#### 技术细节
+- 使用showdown.js 2.1.0版本
+- 只对AI助手的消息进行Markdown转换
+- 保持原有的消息结构和滚动功能
+
+## 2024.12.19 RAG系统集成
+
+#### 修改内容
+
+1. **实现RAG服务类**
+   - 创建了`RAGService`类，集成LlamaIndex与现有文章系统
+   - 使用VoyageEmbedding进行文档嵌入
+   - 使用Gemini作为LLM模型
+   - 实现了基于Chroma的向量存储
+
+2. **多文档对话功能**
+   - 实现了基于多篇文章的RAG对话功能
+   - 添加了文档源引用功能
+   - 支持临时collection的自动清理
+   - 优化了文档内容的格式化和元数据处理
+
+3. **前端交互优化**
+   - 更新了聊天界面支持多文档选择
+   - 实现了实时对话响应
+   - 添加了错误处理和加载状态显示
+
+4. **API路由更新**
+   - 添加了`/api/chat/with_articles`路由处理多文档RAG对话
+   - 优化了现有的chat相关API接口
+   - 改进了错误处理和响应格式
+
+#### 技术细节
+- 使用LlamaIndex 0.9.8及以上版本
+- 使用ChromaDB作为向量存储
+- 集成VoyageAI的embedding服务
+- 使用Gemini-1.5-flash作为对话模型
+
+## 2024.12.18 文章导航优化
+1. **优化文章导航功能**
+   - 添加了文章列表与详情的平滑切换效果
+   - 实现了左侧面板的自动收缩/展开功能
+   - 使用CSS Grid和transition实现了流畅的布局切换
+   - 优化了文章列表和详情页面的显示逻辑
+   - 改进了Source Guide的展示效果
+
+主要技术细节：
+- 使用 `grid-template-columns` 控制面板宽度
+- 添加 `transition: all 0.3s ease` 实现平滑过渡
+- 采用CSS类控制替代了直接的style操作
+- 统一了文章列表和详情页的状态管理
+
+## 2024.12.17 聊天界面重新设计
+
+#### 修改内容
+1. **创建新的聊天界面**
+   - 实现了三栏布局（资源列表、聊天区域、笔记区域）
+   - 设计了现代化的UI，包括消息气泡、引用源显示
+   - 添加了快捷操作按钮（分析主题、生成摘要、提取关键点）
+
+2. **交互功能优化**
+   - 实现了消息发送和显示功能
+   - 添加了语音输入接口（预留）
+   - 支持侧边栏折叠/展开
+
+3. **技术实现**
+   - 使用HTML5 + CSS + JavaScript实现
+   - 采用Bootstrap框架确保响应式设计
+   - 保持了与现有系统的兼容性
+   
+## 2024.12.16 导入路径和代码结构优化
+
+#### 修改内容
+1. **统一导入路径处理**
+   - 实现了基于项目根目录的绝对导入
+   - 移除了相对导入，改用 `src.` 前缀的绝对导入
+   - 为每个模块添加了项目根目录到 Python 路径
+
+2. **LLM任务模块重构**
+   - 重命名 `GeminiResponse` 为 `LLMResponse`，为多LLM支持做准备
+   - 改进了错误处理和日志记录机制
+   - 添加了完整的类型提示和文档字符串
+
+3. **测试改进**
+   - 添加了单元测试用例
+   - 实现了内存数据库测试
+   - 增加了空内容处理测试
+
+#### 影响范围
+- `src/utils/llms/llm_tasks.py`
+- `src/utils/llms/gemini_client.py`
+- `tests/test_llm_tasks.py`
+
+## 2024.12.10 基本功能优化
+1. **国际化支持优化**
+   - 实现了中英文切换功能
+   - 为所有UI元素添加了语言切换支持，包括按钮文本、表格标题等
+   - 优化了语言切换的实现方式，使用统一的 `changeLanguage` 函数处理
+
+### 代码优化
+1. **JavaScript代码结构优化**
+   - 将 showdown.js 库的引入移出循环体，提高页面加载性能
+   - 优化了按钮的事件处理逻辑，避免ID重复问题
+   - 统一了语言切换相关的代码实现
+
+### 遗留问题
+1. 可能需要考虑添加更多语言的支持
+2. 需要进一步测试语言切换功能在各种场景下的表现
+
+
+# 3 DONE
 ## Integrate LLM/VLM
 ### Implementation Steps
 1. Select Libraries and Tools: Choose libraries for LLM/VLM integration, such as Hugging Face Transformers, OpenAI API, or PyTorch for local model hosting.

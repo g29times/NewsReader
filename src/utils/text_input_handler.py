@@ -1,7 +1,7 @@
 import re
 import os
 from typing import List, Dict, Any, Optional, Tuple
-import requests
+import aiohttp
 import logging
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class TextInputHandler:
 
     # 使用JINA API切分文本 不带token则免费 但速度慢
     @staticmethod
-    def split_text_with_jina(text: str, max_chunk_length: int = 1000) -> List[str]:
+    async def split_text_with_jina(text: str, max_chunk_length: int = 1000) -> List[str]:
         """使用JINA API切分文本
         Args:
             text: 要切分的文本
@@ -50,10 +50,15 @@ class TextInputHandler:
             "max_chunk_length": max_chunk_length
         }
         try:
-            response = requests.post(url, headers=headers, json=data)
-            response.raise_for_status()
-            result = response.json()
-            return [chunk for chunk in result.get("chunks", [])]
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=data) as response:
+                    if response.status != 200:
+                        raise Exception(f"HTTP error {response.status}")
+                    result = await response.json()
+                    chunks = result.get("chunks", [])
+                    if not chunks:  # 如果JINA返回的chunks为空，使用简单的长度切分
+                        return [text[i:i+max_chunk_length] for i in range(0, len(text), max_chunk_length)]
+                    return chunks
         except Exception as e:
             logger.error(f"JINA切片失败: {str(e)}")
             # 如果JINA API失败，使用简单的长度切分作为后备方案
@@ -61,7 +66,15 @@ class TextInputHandler:
 
 # Example usage
 if __name__ == "__main__":
-    handler = TextInputHandler()
-    sample_text = "  This is a SAMPLE text, with Special Characters!  "
-    processed_text = handler.preprocess_text(sample_text)
-    print(processed_text)  # Output: "this is a sample text with special characters"
+    import asyncio
+    
+    async def main():
+        handler = TextInputHandler()
+        sample_text = "  This is a SAMPLE text, with Special Characters!  "
+        processed_text = handler.preprocess_text(sample_text)
+        print(processed_text)  # Output: "this is a sample text with special characters"
+        
+        chunks = await handler.split_text_with_jina(sample_text)
+        print(chunks)
+    
+    asyncio.run(main())

@@ -191,8 +191,12 @@ def search_articles_route():
 
 def add_articles_to_vector_store(article: Article):
     """将文章添加到向量数据库"""
-    articles = [article]
-    if rag_service.add_articles_to_vector_store(articles, collection_name=VECTOR_DB_ARTICLES):
-        logger.info(f"文章已添加到向量数据库: <{article.title}>")
-    else:
-        logger.error(f"添加文章到向量数据库失败")
+    try:
+        articles = [article]
+        # 在后台处理向量数据库操作
+        rag_service.add_articles_to_vector_store_background(articles, collection_name=VECTOR_DB_ARTICLES)
+        logger.info(f"开始在后台添加文章到向量数据库: <{article.title}>")
+        return True
+    except Exception as e:
+        logger.error(f"启动后台向量数据库任务失败: {str(e)}")
+        return False

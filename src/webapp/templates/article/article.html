@@ -120,8 +120,8 @@
                     <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
                     <script>
                         var converter = new showdown.Converter();
-                        var html = converter.makeHtml('{{ article.summary }}');
-                        console.log(html);
+                        var html = converter.makeHtml(`{{ article.summary }}`);
+                        // console.log(html);
                         document.getElementById('summary-{{ article.id }}').innerHTML = html;
                     </script>
                     <span id="articles_end" style="display: none">{% endfor %}</span>

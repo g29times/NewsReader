@@ -1,4 +1,4 @@
-Title: 👾打开 RAG 对接大模型的黑盒 —— 9  大隐藏问题-腾讯云开发者社区-腾讯云
+Title: 打开 RAG 对接大模型的黑盒 —— 9  大隐藏问题-腾讯云开发者社区-腾讯云
 
 URL Source: https://cloud.tencent.com/developer/article/2404634
 

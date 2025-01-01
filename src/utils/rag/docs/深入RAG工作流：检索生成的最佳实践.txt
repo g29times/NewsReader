@@ -1,0 +1,168 @@
+Title: 深入RAG工作流：检索生成的最佳实践
+
+URL Source: https://mp.weixin.qq.com/s/VYWoluo2BFXhWVRBjeP5IA
+
+Markdown Content:
+今天分享的是复旦大学和智能信息处理上海市重点实验室联合发表的一篇文章：实现检索增强生成（RAG）的最佳实践
+
+**论文题目**：Searching for Best Practices in Retrieval-Augmented Generation
+
+![Image 33](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jUT0sYTZN0FpQkp8IicCP3ZlAwmiaPiakHEDoGXvHHOAHJu8HL7Q8Yl7Rw/640?wx_fmt=png&from=appmsg)
+
+**论文链接**：https://arxiv.org/pdf/2407.01219
+
+**代码地址**：https://github.com/FudanDNN-NLP/RAG?tab=readme-ov-file
+
+![Image 34](https://mmbiz.qpic.cn/mmbiz_svg/LwcbhAmMnZBibnjHfa5Dbkk7tP04JCicCSQTxgyGQTicyGIU7M0P5BVzNibgJOO9BU7K91hTpQDPkc1eFEZiaXlGhuoBYTGTn3vc6/640)
+
+01
+
+论文概述
+
+检索增强生成（RAG）技术已被证明在整合最新信息、减少幻觉（即模型产生不准确或虚构的信息）以及提升响应质量方面特别有效，尤其是在专业领域。典型的RAG工作流程通常包含多个干预处理步骤：查询分类（确定是否需要为给定输入查询进行检索）、检索（高效获取查询的相关文档）、重排序（根据文档与查询的相关性调整检索到的文档顺序）、重组（将检索到的文档组织成更有利于生成的结构）、摘要（从重组后的文档中提取关键信息以生成响应，并消除冗余）模块。实现RAG还需要决定如何适当地将文档分割成块、使用什么类型的嵌入表示这些块的语义、选择哪种向量数据库以高效存储特征表示，以及有效微调LLMs的方法。
+
+这篇文章研究了现有的RAG方法及其潜在组合，以识别最优的RAG组合，并且还展示了多模态检索技术能够显著增强关于视觉输入的问题回答能力，并使用“检索即生成”的策略加速多模态内容的生成。
+
+![Image 35](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jrCZz9cD3OEaTpTMuGJZW2j15cY4rr6icq9yLDoCSsfgozibaQcXfBk1w/640?wx_fmt=png&from=appmsg)
+
+![Image 36](https://mmbiz.qpic.cn/mmbiz_svg/LwcbhAmMnZBibnjHfa5Dbkk7tP04JCicCSQTxgyGQTicyGIU7M0P5BVzNibgJOO9BU7K91hTpQDPkc1eFEZiaXlGhuoBYTGTn3vc6/640)
+
+02
+
+RAG工作流
+
+### 查询分类
+
+并非所有查询都需要检索增强，因为大型语言模型（LLMs）本身具备一定的能力。虽然RAG（检索增强生成）可以提高信息的准确性和减少幻觉，但频繁的检索会增加响应时间。因此，我们首先对查询进行分类，以确定是否需要检索。需要检索的查询将通过RAG模块处理；其他查询则直接由LLMs处理。在实现时，选择了BERT-base-multilingual-cased作为分类器。
+
+![Image 37](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6j55BIaLJ71wqNrXiaZNrkcOFeFiaib12sgJmxme4AtQXNL2eErVhu2hpuQ/640?wx_fmt=png&from=appmsg)
+
+### 分块
+
+将文档分割成较小的段落对于增强检索精度和避免大型语言模型（LLMs）中的长度问题至关重要。这个过程可以在不同的粒度级别进行，比如词级别、句子级和语义级。
+
+*   词级别分割：这种方法直接且简单，但可能会分割句子，从而影响检索质量。
+    
+
+*   语义级分割：使用LLMs来确定断点，可以保持上下文的完整性，但这一过程较为耗时。
+    
+
+*   句子级分割：在保持文本语义与简化处理及效率之间取得了平衡。
+    
+
+在这篇文章中采用了句子级别分割，以平衡简易性和语义保存。
+
+#### 块大小
+
+块大小对性能有显著影响。较大的块提供了更多的上下文，有助于增强理解，但会增加处理时间。较小的块可以提高检索召回率并减少处理时间，但可能会缺乏足够的上下文。研究了不同块大小对系统忠实度和相关性的影响，其中忠实度衡量的是生成的响应是否忠实地反映了检索到的文档内容，相关性衡量的是检索到的文档和生成的响应是否与用户的查询匹配。
+
+![Image 38](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jnkaSw6KO2ddllLDXfZQgh3BdsEWzmIz9sI76NS3sGAhlkTwL0av1Cw/640?wx_fmt=png&from=appmsg)
+
+#### 分块策略
+
+高级技术如“小到大”和滑动窗口通过组织块之间的关系来提升检索质量。“小到大”技术使用较小的块来匹配查询，同时返回包含这些小块及其上下文信息的较大块。滑动窗口技术则确保在保持上下文连贯性的同时，检索到相关的信息。
+
+为了展示高级分块技术的有效性，我们使用了LLM-Embedder模型作为嵌入模型。较小的块大小为175个词元，较大的块大小为512个词元，块重叠大小为20个词元。像“小到大”和滑动窗口这样的技术通过维持上下文并确保检索到相关信息来提高检索质量。
+
+![Image 39](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6j4VKgwObMNPFs4gVSBxZVlrYbA6ibYtXuIIZFeZwqWoAOpOPNDNu4neQ/640?wx_fmt=png&from=appmsg)
+
+### 向量数据库
+
+向量数据库存储嵌入向量及其元数据，通过各种索引和近似最近邻（Approximate Nearest Neighbor, ANN）方法，实现对与查询相关的文档的高效检索。这篇文章根据四个关键标准评估了向量数据库的性能：多种索引类型、十亿级向量支持、混合搜索以及云原生能力，最终选择了 Milvus。
+
+![Image 40](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jf1CB5OiamGoV16JKee946eia2icqKvksJjfV1DL6Avfziapic6eTdKeoBDA/640?wx_fmt=png&from=appmsg)
+
+### 检索方法
+
+给定用户查询后，检索模块根据查询与文档之间的相似性，从预构建的语料库中选择最相关的前k个文档。生成模型随后使用这些文档来构建对查询的适当响应。然而，原始查询常常由于表达不佳和缺乏语义信息而表现欠佳，这对检索过程产生了负面影响。为了解决这些问题，我们评估了三种查询转换方法，并使用LLM-Embedder作为查询和文档编码器：
+
+*   **查询重写**：查询重写优化查询以更好地匹配相关文档。
+    
+
+*   **查询分解**：这种方法基于从原始查询衍生出的子问题来检索文档，这在理解和处理上更为复杂。
+    
+
+*   **伪文档生成**：这种方法基于用户查询生成一个假设的文档，并使用假设答案的嵌入来检索类似的文档。
+    
+
+在这篇文章推荐使用带有HyDE的混合搜索作为默认检索方法，采用单个假设文档。从效率角度来看，混合搜索结合了稀疏检索（BM25）和密集检索（原始嵌入），并在相对较低的延迟下实现了显著的性能。并且使用 α 控制稀疏检索和密集检索组件之间的权重，结果显示，α 值为0.3时性能最佳。
+
+  
+
+![Image 41](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jLxpaXLlest4EZSAwdyDEcqwJnXndEicjbmMvqjtRFORH326AwXf6a9w/640?wx_fmt=png&from=appmsg)
+
+### 排序方法
+
+使用重排序阶段来增强检索到的文档的相关性，确保最相关的信息出现在列表顶部。
+
+*   DLM Reranking: 将排序问题形式化为一个分类问题，用分类数据对预训练语言模型进行精调；推理阶段模型会输出判断为"true"的概率值，基于概率值对文档进行排序。
+    
+*   TILDE Reranking: 首先计算查询中每个词的似然值，然后以文档中出现的查询词的似然值求和得到文档的得分，最后基于文档的得分进行排序。
+    
+
+### 文档打包
+
+大型语言模型（LLM）响应生成，可能会受到文档提供顺序的影响。为了解决这个问题，在重排序之后的工作流程中引入了一个紧凑的重组模块，该模块包含三种重组方法：“正向”、“反向”和“两侧”。
+
+*   正向：根据重排序阶段的相关性得分从高到低重新排列文档。
+    
+*   反向：将文档按照相关性得分从低到高的顺序排列。
+    
+*   两侧：当相关信息位于输入的开头或结尾时，可以实现最佳性能，因此还包括了“两侧”选项，即将最相关的文档放在输入序列的两端。
+    
+
+![Image 42](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jDSpuYpYMIzCAicYiaIQ3VJknz8SP82micaUKJcehJq99rc0ehkyIqgZlg/640?wx_fmt=png&from=appmsg)
+
+### 摘要
+
+在RAG（检索增强生成）流程中，检索结果可能包含冗余或无关的信息，这可能会妨碍大型语言模型（LLM）生成准确的响应。此外，过长的提示会减慢推理过程。因此，开发高效的检索文档摘要方法对RAG管道至关重要。
+
+摘要任务可以分为抽取式和生成式两种。抽取式方法将文本分割成句子，然后根据重要性对其进行评分和排序；生成式方法则从多个文档中综合信息，以重述和生成连贯的摘要。这些任务可以是基于查询的（query-based）或非基于查询的（non-query-based）。在本文中，由于RAG检索的是与查询相关的信息，所以仅关注基于查询的方法。
+
+*   **Recomp**: Recomp方法同时具备抽取式和生成式的摘要能力。抽取式压缩器选择有用的句子，而生成式压缩器则从多个文档中综合信息。
+    
+*   **LongLLMLingua**: LongLLMLingua方法改进了LLMLingua，专注于与查询相关的关键信息。
+    
+*   **Selective Context**: Selective Context通过识别并移除输入上下文中的冗余信息，提高了LLM的效率。
+    
+
+![Image 43](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jJhU9D1yZGbEeEq2kUfxMsHcwRpHb9YQicSrS05ZzvlmYN1dQtujShAQ/640?wx_fmt=png&from=appmsg)
+
+![Image 44](https://mmbiz.qpic.cn/mmbiz_svg/LwcbhAmMnZBibnjHfa5Dbkk7tP04JCicCSQTxgyGQTicyGIU7M0P5BVzNibgJOO9BU7K91hTpQDPkc1eFEZiaXlGhuoBYTGTn3vc6/640)
+
+03
+
+RAG最佳实践概述
+
+这篇文章还探讨了实现检索增强生成（RAG）的最佳实践。采用上述中每个模块的最佳方法搭建RAG流程。依次优化各个模块，并从备选方案中选择最有效的方法。这个迭代过程持续进行，直到确定了实施最终总结模块的最佳方法。
+
+![Image 45](https://mmbiz.qpic.cn/mmbiz_png/k47iawfCYibWEPnnwPXrJn9Rx2MR9Jrg6jXQI0wsFpmV8JsM9mgL3gfX3v3Nbh9HQekLQgvucPibcqmeawhSQKFRw/640?wx_fmt=png&from=appmsg)
+
+*   **查询分类模块**：该模块对系统的效果和效率均有显著贡献，将总体得分从0.428提升到0.443，同时将每个查询的延迟时间从16.41秒缩短至11.58秒。
+    
+*   **检索模块**：虽然“Hybrid with HyDE”方法实现了最高的RAG得分（0.58），但其计算成本较高，每个查询耗时11.71秒。因此，推荐使用“Hybrid”或“Original”方法，它们在减少延迟的同时，仍能保持相当的性能水平。
+    
+*   **重排序模块**：缺少重排序模块会导致性能明显下降，突出了该模块的必要性。MonoT5取得了最高的平均得分，证明其在提升检索文档相关性方面的有效性。这表明重排序在提高生成响应质量方面具有关键作用。
+    
+*   **重组模块**：反向配置（Reverse）表现出更优的性能，RAG得分达到了0.560。这表明，将更相关的上下文内容靠近查询位置可以实现最佳效果。
+    
+*   **摘要模块**：尽管移除摘要模块可以在降低延迟的同时实现相似的结果，但Recomp表现出了卓越的性能，仍是首选方案，特别是在解决生成器的最大长度限制时表现突出。在对响应时间敏感的应用场景中，移除摘要模块可以有效减少响应时间。
+    
+
+实验结果表明，每个模块都对RAG系统的整体性能有独特的贡献。查询分类模块提升了准确性并降低了延迟，而检索和重排序模块显著提高了系统处理多样化查询的能力。重组和摘要模块进一步优化了系统输出，确保在不同任务中提供高质量的响应。
+
+![Image 46](https://mmbiz.qpic.cn/mmbiz_svg/LwcbhAmMnZBibnjHfa5Dbkk7tP04JCicCSQTxgyGQTicyGIU7M0P5BVzNibgJOO9BU7K91hTpQDPkc1eFEZiaXlGhuoBYTGTn3vc6/640)
+
+04
+
+论文总结
+
+在这篇论文中，实现了检索增强生成（RAG）的最佳实践，以提高大型语言模型生成内容的质量和可靠性。系统性地评估了RAG框架中各模块的多种潜在解决方案，并为每个模块推荐了最有效的方法。
+
+**▎往期推荐**
+
+[思维图(GoT)：让大模型突破思维链的极限](https://mp.weixin.qq.com/s?__biz=MzkxOTQwNzU0Ng==&mid=2247491713&idx=1&sn=79bb5c5d483b8bccd727099b251d7a8b&scene=21#wechat_redirect)
+
+[LightRAG：用图结构和双层检索打造更智能的RAG系统](https://mp.weixin.qq.com/s?__biz=MzkxOTQwNzU0Ng==&mid=2247491276&idx=1&sn=9c0df47bd55751cd5954aadf4e9dffd1&scene=21#wechat_redirect)
+
+[让RAG自行纠错，实现文档检索的智能性和精准性](https://mp.weixin.qq.com/s?__biz=MzkxOTQwNzU0Ng==&mid=2247490886&idx=1&sn=fa7f2a4d1fed763e77a008eb3cb7066c&scene=21#wechat_redirect)

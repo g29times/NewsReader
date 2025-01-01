@@ -6,9 +6,10 @@ import os
 import sys
 import logging
 import time
+import asyncio
 import requests
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, Union
 from chromadb.utils import embedding_functions
 from llama_index.core import Settings
 from llama_index.llms.gemini import Gemini
@@ -18,7 +19,6 @@ from llama_index.vector_stores.chroma import ChromaVectorStore
 from llama_index.vector_stores.milvus import MilvusVectorStore
 from llama_index.core import Document, VectorStoreIndex, ServiceContext, StorageContext
 import chromadb
-import asyncio
 from chromadb import Documents, EmbeddingFunction, Embeddings
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
@@ -121,8 +121,8 @@ class MilvusDB(VectorDB):
     def get_collection(self, collection_name: str, embedding_fn=None):
         return None # self.client.get_collection(collection_name)
         
-    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
-        self.client.upsert_docs(collection_name, documents)
+    async def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
+        await self.client.upsert_docs(collection_name, documents)
         
     def search(self, collection_name: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         return self.client.search(collection_name, query, limit=limit)
@@ -281,7 +281,7 @@ class RAGService:
             # Create vector store
             if self.vector_db_type == "chroma":
                 vector_store = ChromaVectorStore(chroma_collection=collection)
-            elif self.vector_db_type == "milvus": # windows本地无法测试
+            elif self.vector_db_type == "milvus": # windows本地无法测试 TODO remove
                 vector_store = MilvusVectorStore(uri="https://in05-a2375130220598d.serverless.ali-cn-hangzhou.cloud.zilliz.com.cn", token="db5bde077eb9a3f48c745706eb58a1c970ef3b556ff2119c7c2c0a0e38fb1222ca6f9e819837d0518a5eaa902ba5634deec7c804", collection_name=VECTOR_DB_ARTICLES)
             else:
                 raise ValueError(f"Unsupported vector database type: {self.vector_db_type}")
@@ -448,7 +448,8 @@ class RAGService:
             documents.append(doc)
         return documents
     
-    def add_articles_to_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
+    # 异步方法
+    async def add_articles_to_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
         """将文章添加到向量数据库
         
         Args:
@@ -459,29 +460,18 @@ class RAGService:
             # 获取或创建collection
             if collection_name is None:
                 collection_name = f"{self.current_collection_name}_{int(time.time())}"
-
-            # collection = self.chroma_client.get_or_create_collection(
-            #     name=collection_name,
-            #     embedding_function = self._embed_doc
-            # )
-            # logger.info(f"chroma collection: {collection_name}")
             
             # 切分文本并入库
             for article in articles:
-                chunks = textUtils.split_text_with_jina(article.content or article.summary, max_chunk_length=2000)
+                chunks = await textUtils.split_text_with_jina(article.content or article.summary, max_chunk_length=2000)
                 if not chunks:
                     logger.warning(f"文章 {article.id} 没有有效内容可切分")
                     continue
                 # 为每个chunk生成唯一ID
                 chunk_ids = [f"article_{article.id}_chunk_{i}" for i in range(len(chunks))]
                 logger.info(f"JINA 将文章 <{article.title}> 切分成 {len(chunks)} 个chunk")
-                # 添加到ChromaDB
-                # collection.upsert(
-                #     ids=chunk_ids,
-                #     documents=chunks,
-                #     metadatas=[{"article_id": article.id, "chunk_index": i} for i in range(len(chunks))]
-                # )
-                self.vector_db.add_documents(collection_name, chunks)
+                
+                await self.vector_db.add_documents(collection_name, chunks)
                 # 更新sqlite数据库 文章的vector_ids
                 article.vector_ids = ",".join(chunk_ids)
                 update_article(db_session, article.id, {"vector_ids": article.vector_ids})
@@ -491,6 +481,25 @@ class RAGService:
         except Exception as e:
             logger.error(f"添加文章到向量数据库失败: {str(e)}")
             return False
+
+    def add_articles_to_vector_store_background(self, articles: List[Article], collection_name: Optional[str] = None):
+        """后台异步添加文章到向量数据库"""
+        import threading
+        
+        def run_async():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(self.add_articles_to_vector_store(articles, collection_name))
+                logger.info(f"后台成功添加 {len(articles)} 篇文章到向量数据库")
+            except Exception as e:
+                logger.error(f"后台添加文章失败: {str(e)}")
+            finally:
+                loop.close()
+        
+        thread = threading.Thread(target=run_async)
+        thread.daemon = True
+        thread.start()
 
     def delete_articles_from_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
         """从向量数据库中删除文章
