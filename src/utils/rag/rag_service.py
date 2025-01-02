@@ -22,18 +22,22 @@ import chromadb
 from chromadb import Documents, EmbeddingFunction, Embeddings
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.llms import ChatMessage
+import json
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
+from src.database.connection import db_session
 from src.database.milvus_client import Milvus
 from src.models.article import Article
 from src.models.article_crud import *
-from src.database.connection import db_session
 from src import VECTOR_DB_ARTICLES, VECTOR_DB_CHATS, VECTOR_DB_NOTES
 import src.utils.embeddings.voyager as voyager
 from src.utils.text_input_handler import TextInputHandler as textUtils
+from models.chat import Base, Chat
+from models.chat_crud import *
 
 logger = logging.getLogger(__name__)
 # 向量数据库抽象接口
@@ -152,8 +156,11 @@ class RAGService:
         self.JINA_API_KEY = os.getenv("JINA_API_KEY")
         if not self.voyage_api_key or not self.google_api_key:
             raise ValueError("Missing required API keys")
-            
-        # 初始化向量数据库
+
+        # 数据库
+        self.session = db_session
+
+        # 向量数据库
         self.vector_db_type = vector_db_type
         if vector_db_type == "chroma":
             self.vector_db = ChromaDB()
@@ -210,12 +217,19 @@ class RAGService:
         self._embed_doc_voyage = EmbeddingVoyage()
 
         # 模块4 聊天记忆 Initialize ChatStore and ChatMemoryBuffer
-        loaded_chat_store = SimpleChatStore.from_persist_path(
+        from llama_index.storage.chat_store.upstash import UpstashChatStore
+        from llama_index.core.memory import ChatMemoryBuffer
+        remote_chat_store = UpstashChatStore( # TODO move to evn
+            redis_url="https://patient-cricket-24702.upstash.io",
+            redis_token="AWB-AAIjcDE1NjVlYjJhNGU0NmY0NjYyYTA1MDIzMzhkZTFhMjJjZnAxMA",
+            # ttl=300,  # Optional: Time to live in seconds
+        )
+        local_chat_store = SimpleChatStore.from_persist_path(
             persist_path="chat_store.json"
         )
-        self.chat_store = loaded_chat_store if loaded_chat_store else SimpleChatStore()
+        self.chat_store = remote_chat_store if remote_chat_store else local_chat_store
         self.chat_memory = ChatMemoryBuffer.from_defaults(
-            token_limit=3000, # shape 相似
+            token_limit=10000, # shape 相似
             chat_store=self.chat_store,
             chat_store_key="user1", # TODO user_id
         )
@@ -233,33 +247,34 @@ class RAGService:
     # 直接聊天
     # 一级 - 短期记忆（对话窗口）
     # 二级 - 长期记忆（笔记区）
-    def chat(self, query: str) -> str:
+    def chat(self, conversation_id: str, query: str) -> str:
         """Chat with context"""
         # resp = self.genimi.complete(query)
         # logger.info(f"LLM response: {resp}")
         # return resp
-        logger.info(f"Query: {query}")
-        # genimi = Gemini(
-        #     model="models/gemini-exp-1206",
-        #     api_key=self.google_api_key,
-        #     temperature=1,
-        #     max_tokens=8192
-        # )
+        # logger.info(f"Query: {query}")
         from llama_index.core.chat_engine import SimpleChatEngine
+        chat_store_key = "user1_conv" + conversation_id
+        chat_memory = ChatMemoryBuffer.from_defaults(
+            token_limit=10000, # shape 相似
+            chat_store=self.chat_store,
+            chat_store_key=chat_store_key,
+        )
         chat_engine = SimpleChatEngine.from_defaults(
             system_prompt=os.getenv("SYSTEM_PROMPT"),
-            memory=self.chat_memory,
+            memory=chat_memory, # self.chat_memory,
             # llm=genimi
         )
         # chat_engine.chat_repl()
         response = chat_engine.chat(query)
         logger.info(f"LLM response: {response}")
         # 持久化
-        self.chat_store.persist(persist_path="chat_store.json")
+        self.save_chat(chat_store_key, chat_engine.chat_history)
+        # self.chat_store.persist(persist_path="chat_store.json")
         return response
 
-    # 三级 - 知识库（资料）
-    def chat_with_articles(self, article_ids: List[int], query: str) -> str:
+    # 对话知识库（资料） TODO 改造
+    def chat_with_articles(self, conversation_id: str, article_ids: List[int], query: str) -> str:
         """Chat with selected articles
         
         Args:
@@ -281,7 +296,7 @@ class RAGService:
             # Create vector store
             if self.vector_db_type == "chroma":
                 vector_store = ChromaVectorStore(chroma_collection=collection)
-            elif self.vector_db_type == "milvus": # windows本地无法测试 TODO remove
+            elif self.vector_db_type == "milvus": # windows本地无法测试 TODO remove token
                 vector_store = MilvusVectorStore(uri="https://in05-a2375130220598d.serverless.ali-cn-hangzhou.cloud.zilliz.com.cn", token="db5bde077eb9a3f48c745706eb58a1c970ef3b556ff2119c7c2c0a0e38fb1222ca6f9e819837d0518a5eaa902ba5634deec7c804", collection_name=VECTOR_DB_ARTICLES)
             else:
                 raise ValueError(f"Unsupported vector database type: {self.vector_db_type}")
@@ -545,7 +560,8 @@ class RAGService:
             self.current_collection_name = None
         except Exception as e:
             logger.error(f"Error cleaning up collection: {e}")
-
+    
+    # RAG测评用
     def retrieve(self, collection_name, query: str, top_k: int = 20) -> List[Dict]:
         """统一的检索接口，用于评估
         
@@ -586,9 +602,147 @@ class RAGService:
             logger.error(f"Error in retrieve: {e}")
             return []
 
+    # ------------------------------ 聊天记录管理 ------------------------------
+    # redis key设计：user1_conversation1
+    # 加载用户的某次对话 id = user1_conversation1 DONE
+    def load_conversation_from_redis(self, conversation_id: str):
+        """从Redis加载单个对话内容"""
+        try:
+            messages = self.chat_store.get_messages(conversation_id)
+            if not messages:
+                return None
+            logger.info(f"从Redis加载对话：{conversation_id}, 共 {len(messages)} 条消息")
+            # 转换消息格式
+            formatted_messages = []
+            for msg in messages:
+                formatted_message = {
+                    "role": msg.role,
+                    "additional_kwargs": {},
+                    "blocks": [
+                        {
+                            "block_type": "text",
+                            "text": msg.content
+                        }
+                    ]
+                }
+                formatted_messages.append(formatted_message)
+            return formatted_messages
+        except Exception as e:
+            logger.error(f"Error loading conversation from redis: {e}")
+            return None
+
+    # 加载用户的所有对话列表 DONE
+    def load_conversations(self, user_id: str):
+        """加载用户的所有对话列表（仅标题和基本信息）"""
+        try:
+            # 获取用户的所有对话(仅is_active的)
+            user_conversations = get_user_chats(self.session, int(user_id))
+            if not user_conversations:
+                return []
+            # 转换为前端需要的格式
+            conversations = []
+            for chat in user_conversations:
+                conversations.append({
+                    'id': chat.id,
+                    'title': chat.title or f'对话 {chat.id}',
+                    'conversation_id': chat.conversation_id,
+                })
+            return conversations
+        except Exception as e:
+            logger.error(f"Error loading user histories: {e}")
+            return []
+
+    # llamaindex 调用 保存到Redis
+    def save_chat(self, conversation_id: str, messages: json) -> bool:
+        """保存对话内容
+        Args:
+            conversation_id: 格式为 user{uid}_conv{cid}
+            messages: 对话内容
+        Returns:
+            bool: 是否保存成功
+        """
+        try:
+            # 转换为ChatMessage列表
+            chat_messages = []
+            for msg in messages:
+                content = msg['blocks'][0]['text'] if msg['blocks'] else ''
+                chat_messages.append(ChatMessage(
+                    role=msg['role'],
+                    content=content
+                ))
+            # 异步保存到Redis TODO 报错
+            asyncio.run(self.chat_store.async_set_messages(conversation_id, chat_messages))
+            return True
+        except Exception as e:
+            logger.error(f"Error in save_chat: {e}")
+            return False
+
+    # TODO
+    def edit_chat(self, conversation_id: str, message_index: int, new_content: str, role: str) -> bool:
+        try:
+            asyncio.run(self.chat_store.async_delete_message(conversation_id, message_index))
+            # 添加新消息
+            new_message = ChatMessage(content=new_content, role=role)
+            asyncio.run(self.chat_store.async_add_message(conversation_id, new_message, message_index))
+        except Exception as e:
+            logger.error(f"Error in edit_chat: {e}")
+            return False
+        return True
+    
+    # TODO
+    def delete_chat(self, conversation_id: str, message_index: int) -> bool:
+        try:
+            # 先删除远程
+            asyncio.run(self.chat_store.async_delete_message(conversation_id, message_index))
+            # 再删除本地
+            # self.chat_store.delete_message(message_id)
+        except Exception as e:
+            logger.error(f"Error in delete_chat: {e}")
+            return False
+        return True
+    
+    async def main(self):
+        
+        # Add messages
+        messages = [
+            ChatMessage(content="Hello", role="user"), # index = 0
+            ChatMessage(content="Hi there!", role="assistant"),
+            ChatMessage(content="Middle user", role="user"), # 待编辑 index = 2
+            ChatMessage(content="Middle assistant", role="assistant"),
+            ChatMessage(content="Last user", role="user"),
+            ChatMessage(content="Last assistant", role="assistant"), # 待删除 index = 5
+        ]
+        await self.chat_store.async_set_messages("conversation1", messages)
+        # 查看初始化情况 Retrieve messages
+        retrieved_messages = await self.chat_store.async_get_messages("conversation1")
+        print(retrieved_messages)
+        # print结果：[ChatMessage(role=<MessageRole.USER: 'user'>, additional_kwargs={}, blocks=[TextBlock(block_type='text', text='Hello')]), ChatMessage(role=<MessageRole.ASSISTANT: 'assistant'>, additional_kwargs={}, blocks=[TextBlock(block_type='text', text='Hi there!')])]
+        
+        # 1 编辑效果：先删除再添加
+        await self.chat_store.async_delete_message("conversation1", 2)
+        # Add message
+        message = ChatMessage(content="Middle user update", role="user")
+        await self.chat_store.async_add_message("conversation1", message, 2)
+        # 查看编辑结果 Retrieve messages
+        retrieved_messages = await self.chat_store.async_get_messages("conversation1")
+        print(retrieved_messages)
+
+        # 2 重新回答效果
+        # 删除最后一条（AI回复，用于重新回答）Delete last message
+        deleted_message = await self.chat_store.async_delete_last_message("conversation1")
+        print(f"Deleted message: {deleted_message}")
+        await self.chat_store.async_add_message("conversation1", ChatMessage(content="Last assistant New!", role="assistant"), 5)
+        # 查看重新回答结果
+        retrieved_messages = await self.chat_store.async_get_messages("conversation1")
+        print(retrieved_messages)
+
+
 # main
 if __name__ == "__main__":
     print("RAG service main")
+    rag = RAGService()
+    asyncio.run(rag.main())
+
     # 清理向量库脚本 如果调整了向量维度 也可通过这重置
     # 正常响应 2024-12-27 00:26:47,042 - INFO     - posthog.py[line:22] - Anonymized telemetry enabled. 
     # See https://docs.trychroma.com/telemetry for more information.

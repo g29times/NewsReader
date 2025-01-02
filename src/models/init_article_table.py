@@ -1,10 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-from connection import db_session
+
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from database.connection import db_session
 from utils.file_input_handler import FileInputHandler
 from utils.llms.llm_tasks import LLMTasks
 from models.article import Base, Article

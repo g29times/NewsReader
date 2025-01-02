@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - NewsReader</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
     <link rel="stylesheet" href="/static/css/chat.css">
@@ -38,7 +39,6 @@
                 </div>
                 <div id="expandedArticle" style="display: none;">
                     <div class="article-header">
-                        <h2>Sources</h2>
                         <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">Collapse</button>
                     </div>
                     <h2 class="article-title" id="expandedArticleTitle"></h2>
@@ -75,6 +75,7 @@
         <div class="chat-area">
             <div class="chat-toolbar">
                 <button class="btn btn-outline-secondary" onclick="toNote()">转为笔记</button>
+                <button class="btn btn-outline-secondary" onclick="createNewChat()">新建对话</button>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <!-- 聊天消息将在这里动态添加 -->
@@ -89,13 +90,27 @@
         </div>
 
         <!-- 右侧笔记区域 -->
-        <div class="notes-panel collapsed">
+        <div class="right-panel">
             <div class="panel-header">
-                <button class="toggle-panel-btn" onclick="toggleNotesPanel()">➡</button>
-                <h4>笔记</h4>
+                <div class="toolbar">
+                    <input type="text" placeholder="搜索对话..." class="form-control">
+                </div>
+                <button class="toggle-panel-btn" onclick="toggleRightPanel()">➡</button>
             </div>
             <div class="panel-content">
-                <!-- 笔记功能将在后续添加 -->
+                <div class="chat-list" id="chatList">
+                    <!-- 对话列表将在这里动态添加 -->
+                </div>
+                <div class="note-list">
+                    <div class="note-item">
+                        <div class="toolbar">
+                            <input type="text" placeholder="搜索笔记..." class="form-control">
+                        </div>
+                        <button class="btn btn-outline-secondary" onclick="addNote()">新建笔记</button>
+                        <div class="note-title">笔记标题</div>
+                        <div class="note-content">笔记内容</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -147,21 +162,15 @@
             }
         }
 
-        // 切换笔记面板
-        function toggleNotesPanel() {
-            const panel = document.querySelector('.notes-panel');
+        // 切换右侧面板展开/收起
+        function toggleRightPanel() {
+            const panel = document.querySelector('.right-panel');
             const button = panel.querySelector('.toggle-panel-btn');
             
-            if (panel.classList.contains('expanded')) {
-                // 如果是展开状态，先恢复到默认宽度
-                panel.classList.remove('expanded');
-                button.textContent = '➡';
-            } else if (panel.classList.contains('collapsed')) {
-                // 如果是收起状态，恢复到默认宽度
+            if (panel.classList.contains('collapsed')) {
                 panel.classList.remove('collapsed');
                 button.textContent = '➡';
             } else {
-                // 如果是默认状态，收起面板
                 panel.classList.add('collapsed');
                 button.textContent = '⬅';
             }
@@ -205,7 +214,6 @@
 
         // 显示文章内容
         function displayArticleContent(article) {
-            console.log(article);
             // 展开面板
             expandArticlesPanel();
             
@@ -250,7 +258,8 @@
         
         // 添加用户消息到聊天区域
         function addUserMessageToChat(content) {
-            addMessageToChat('user', content);
+            const messageIndex = document.querySelectorAll('.message').length;
+            addMessageToChat('user', content, messageIndex);
         }
 
         // 添加助手消息到聊天区域
@@ -260,7 +269,8 @@
             tempMessages.forEach(msg => msg.remove());
             
             // 添加实际的助手消息
-            addMessageToChat('assistant', content);
+            const messageIndex = document.querySelectorAll('.message').length;
+            addMessageToChat('assistant', content, messageIndex);
         }
 
         // 添加思考中的临时消息
@@ -270,7 +280,7 @@
             messageDiv.className = 'message assistant thinking';
             messageDiv.innerHTML = `
                 <div class="message-content">
-                    <strong>助手:</strong>
+                    <strong>GEMI:</strong>
                     <p>思考中...</p>
                 </div>
             `;
@@ -278,7 +288,7 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // 发送聊天消息
+        // 发送聊天消息 重点
         async function sendChatMessage() {
             const messageInput = document.getElementById('messageInput');
             const sendButton = document.querySelector('.btn-primary');
@@ -296,9 +306,11 @@
             const selectedArticles = Array.from(document.querySelectorAll('.article-items .article-checkbox:checked'))
                 .map(checkbox => checkbox.dataset.articleId);
             
-            console.debug('Selected articles:', selectedArticles); // 调试日志
-
             try {
+                if (selectedArticles.length > 10) {
+                    showToast('最多选择10篇文章', 'error');
+                    return;
+                } 
                 // 立即添加用户消息
                 addUserMessageToChat(message);
                 // 添加思考中提示
@@ -309,13 +321,10 @@
 
                 let result;
                 if (selectedArticles.length > 0) {
-                    result = await call_chat('/chat/api/chat/with_articles', message, selectedArticles);
+                    result = await call_chat('/chat/api/chat', message, selectedArticles);
                 } else {
                     result = await call_chat('/chat/api/chat', message);
                 }
-                
-                console.debug('Chat result:', result.success); // 调试日志
-                
                 if (result.success) {
                     if (result.data && result.data.response) {
                         addAssistantMessageToChat(result.data.response);
@@ -333,54 +342,113 @@
             }
         }
 
-        // 添加消息到聊天区域
-        function addMessageToChat(role, content) {
-            // 创建Markdown转换器并转换内容
-            const converter = new showdown.Converter();
-            const htmlContent = role === 'assistant' ? converter.makeHtml(content) : content;
-            
-            const chatMessages = document.getElementById('chatMessages');
+        // sendChatMessage调用后端chat服务
+        async function call_chat(url, message, selectedArticles = []) {
+            try {
+                // 如果没有当前对话ID，先创建一个新对话
+                if (!currentConversationId) {
+                    try {
+                        const response = await fetch('/chat/api/conversation', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                user_id: '1'
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        if (result.success) {
+                            currentConversationId = result.data.conversation_id;
+                            // 刷新对话列表
+                            loadConversationList();
+                        } else {
+                            throw new Error('创建对话失败');
+                        }
+                    } catch (error) {
+                        console.error('创建对话失败:', error);
+                        showToast('创建对话失败', 'error');
+                        throw error;  // 继续抛出错误，中断聊天请求
+                    }
+                }
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                            'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                            message: message,
+                            article_ids: selectedArticles,
+                            conversation_id: currentConversationId
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(`服务响应：(${error.message || '未知错误'})`);
+                }
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Chat error:', error);
+                showToast('服务调用失败' + error.message, 'error');
+                throw error;  // 继续抛出错误，让上层函数处理
+            }
+        }
+
+        // 添加消息到聊天区域 TODO actionsDiv.innerHTML 按钮写了三遍 考虑复用
+        function addMessageToChat(role, content, messageIndex = null) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
+            if (messageIndex !== null) {
+                messageDiv.dataset.messageIndex = messageIndex;
+            }
             
-            // 消息内容区域（包含角色和内容）
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.innerHTML = `
-                <strong>${role === 'user' ? '你' : '助手'}:</strong>
-                <div class="content">${htmlContent}</div>
+            // 处理可能的HTML内容
+            let htmlContent = content;
+            if (typeof content === 'string') {
+                if (role === 'assistant') {
+                    // 对助手的回答使用markdown转换
+                    const converter = new showdown.Converter();
+                    htmlContent = converter.makeHtml(content);
+                } else {
+                    // 用户消息只转换换行符
+                    htmlContent = content.replace(/\n/g, '<br>');
+                }
+            }
+
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <strong>${role === 'user' ? '你' : 'GEMI'}:</strong>
+                    <div class="content">${htmlContent}</div>
+                </div>
             `;
             
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'message-actions';
             actionsDiv.innerHTML = `
                 <button class="action-btn save-note" title="转为笔记">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
+                    <i class="fas fa-sticky-note"></i>
+                </button>
+                <button class="action-btn edit" title="编辑" onclick="editMessage(this)">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete" title="删除" onclick="deleteMessage(this)">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                <button class="action-btn quote" title="引用" onclick="quoteMessage(this)">
+                    <i class="fas fa-quote-right"></i>
                 </button>
                 <button class="action-btn copy" title="复制" onclick="copyMessage(this)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                    </svg>
-                </button>
-                <button class="action-btn like" title="喜欢">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
-                    </svg>
-                </button>
-                <button class="action-btn dislike" title="不喜欢">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path>
-                    </svg>
+                    <i class="fas fa-copy"></i>
                 </button>
             `;
             
-            messageDiv.appendChild(contentDiv);
             messageDiv.appendChild(actionsDiv);
+            const chatMessages = document.getElementById('chatMessages');
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
@@ -426,55 +494,6 @@
             }
         }
 
-        // 调用后端chat服务
-        async function call_chat(url, message, selectedArticles = []) {
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                            'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                            message: message,
-                            article_ids: selectedArticles
-                    })
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(`服务响应：(${error.message || '未知错误'})`);
-                }
-
-                const result = await response.json();
-                console.debug('Chat result:', result); // 调试日志
-
-                return result;
-            } catch (error) {
-                console.error('Chat error:', error);
-                showToast('服务调用失败' + error.message, 'error');
-            }
-        }
-
-        // 搜索文章
-        async function searchArticles(query) {
-            try {
-                const response = await fetch(`/chat/api/articles/search?query=${encodeURIComponent(query)}`);
-                if (!response.ok) {
-                    throw new Error('搜索请求失败');
-                }
-
-                const result = await response.json();
-                if (result.success) {
-                    updateArticlesList(result.data.articles);
-                } else {
-                    showToast(result.message || '搜索失败', 'error');
-                }
-            } catch (error) {
-                console.error('Search error:', error);
-                showToast('搜索失败：' + error.message, 'error');
-            }
-        }
-
         // 更新文章列表
         function updateArticlesList(articles) {
             const articleList = document.querySelector('.article-items');
@@ -496,17 +515,6 @@
                 });
             });
         }
-
-        // 绑定搜索输入框事件
-        document.querySelector('.toolbar input[type="text"]').addEventListener('input', function(e) {
-            const query = e.target.value.trim();
-            if (query) {
-                searchArticles(query);
-            } else {
-                // 如果搜索框为空，重新加载所有文章
-                searchArticles('');
-            }
-        });
 
         // Toast 提示功能
         function showToast(message, type = 'info') {
@@ -572,24 +580,446 @@
             }
         }
 
-        // 加载历史记录
-        async function loadChatHistory(uid = '1') {  // 默认用户ID为1
+        // 删除消息 TODO
+        async function deleteMessage(button) {
+            event.stopPropagation();
+            const messageDiv = button.closest('.message');
+            const messageIndex = messageDiv.getAttribute('data-message-index');
+            if (!messageIndex) {
+                console.error('无法获取消息索引');
+                showToast('无法获取消息索引', 'error');
+                return;
+            }
             try {
-                const response = await fetch(`/api/chat/history?uid=${uid}`);
-                const history = await response.json();
-                
-                // 显示每条历史消息
-                for (const message of history) {
-                    addMessageToChat(message.role, message.blocks[0].text);
+                const response = await fetch('/chat/api/chat/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message_index: messageIndex
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    messageDiv.remove();
+                    // 如果删除的是最后一条助手消息，启用发送按钮
+                    const lastMessage = document.querySelector('.chat-messages .message:last-child');
+                    if (!lastMessage || lastMessage.classList.contains('user')) {
+                        document.querySelector('.chat-input-area button.btn-primary').disabled = false;
+                    }
+                    showToast('消息已删除', 'success');
+                } else {
+                    showToast(result.message || '删除失败', 'error');
                 }
             } catch (error) {
-                console.error('加载历史记录失败:', error);
-                showToast('加载历史记录失败', 'error');
+                console.error('删除消息失败:', error);
+                showToast('删除失败，请稍后重试', 'error');
             }
         }
 
-        // 页面加载时调用
-        document.addEventListener('DOMContentLoaded', () => loadChatHistory());
+        // 编辑消息 TODO
+        async function editMessage(button) {
+            const messageDiv = button.closest('.message');
+            const contentDiv = messageDiv.querySelector('.content');
+            const originalContent = contentDiv.innerHTML;
+            const messageIndex = messageDiv.getAttribute('data-message-index');
+            
+            if (!messageIndex) {
+                console.error('无法获取消息索引');
+                showToast('无法获取消息索引', 'error');
+                return;
+            }
+
+            // 创建编辑框
+            const textarea = document.createElement('textarea');
+            textarea.value = originalContent.replace(/<br>/g, '\n');
+            textarea.style.width = '100%';
+            textarea.style.minHeight = '100px';
+            
+            // 保存原始操作按钮
+            const originalActions = messageDiv.querySelector('.message-actions');
+            const newActions = document.createElement('div');
+            newActions.className = 'message-actions';
+            newActions.innerHTML = `
+                <button class="action-btn save" title="保存" onclick="saveEdit(this, '${messageIndex}')">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="action-btn cancel" title="取消" onclick="cancelEdit(this, '${originalContent}', ${messageIndex})">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            contentDiv.innerHTML = '';
+            contentDiv.appendChild(textarea);
+            originalActions.replaceWith(newActions);
+            textarea.focus();
+        }
+
+        // 保存编辑 TODO 按钮第二遍
+        async function saveEdit(button, messageIndex) {
+            const messageDiv = button.closest('.message');
+            const textarea = messageDiv.querySelector('textarea');
+            const newContent = textarea.value;
+            
+            try {
+                const response = await fetch('/chat/api/chat/edit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message_index: messageIndex,
+                        content: newContent,
+                        role: messageDiv.classList.contains('user') ? 'user' : 'assistant'
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    // 使用后端返回的标题更新DOM
+                    const contentDiv = messageDiv.querySelector('.content');
+                    contentDiv.innerHTML = result.data.content.replace(/\n/g, '<br>');
+                    
+                    // 恢复操作按钮
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.className = 'message-actions';
+                    actionsDiv.innerHTML = `
+                        <button class="action-btn save-note" title="转为笔记">
+                            <i class="fas fa-sticky-note"></i>
+                        </button>
+                        <button class="action-btn edit" title="编辑" onclick="editMessage(this)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete" title="删除" onclick="deleteMessage(this)">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <button class="action-btn quote" title="引用" onclick="quoteMessage(this)">
+                            <i class="fas fa-quote-right"></i>
+                        </button>
+                        <button class="action-btn copy" title="复制" onclick="copyMessage(this)">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    `;
+                    
+                    messageDiv.querySelector('.message-actions').replaceWith(actionsDiv);
+                    showToast('修改已保存', 'success');
+                } else {
+                    showToast(result.message || '保存失败', 'error');
+                }
+            } catch (error) {
+                console.error('保存编辑失败:', error);
+                showToast('保存失败，请稍后重试', 'error');
+            }
+        }
+
+        // 取消编辑 TODO 按钮第三遍
+        function cancelEdit(button, originalContent, messageIndex) {
+            const messageDiv = button.closest('.message');
+            const contentDiv = messageDiv.querySelector('.content');
+            contentDiv.innerHTML = originalContent;
+            
+            // 恢复操作按钮
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'message-actions';
+            actionsDiv.innerHTML = `
+                <button class="action-btn save-note" title="转为笔记">
+                    <i class="fas fa-sticky-note"></i>
+                </button>
+                <button class="action-btn edit" title="编辑" onclick="editMessage(this)">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete" title="删除" onclick="deleteMessage(this)">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                <button class="action-btn quote" title="引用" onclick="quoteMessage(this)">
+                    <i class="fas fa-quote-right"></i>
+                </button>
+                <button class="action-btn copy" title="复制" onclick="copyMessage(this)">
+                    <i class="fas fa-copy"></i>
+                </button>
+            `;
+            
+            messageDiv.querySelector('.message-actions').replaceWith(actionsDiv);
+        }
+
+        // 引用消息 DONE
+        function quoteMessage(button) {
+            const content = button.closest('.message').querySelector('.content').innerText;
+            const messageInput = document.getElementById('messageInput');
+            messageInput.value = content + '\n---------------\n';
+            messageInput.focus();
+        }
+
+        // 当前选中的对话ID
+        let currentConversationId = null;
+        
+        // 调用后端加载对话列表 DONE
+        async function loadConversationList() {
+            try {
+                const response = await fetch('/chat/api/conversations');
+                const conversations = await response.json();
+                const chatList = document.getElementById('chatList');
+                chatList.innerHTML = ''; // 清空现有列表
+                conversations.forEach(chat => {
+                    const chatItem = document.createElement('div');
+                    chatItem.className = 'chat-item';
+                    chatItem.innerHTML = `
+                        <div class="chat-title">${chat.title}</div>
+                        <div class="chat-actions">
+                            <button onclick="editChatTitle(event, ${chat.id}, '${chat.title}') title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteChat(event, ${chat.id}, '${chat.conversation_id}') title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    chatItem.onclick = () => loadConversation(chat.conversation_id);
+                    chatList.appendChild(chatItem);
+                });
+            } catch (error) {
+                console.error('加载对话列表失败:', error);
+                showToast('加载对话列表失败', 'error');
+            }
+        }
+        // 页面加载时获取对话列表 DONE
+        document.addEventListener('DOMContentLoaded', () => {
+            loadConversationList();
+            // 添加输入框监听
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.querySelector('.chat-input-area button.btn-primary');
+            // 监听输入框变化
+            messageInput.addEventListener('input', function() {
+                sendButton.disabled = !this.value.trim();
+            });
+            // 监听Ctrl+Enter发送消息
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && e.ctrlKey) {
+                    e.preventDefault();  // 阻止默认行为
+                    if (!sendButton.disabled) {
+                        sendChatMessage();
+                    }
+                }
+            });
+            // 初始状态设置
+            sendButton.disabled = !messageInput.value.trim();
+        });
+        
+        // 加载特定对话内容 DONE
+        async function loadConversation(conversationId) {
+            try {
+                currentConversationId = conversationId;  // 设置当前对话ID
+                const response = await fetch(`/chat/api/conversation?conversation_id=${conversationId}`);
+                const history = await response.json();
+                
+                // 清空现有对话
+                const chatMessages = document.getElementById('chatMessages');
+                chatMessages.innerHTML = '';
+                
+                // 循环添加消息块
+                history.forEach((msg, index) => addMessageToChat(msg.role, msg.blocks[0].text, index));
+            } catch (error) {
+                console.error('加载对话失败:', error);
+                showToast('加载对话失败', 'error');
+            }
+        }
+        
+        // 创建新对话 DONE
+        async function createNewChat() {
+            try {
+                const response = await fetch('/chat/api/conversation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: '1'
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    currentConversationId = result.data.conversation_id;  // 设置当前对话ID
+                    // 清空现有对话
+                    const chatMessages = document.getElementById('chatMessages');
+                    chatMessages.innerHTML = '';
+                    // 刷新对话列表
+                    loadConversationList();
+                } else {
+                    showToast('创建对话失败', 'error');
+                }
+            } catch (error) {
+                console.error('创建对话失败:', error);
+                showToast('创建对话失败', 'error');
+            }
+        }
+        
+        // 编辑对话标题 DONE
+        async function editChatTitle(event, chatId, currentTitle) {
+            event.stopPropagation(); // 阻止事件冒泡
+            
+            const chatItem = event.target.closest('.chat-item');
+            const titleDiv = chatItem.querySelector('.chat-title');
+            
+            // 创建输入框
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'edit-title-input';
+            input.value = titleDiv.textContent; // 使用当前显示的文本而不是传入的currentTitle
+            
+            // 替换标题为输入框
+            titleDiv.replaceWith(input);
+            input.focus();
+            
+            // 处理输入框回车事件
+            async function saveTitle() {
+                const newTitle = input.value.trim();
+                if (newTitle && newTitle !== titleDiv.textContent) {  // 与当前显示的文本比较
+                    try {
+                        const response = await fetch(`/chat/api/conversation/${chatId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                title: newTitle
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            // 使用后端返回的标题更新DOM
+                            const newTitleDiv = document.createElement('div');
+                            newTitleDiv.className = 'chat-title';
+                            newTitleDiv.textContent = result.data.title;
+                            input.replaceWith(newTitleDiv);
+                            showToast('标题更新成功', 'success');
+                        } else {
+                            showToast(result.message || '更新失败', 'error');
+                        }
+                    } catch (error) {
+                        console.error('更新标题失败:', error);
+                        showToast('更新标题失败', 'error');
+                    }
+                } else {
+                    // 如果标题没有改变，直接恢复原标题显示
+                    const newTitleDiv = document.createElement('div');
+                    newTitleDiv.className = 'chat-title';
+                    newTitleDiv.textContent = titleDiv.textContent;  // 使用当前显示的文本
+                    input.replaceWith(newTitleDiv);
+                }
+            }
+            // 回车提交
+            input.onkeyup = (e) => {
+                if (e.key === 'Enter') {
+                    saveTitle();
+                }
+            };
+        }
+        
+        // 删除对话 DONE
+        async function deleteChat(event, chatId, convId) {
+            event.stopPropagation(); // 阻止事件冒泡
+            if (!confirm('确定要删除这个对话吗？')) {
+                return;
+            }
+            try {
+                const response = await fetch(`/chat/api/conversation/${chatId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                if (result.success) {
+                    await loadConversationList(); // 重新加载对话列表
+                    showToast('对话删除成功', 'success');
+                    
+                    // 如果删除的是当前对话，清空对话区域
+                    if (currentConversationId === convId) {
+                        document.getElementById('chatMessages').innerHTML = '';
+                        currentConversationId = null;
+                    }
+                } else {
+                    showToast(result.message || '删除失败', 'error');
+                }
+            } catch (error) {
+                console.error('删除对话失败:', error);
+                showToast('删除对话失败', 'error');
+            }
+        }
+
+        // 更新对话列表显示
+        function updateChatList(chats) {
+            const chatList = document.getElementById('chatList');
+            chatList.innerHTML = ''; // 清空现有列表
+            chats.forEach(chat => {
+                const chatItem = document.createElement('div');
+                chatItem.className = 'chat-item';
+                chatItem.innerHTML = `
+                    <div class="chat-title">${chat.title || '新对话'}</div>
+                    <div class="chat-actions">
+                        <button onclick="editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="deleteChat(event, ${chat.id}, '${chat.conversation_id}')" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                chatItem.onclick = () => loadConversation(chat.conversation_id);
+                chatList.appendChild(chatItem);
+            });
+        }
+
+        // 通用的防抖函数
+        function debounce(fn, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => fn.apply(this, args), delay);
+            }
+        }
+
+        // 文章搜索的防抖处理
+        const debouncedSearchArticles = debounce(async (query) => {
+            try {
+                const response = await fetch(`/chat/api/articles/search?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error('搜索失败');
+                const result = await response.json();
+                updateArticlesList(result.data.articles);
+            } catch (error) {
+                showToast('搜索失败: ' + error.message, 'error');
+            }
+        }, 300);
+
+        // 对话搜索的防抖处理
+        const debouncedSearchChats = debounce(async (query) => {
+            try {
+                const response = await fetch(`/chat/api/conversations/search?query=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error('搜索失败');
+                const chats = await response.json();
+                updateChatList(chats);
+            } catch (error) {
+                showToast('搜索失败: ' + error.message, 'error');
+            }
+        }, 300);
+
+        // 监听文章搜索输入
+        document.querySelector('.articles-panel .toolbar input').addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            if (query) {
+                debouncedSearchArticles(query);
+            } else {
+                debouncedSearchArticles(''); // 当搜索框为空时，加载所有文章
+            }
+        });
+
+        // 监听对话搜索输入
+        document.querySelector('.right-panel .toolbar input').addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            if (query) {
+                debouncedSearchChats(query);
+            } else {
+                debouncedSearchChats(''); // 当搜索框为空时，加载所有对话
+            }
+        });
     </script>
 </body>
 </html>

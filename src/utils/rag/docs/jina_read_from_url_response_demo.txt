@@ -1,0 +1,146 @@
+Title: Chroma - LlamaIndex
+
+URL Source: https://docs.llamaindex.ai/en/stable/api_reference/storage/vector_store/chroma/
+
+ChromaVectorStore #
+
+Bases: BasePydanticVectorStore
+
+Chroma vector store.
+
+In this vector store, embeddings are stored within a ChromaDB collection.
+
+During query time, the index uses ChromaDB to query for the top k most similar nodes.
+
+Parameters:
+
+Name	Type	Description	Default
+chroma_collection	Collection	
+
+ChromaDB collection instance
+
+	None
+
+Examples:
+
+pip install llama-index-vector-stores-chroma
+
+import chromadb
+from llama_index.vector_stores.chroma import ChromaVectorStore
+
+# Create a Chroma client and collection
+chroma_client = chromadb.EphemeralClient()
+chroma_collection = chroma_client.create_collection("example_collection")
+
+# Set up the ChromaVectorStore and StorageContext
+vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+
+Source code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py
+client property #
+client: Any
+
+
+Return client.
+
+get_nodes #
+get_nodes(node_ids: Optional[List[str]], filters: Optional[List[MetadataFilters]] = None) -> List[BaseNode]
+
+
+Get nodes from index.
+
+Parameters:
+
+Name	Type	Description	Default
+node_ids	List[str]	
+
+list of node ids
+
+	required
+filters	List[MetadataFilters]	
+
+list of metadata filters
+
+	None
+Source code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py
+add #
+add(nodes: List[BaseNode], **add_kwargs: Any) -> List[str]
+
+
+Add nodes to index.
+
+Parameters:
+
+Name	Type	Description	Default
+nodes	List[BaseNode]	
+
+List[BaseNode]: list of nodes with embeddings
+
+	required
+Source code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py
+delete #
+delete(ref_doc_id: str, **delete_kwargs: Any) -> None
+
+
+Delete nodes using with ref_doc_id.
+
+Parameters:
+
+Name	Type	Description	Default
+ref_doc_id	str	
+
+The doc_id of the document to delete.
+
+	required
+Source code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py
+delete_nodes #
+delete_nodes(node_ids: Optional[List[str]] = None, filters: Optional[List[MetadataFilters]] = None) -> None
+
+
+Delete nodes from index.
+
+Parameters:
+
+Name	Type	Description	Default
+node_ids	List[str]	
+
+list of node ids
+
+	None
+filters	List[MetadataFilters]	
+
+list of metadata filters
+
+	None
+Source code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py
+clear #
+clear() -> None
+
+
+Clear the collection.
+
+Source code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py
+query #
+query(query: VectorStoreQuery, **kwargs: Any) -> VectorStoreQueryResult
+
+
+Query index for top k most similar nodes.
+
+Parameters:
+
+Name	Type	Description	Default
+query_embedding	List[float]	
+
+query embedding
+
+	required
+similarity_top_k	int	
+
+top k most similar nodes
+
+	required
+Source code in llama-index-integrations/vector_stores/llama-index-vector-stores-chroma/llama_index/vector_stores/chroma/base.py
+ Back to top
+Previous
+Cassandra
+Next
+Clickhouse

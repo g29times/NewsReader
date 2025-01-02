@@ -29,19 +29,3 @@ class User(Base):
 
     def __repr__(self):
         return f"<User {self.username}>"
-
-    def to_dict(self):
-        """转换为字典格式"""
-        return {
-            'id': self.id,
-            'username': self.username,
-            'email': self.email,
-            'nickname': self.nickname,
-            'avatar': self.avatar,
-            'bio': self.bio,
-            'is_active': self.is_active,
-            'is_admin': self.is_admin,
-            'last_login': self.last_login.isoformat() if self.last_login else None,
-            'created_at': self.created_at.isoformat(),
-            'updated_at': self.updated_at.isoformat()
-        }
