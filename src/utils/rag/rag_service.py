@@ -23,6 +23,7 @@ from chromadb import Documents, EmbeddingFunction, Embeddings
 from llama_index.core.storage.chat_store import SimpleChatStore
 from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.llms import ChatMessage
+from llama_index.core.chat_engine import SimpleChatEngine
 import json
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -219,7 +220,7 @@ class RAGService:
         # 模块4 聊天记忆 Initialize ChatStore and ChatMemoryBuffer
         from llama_index.storage.chat_store.upstash import UpstashChatStore
         from llama_index.core.memory import ChatMemoryBuffer
-        remote_chat_store = UpstashChatStore(
+        remote_chat_store = UpstashChatStore( # https://docs.llamaindex.ai/en/stable/module_guides/storing/chat_stores/#usage
             redis_url=os.getenv("REDIS_URL"),
             redis_token=os.getenv("REDIS_TOKEN"),
             # ttl=300,  # Optional: Time to live in seconds
@@ -242,34 +243,39 @@ class RAGService:
         Settings.chunk_size = 1024
         Settings.chunk_overlap = 50
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
-        
-
-    # 直接聊天
-    # 一级 - 短期记忆（对话窗口）
-    # 二级 - 长期记忆（笔记区）
-    def chat(self, conversation_id: str, query: str) -> str:
-        """Chat with context"""
-        # resp = self.genimi.complete(query)
-        # logger.info(f"LLM response: {resp}")
-        # return resp
-        # logger.info(f"Query: {query}")
-        from llama_index.core.chat_engine import SimpleChatEngine
-        chat_store_key = "user1_conv" + conversation_id
+    
+    def get_chat_engine(self, chat_store_key: str):
         chat_memory = ChatMemoryBuffer.from_defaults(
-            token_limit=10000, # shape 相似
+            token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
             chat_store_key=chat_store_key,
         )
         chat_engine = SimpleChatEngine.from_defaults(
             system_prompt=os.getenv("SYSTEM_PROMPT"),
-            memory=chat_memory, # self.chat_memory,
+            memory=chat_memory,
             # llm=genimi
         )
+        return chat_engine
+
+    # 直接聊天
+    # 一级 - 短期记忆（对话窗口）
+    # 二级 - 长期记忆（笔记区）
+    def chat(self, conversation_id: str, query: str) -> str:
+        # 方式1 直接调用LLM对话
+        # resp = self.genimi.complete(query)
+        # logger.info(f"LLM response: {resp}")
+        # return resp
+        # logger.info(f"Query: {query}")
+
+        # 方式2 使用LlamaIndex框架对话
+        chat_store_key = "user1_conv" + conversation_id
+        chat_engine = self.get_chat_engine(chat_store_key)
         # chat_engine.chat_repl()
         response = chat_engine.chat(query)
         logger.info(f"LLM response: {response}")
-        # 持久化
-        self.save_chat(chat_store_key, chat_engine.chat_history)
+
+        # 持久化对话 LlamaIndex 会自动保存
+        # self.save_chat(chat_store_key, chat_engine.chat_history)
         # self.chat_store.persist(persist_path="chat_store.json")
         return response
 
@@ -355,7 +361,7 @@ class RAGService:
                 ),
             )
 
-            # 方式二 from_defaults low-level api
+            # 方式二 from_defaults low-level api # https://docs.llamaindex.ai/en/stable/examples/llm/openai/#manual-tool-calling
             # from llama_index.core import PromptTemplate
             # from llama_index.core.llms import ChatMessage, MessageRole
             # from llama_index.core.chat_engine import CondenseQuestionChatEngine
@@ -440,10 +446,6 @@ class RAGService:
     
     def _articles_to_documents(self, articles: List[Article]) -> List[Document]:
         """Convert articles to LlamaIndex documents
-        Args:
-            articles: List of Article objects
-        Returns:
-            List of Document objects
         """
         documents = []
         for article in articles:
@@ -463,14 +465,8 @@ class RAGService:
             documents.append(doc)
         return documents
     
-    # 异步方法
+    # 异步方法 将文章添加到向量数据库
     async def add_articles_to_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
-        """将文章添加到向量数据库
-        
-        Args:
-            articles: 要添加的文章列表
-            collection_name: 集合名称，如果为None则使用默认名称
-        """
         try:
             # 获取或创建collection
             if collection_name is None:
@@ -485,7 +481,7 @@ class RAGService:
                 # 为每个chunk生成唯一ID
                 chunk_ids = [f"article_{article.id}_chunk_{i}" for i in range(len(chunks))]
                 logger.info(f"JINA 将文章 <{article.title}> 切分成 {len(chunks)} 个chunk")
-                
+                # TODO chunk 用LLM增加上下文
                 await self.vector_db.add_documents(collection_name, chunks)
                 # 更新sqlite数据库 文章的vector_ids
                 article.vector_ids = ",".join(chunk_ids)
@@ -497,10 +493,9 @@ class RAGService:
             logger.error(f"添加文章到向量数据库失败: {str(e)}")
             return False
 
+    # 后台异步添加文章到向量数据库
     def add_articles_to_vector_store_background(self, articles: List[Article], collection_name: Optional[str] = None):
-        """后台异步添加文章到向量数据库"""
         import threading
-        
         def run_async():
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -517,12 +512,6 @@ class RAGService:
         thread.start()
 
     def delete_articles_from_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
-        """从向量数据库中删除文章
-        
-        Args:
-            articles: 要删除的文章列表
-            collection_name: 集合名称，如果为None则使用默认名称
-        """
         try:
             if collection_name is None:
                 collection_name = self.current_collection_name
@@ -631,9 +620,8 @@ class RAGService:
             logger.error(f"Error loading conversation from redis: {e}")
             return None
 
-    # 加载用户的所有对话列表 DONE
+    # 加载用户的所有对话列表（仅标题和基本信息） DONE
     def load_conversations(self, user_id: str):
-        """加载用户的所有对话列表（仅标题和基本信息）"""
         try:
             # 获取用户的所有对话(仅is_active的)
             user_conversations = get_user_chats(self.session, int(user_id))
@@ -652,50 +640,48 @@ class RAGService:
             logger.error(f"Error loading user histories: {e}")
             return []
 
-    # llamaindex 调用 保存到Redis
+    # 保存对话内容
     def save_chat(self, conversation_id: str, messages: json) -> bool:
-        """保存对话内容
-        Args:
-            conversation_id: 格式为 user{uid}_conv{cid}
-            messages: 对话内容
-        Returns:
-            bool: 是否保存成功
-        """
         try:
             # 转换为ChatMessage列表
             chat_messages = []
             for msg in messages:
-                content = msg['blocks'][0]['text'] if msg['blocks'] else ''
+                content = msg.content
                 chat_messages.append(ChatMessage(
-                    role=msg['role'],
+                    role=msg.role,
                     content=content
                 ))
-            # 异步保存到Redis TODO 报错但可用
+            # 异步保存到Redis
             asyncio.run(self.chat_store.async_set_messages(conversation_id, chat_messages))
             return True
         except Exception as e:
             logger.error(f"Error in save_chat: {e}")
             return False
 
-    # TODO
+    # 编辑消息
     def edit_chat(self, conversation_id: str, message_index: int, new_content: str, role: str) -> bool:
         try:
-            asyncio.run(self.chat_store.async_delete_message(conversation_id, message_index))
-            # 添加新消息
-            new_message = ChatMessage(content=new_content, role=role)
-            asyncio.run(self.chat_store.async_add_message(conversation_id, new_message, message_index))
+            chat_store_key = "user1_conv" + conversation_id
+            chat_engine = self.get_chat_engine(chat_store_key)
+            chat_history = chat_engine.chat_history
+            chat_history[message_index] = ChatMessage(content=new_content, role=role)
+            self.save_chat(chat_store_key, chat_history)
         except Exception as e:
             logger.error(f"Error in edit_chat: {e}")
             return False
         return True
     
-    # TODO
+    # 删除消息
     def delete_chat(self, conversation_id: str, message_index: int) -> bool:
         try:
-            # 先删除远程
-            asyncio.run(self.chat_store.async_delete_message(conversation_id, message_index))
-            # 再删除本地
-            # self.chat_store.delete_message(message_id)
+            # 取自 engine history
+            chat_store_key = "user1_conv" + conversation_id
+            chat_engine = self.get_chat_engine(chat_store_key)
+            chat_history = chat_engine.chat_history
+            if len(chat_history) > message_index:
+                chat_history.pop(message_index)
+            # 更新远程持久化数据
+            self.save_chat(chat_store_key, chat_history)
         except Exception as e:
             logger.error(f"Error in delete_chat: {e}")
             return False

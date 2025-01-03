@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 from sqlalchemy import Connection
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -51,17 +52,27 @@ class Milvus:
         if client is not None:
             self.client = client
         else:
-            try:
-                self.client = MilvusClient(uri=milvus_uri, token=token)
-                log.info(f"Connected to Zilliz Cloud: {milvus_uri}")
-            except Exception as e:
-                log.info(f"Failed to connect to Zilliz Cloud: {str(e)}, using local database instead")
-                self.client = MilvusClient("src/database/milvus_local.db")
+            retry_count = 0
+            max_retries = 3
+            while retry_count < max_retries:
+                try:
+                    self.client = MilvusClient(uri=milvus_uri, token=token)
+                    log.info(f"Connected to Zilliz Cloud: {milvus_uri}")
+                    break
+                except Exception as e:
+                    retry_count += 1
+                    if retry_count < max_retries:
+                        log.warning(f"Failed to connect to Zilliz Cloud (attempt {retry_count}/{max_retries}): {str(e)}")
+                        log.info(f"Retrying in 10 seconds...")
+                        time.sleep(10)
+                    else:
+                        log.warning(f"Failed to connect to Zilliz Cloud after {max_retries} attempts, using local database instead")
+                        self.client = MilvusClient("src/database/milvus_local.db")
 
         if embedding_fn is None:
             embedding_fn = VoyageEmbeddingFunction(
                 model_name="voyage-3", # Defaults to `voyage-2`
-                api_key="pa-ReOQxAJwGywtO4bfpQVnjyJv5uHsqnBTC0ym8DE73Yg"
+                api_key=os.getenv('VOYAGE_API_KEY')
             )
         self.embedding_fn = embedding_fn
 

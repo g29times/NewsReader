@@ -33,7 +33,7 @@ from src.utils.knn import k_nearest_neighbors
     # 2 LOG日志归档 
     # 3 数据入库PINGCAP
 voyage = voyageai.Client(api_key=os.getenv('VOYAGE_API_KEY'))
-# voyage = voyageai.Client(api_key='pa-scV8inhyaVhgvS-_e1PnpJx8EM-54jw_4bnLEZ5H2j8')
+# voyage = voyageai.Client(api_key='<your secret key>')
 # https://docs.voyageai.com/docs/embeddings
 embed_modes=["voyage-3", "voyage-3-lite", "voyage-multilingual-2"] # 1024 512 1024
 embed_model=embed_modes[2]

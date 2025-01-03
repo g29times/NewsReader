@@ -153,12 +153,14 @@ def chat():
 #             'data': None
 #         }), 500
 
-# 删除消息 TODO
+# 删除消息
 @chat_bp.route('/api/chat/delete', methods=['POST'])
 def delete_talk():
     try:
         data = request.get_json()
-        conversation_id = data.get('conversation_id', '1')  # 默认对话ID
+        conversation_id = data.get('conversation_id')
+        if not conversation_id:
+            return jsonify({'success': False, 'message': '缺少必要参数'}), 400
         message_index = data.get('message_index')
         rag_service.delete_chat(conversation_id, int(message_index))
         return jsonify({'success': True, 'message': '对话删除成功'})
@@ -167,12 +169,14 @@ def delete_talk():
         logger.error(error_msg)
         return jsonify({'success': False, 'message': error_msg}), 500
 
-# 编辑消息 TODO
+# 编辑消息
 @chat_bp.route('/api/chat/edit', methods=['POST'])
 def edit_talk():
     try:
         data = request.get_json()
-        conversation_id = data.get('conversation_id', '1')  # 默认对话ID
+        conversation_id = data.get('conversation_id')
+        if not conversation_id:
+            return jsonify({'success': False, 'message': '缺少必要参数'}), 400
         message_index = data.get('message_index')
         new_content = data.get('content')
         role = data.get('role', 'user')  # 默认用户消息
@@ -301,8 +305,8 @@ def delete_conversation(chat_id):
         user_id = '1'
         conv_id = chat.conversation_id
         # 删除Redis缓存（开发保留 暂不删除）
-        # redis_key = f"user{user_id}_conv{conv_id}"
-        # rag_service.chat_store.delete_messages(redis_key)
+        redis_key = f"user{user_id}_conv{conv_id}"
+        rag_service.chat_store.delete_messages(redis_key)
         # 删除数据库记录
         delete_chat(db_session, chat_id)
         # 删除本地文件（开发保留 暂不删除）
