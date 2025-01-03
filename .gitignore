@@ -3,6 +3,8 @@
 *.log*
 package.json
 package-lock.json
+desktop.ini
+NewsReader.code-workspace
 
 # ignore directories
 database

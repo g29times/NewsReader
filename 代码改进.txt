@@ -1,5 +1,0 @@
-1 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))确认写法
-https://mp.weixin.qq.com/s/hHxmCeIwbDyxdKiMlR8auw
-
-2 多级init
-https://mp.weixin.qq.com/s/vGjgrod3A0cAjGUrLv52Sg

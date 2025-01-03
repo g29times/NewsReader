@@ -5,6 +5,8 @@
 - [x] Design User Interface: Create a user-friendly interface for managing and exploring articles and ideas.
 - [] RAG
 - [] Agent
+## Prompts/Few-shots
+[问答集](Prompts.txt)
 
 # 1 TODO
 ## BUG
@@ -60,9 +62,14 @@
 			Autogen https://github.com/Chainlit/cookbook/tree/main/pyautogen
 			https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_personality/
 
-## Prompts/Few-shots
-[问答集](Prompts.txt)
-
+## 优化
+- 异步处理
+- 异常库
+- 代码改进
+   1 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))确认写法
+   https://mp.weixin.qq.com/s/hHxmCeIwbDyxdKiMlR8auw
+   2 多级init
+   https://mp.weixin.qq.com/s/vGjgrod3A0cAjGUrLv52Sg
 
 # 2 Daily Progress
 

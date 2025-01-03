@@ -37,21 +37,12 @@ http://www.haowu.space/
         [linux/mac] source .venv/bin/activate
         [windows](using cmd, not powershell) 1. cd .venv/Scripts; 2. activate
         ```
-3. Install dependencies(only first time): 
+3. Install dependencies: 
     `pip install -r requirements.txt`
+    `pip install llama-index-vector-stores-milvus`
 4. Run the application
     [linux/mac]`.venv/bin/python src/app.py`
     [windows]`.venv/Scripts/python src/app.py`
-
-## Technologies
-- Python
-- FastAPI/Flask
-- SQLite
-- Celery (for background tasks)
-- NextJs (frontend)
-- LLM
-    - LlamaIndex
-    - MCP
 
 ## Future Enhancements
 - AI-powered content summarization

@@ -6,7 +6,7 @@ NoteBookLM
 RAG最佳实践 https://mp.weixin.qq.com/s/VYWoluo2BFXhWVRBjeP5IA
 设计RAG工作流 https://docs.llamaindex.ai/en/stable/
 
-# Project Background
+## Project Background
 背景：V1 1205
 I like to read AI news and papers, but I need a system to help me collect them, let's design a system together
 
@@ -42,6 +42,13 @@ TODO+提醒是指，文章很多，有些文章里面提到的一个小观点、
 背景：V3 1208 不做收藏侠 如何做笔记
 https://www.mubu.com/doc/6ehQkiMAnvQ
 https://help.flomoapp.com/basic/xgbj.html
+
+## Key Files 重点文件
+应用启动 src\app.py
+LLM客户端 src\utils\llms\gemini_client.py
+RAG中枢 src\utils\rag\rag_service.py
+文章管理 src\webapp\article\article_routes.py
+对话管理 src\webapp\chat\chat_routes.py
 
 ## Design Priciple
 ![4S Scenario Service Storage Scale](design4s.png)
