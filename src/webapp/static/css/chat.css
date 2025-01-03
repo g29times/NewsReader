@@ -1,4 +1,4 @@
-/* 基础布局 */
+/* -------------------------------- 基础布局 -------------------------------- */
 body {
     margin: 0;
     padding: 0;
@@ -16,7 +16,7 @@ body {
     box-sizing: border-box;
 }
 
-/* 面板通用样式 */
+/* -------------------------------- 面板通用样式 -------------------------------- */
 .panel-header {
     display: flex;
     justify-content: space-between;
@@ -29,102 +29,25 @@ body {
 }
 
 .toggle-panel-btn {
-    background: none;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
     min-width: 30px;
     z-index: 1;
 }
 
-.toggle-panel-btn:hover {
-    background-color: #f0f0f0;
-}
-
-/* 左侧文章面板 */
-.articles-panel {
-    width: 300px;
-    min-width: 50px;
-    transition: all 0.3s ease;
-    background: #f8f9fa;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    height: calc(100vh - 12px);
-    border: 1px solid #dee2e6;
-    flex-shrink: 0;
-}
-
-/* 右侧笔记面板 */
-.notes-panel {
-    width: 300px;
-    min-width: 50px;
-    transition: all 0.3s ease;
-    background: #f8f9fa;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    height: calc(100vh - 12px);
-    border: 1px solid #dee2e6;
-    flex-shrink: 0;
-}
-
-/* 右侧面板 */
+/* -------------------------------- 侧边面板 -------------------------------- */
+.articles-panel,
+.notes-panel,
 .right-panel {
     width: 300px;
     min-width: 50px;
     transition: all 0.3s ease;
     background: #f8f9fa;
     border-radius: 8px;
-    border: 1px solid #dee2e6;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
     height: calc(100vh - 12px);
-}
-
-.right-panel .panel-header {
-    padding: 10px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.right-panel .panel-header h4 {
-    margin: 0;
-    font-size: 1.1em;
-    color: #495057;
-}
-
-.right-panel .panel-header .toggle-panel-btn {
-    background: none;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.right-panel .panel-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-}
-
-.right-panel.collapsed {
-    width: 50px;
-}
-
-.right-panel.collapsed .panel-content,
-.right-panel.collapsed .panel-header h4 {
-    display: none;
+    border: 1px solid #dee2e6;
+    flex-shrink: 0;
 }
 
 /* 面板状态 */
@@ -135,48 +58,24 @@ body {
     min-width: 50px;
 }
 
-.articles-panel.expanded {
-    width: 375px;
-    min-width: 375px;
-}
-
-.notes-panel.expanded {
-    width: 375px;
-    min-width: 375px;
-}
-
+.articles-panel.expanded,
+.notes-panel.expanded,
 .right-panel.expanded {
     width: 375px;
     min-width: 375px;
 }
 
-/* 内容显示控制 */
 .collapsed .panel-content,
 .collapsed .toolbar {
     display: none;
 }
 
-#expandedArticle {
-    display: none;
-    height: 100%;
-    overflow-y: auto;
-}
-
-.expanded #expandedArticle {
-    display: block;
-}
-
-.expanded .article-list {
-    display: none;
-}
-
-/* 中间聊天区域 */
+/* -------------------------------- 聊天区域 -------------------------------- */
 .chat-area {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: all 0.3s ease;
     padding: 6px;
     background: white;
     border-radius: 8px;
@@ -204,37 +103,32 @@ body {
 .chat-input {
     width: 100%;
     min-height: 100px;
-    padding: 10px;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
     resize: vertical;
     margin-bottom: 10px;
 }
 
-.chat-toolbar {
+/* -------------------------------- 文章内容 -------------------------------- */
+.article-content {
+    display: none;
+    height: 100%;
+    background: white;
+    border-radius: 8px;
+    padding: 6px;
+    margin-top: 20px;
+    border: 1px solid #dee2e6;
+}
+
+.chat-container.expanded .article-content {
     display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-    flex-shrink: 0;
+    flex-direction: column;
 }
 
-/* 工具栏 */
-.toolbar {
-    margin-bottom: 15px;
-    flex-shrink: 0;
-}
-
-.toolbar input {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ced4da;
-    border-radius: 4px;
-}
-
-/* 文章列表 */
+/* -------------------------------- 文章列表 -------------------------------- */
 .article-list {
     overflow-y: auto;
     flex: 1;
+    display: block;
+    transition: opacity 0.3s ease;
 }
 
 .panel-content {
@@ -286,336 +180,7 @@ body {
     color: #1a73e8;
 }
 
-/* Source Guide 样式 */
-.source-guide {
-    margin: 15px 0;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.source-guide-header {
-    display: flex;
-    align-items: center;
-    padding: 8px 16px;
-    background-color: #f8f9fa;
-    cursor: pointer;
-    gap: 8px;
-}
-
-.source-guide-header:hover {
-    background-color: #e9ecef;
-}
-
-.source-guide-title {
-    margin: 0;
-    flex: 1;
-}
-
-.expand-text {
-    color: #6c757d;
-    font-size: 14px;
-}
-
-.arrow {
-    color: #6c757d;
-    transition: transform 0.3s;
-}
-
-.source-guide-content {
-    padding: 16px;
-    background-color: white;
-    display: none;
-}
-
-.source-guide-content.expanded {
-    display: block;
-}
-
-.summary {
-    margin-bottom: 15px;
-}
-
-.summary h6 {
-    margin-bottom: 8px;
-    color: #495057;
-}
-
-.summary p {
-    margin: 0;
-    color: #6c757d;
-    line-height: 1.5;
-}
-
-.source-guide-container {
-    margin-top: 20px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.source-guide-header {
-    display: flex;
-    align-items: center;
-    padding: 8px 16px;
-    background-color: #f8f9fa;
-    cursor: pointer;
-    gap: 8px;
-}
-
-.source-guide-content {
-    padding: 16px;
-    max-height: 375px;
-    overflow-y: auto;
-    display: none;
-}
-
-.source-guide-content.expanded {
-    display: block;
-}
-
-/* Toast 样式 */
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-}
-
-.toast {
-    padding: 12px 20px;
-    margin-bottom: 10px;
-    border-radius: 4px;
-    color: #fff;
-    opacity: 0;
-    transform: translateX(100%);
-    transition: all 0.3s ease;
-}
-
-.toast.show {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.toast.success {
-    background-color: #28a745;
-}
-
-.toast.error {
-    background-color: #dc3545;
-}
-
-.toast.info {
-    background-color: #17a2b8;
-}
-
-.toast.warning {
-    background-color: #ffc107;
-    color: #000;
-}
-
-/* Toast 提示框 */
-.toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1050;
-}
-
-.toast {
-    background-color: #fff;
-    border-radius: 4px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    padding: 5px;
-    margin-bottom: 10px;
-    min-width: 250px;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-}
-
-.toast.show {
-    opacity: 1;
-}
-
-.toast.error {
-    border-left: 4px solid #dc3545;
-}
-
-.toast.success {
-    border-left: 4px solid #28a745;
-}
-
-/* 左侧文章面板 */
-.articles-panel {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 5px;
-    overflow-y: auto;
-    height: calc(100vh - 12px);
-    position: relative;
-}
-
-/* 文章列表 */
-.article-list {
-    display: block;
-    transition: opacity 0.3s ease;
-}
-
-.chat-container.expanded .article-list {
-    display: none;
-}
-
-/* 展开的文章内容 */
-#expandedArticle {
-    display: none;
-}
-
-.chat-container.expanded #expandedArticle {
-    display: block;
-}
-
-/* 文章列表 */
-.article-list {
-    display: block;
-    transition: opacity 0.3s ease;
-}
-
-.chat-container.expanded .article-list {
-    display: none;
-}
-
-/* 展开的文章内容 */
-.article-content {
-    display: none;
-    height: 100%;
-    background: white;
-    border-radius: 8px;
-    padding: 6px;
-}
-
-.chat-container.expanded .article-content {
-    display: flex;
-    flex-direction: column;
-}
-
-.article-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    padding: 8px 0;
-}
-
-.article-header h2 {
-    margin: 0;
-    font-size: 20px;
-}
-
-.collapse-btn {
-    padding: 4px 12px;
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    background: white;
-    color: #3c4043;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-/* .collapse-btn:hover {
-    background-color: #f8f9fa;
-} */
-
-.article-title {
-    font-size: 1.2em;
-    font-weight: 500;
-    margin: 15px 0;
-}
-
-.article-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 15px 0;
-}
-
-.source-guide {
-    margin-top: 10px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 4px;
-}
-
-/* 中间聊天区域 */
-.chat-area {
-    background: white;
-    border-radius: 8px;
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    height: calc(100vh - 12px);
-}
-
-.chat-messages {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 5px;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    margin-bottom: 15px;
-}
-
-.chat-input-area {
-    padding: 5px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.chat-input {
-    width: 100%;
-    min-height: 100px;
-    padding: 10px;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    resize: vertical;
-    margin-bottom: 10px;
-}
-
-.chat-toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-/* 右侧笔记区域 */
-.notes-panel {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 5px;
-    height: calc(100vh - 12px);
-}
-
-/* 工具栏 */
-.toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.toolbar button {
-    padding: 5px 15px;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    background: white;
-}
-
 /* 文章内容样式 */
-.article-content {
-    margin-top: 20px;
-    padding: 6px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-}
-
 #articleBody {
     line-height: 1.6;
     color: #212529;
@@ -650,12 +215,202 @@ body {
     font-size: 0.9em;
 }
 
-/* 消息操作按钮样式 */
+/* 消息内容样式 */
+.message-content {
+    padding: 12px 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* 工具栏样式 */
+.toolbar {
+    margin-bottom: 15px;
+    flex-shrink: 0;
+}
+
+.toolbar input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.toolbar button {
+    padding: 5px 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+}
+
+/* 按钮样式补充 */
+.chat-actions button {
+    padding: 2px 5px;
+    font-size: 12px;
+    border: none;
+    background: none;
+    color: #666;
+    cursor: pointer;
+}
+
+.chat-actions button:hover {
+    color: #000;
+}
+
+.new-chat-btn {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.new-chat-btn:hover {
+    background-color: #0056b3;
+}
+
+/* -------------------------------- Source Guide -------------------------------- */
+.source-guide-container {
+    margin-top: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.source-guide-content {
+    padding: 16px;
+    max-height: 375px;
+    overflow-y: auto;
+    display: none;
+}
+
+.source-guide-content.expanded {
+    display: block;
+}
+
+/* -------------------------------- Toast提示 -------------------------------- */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1050;
+}
+
+.toast {
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    padding: 5px;
+    margin-bottom: 10px;
+    min-width: 250px;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.3s ease;
+    color: #fff;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.success {
+    border-left: 4px solid #28a745;
+    background-color: #28a745;
+}
+
+.toast.error {
+    border-left: 4px solid #dc3545;
+    background-color: #dc3545;
+}
+
+/* -------------------------------- 浮动引用按钮 -------------------------------- */
+.float-quote-btn {
+    position: fixed;
+    display: none;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    padding: 5px 10px;
+}
+
+/* -------------------------------- 对话列表 -------------------------------- */
+.chat-list {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.chat-item {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-item:hover {
+    background-color: #f5f5f5;
+}
+
+.chat-actions {
+    display: none;
+}
+
+.chat-item:hover .chat-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.edit-title-input {
+    width: 100%;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 5px;
+}
+
+/* -------------------------------- 笔记列表 -------------------------------- */
+.note-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.note-item {
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 4px;
+    background-color: #fff;
+}
+
+.note-item button {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.note-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.note-content {
+    color: #666;
+    font-size: 0.9em;
+}
+
+/* -------------------------------- 消息操作按钮 -------------------------------- */
 .message-actions {
     display: flex;
     gap: 8px;
     margin-top: 8px;
-    position: relative;  
+    position: relative;
 }
 
 .action-btn {
@@ -689,14 +444,7 @@ body {
     color: #6f42c1;
 }
 
-.message-content {
-    padding: 12px 16px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-/* 删除确认弹出框样式 */
+/* -------------------------------- 删除确认弹出框 -------------------------------- */
 .delete-confirm {
     position: absolute;
     background: #fff;
@@ -708,9 +456,9 @@ body {
     z-index: 1000;
     font-size: 14px;
     white-space: nowrap;
-    right: 0;  
-    top: 100%;  
-    margin-top: 4px;  
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
 }
 
 .delete-confirm .confirm-buttons {
@@ -736,130 +484,4 @@ body {
 .delete-confirm .confirm-no {
     background: #6c757d;
     color: white;
-}
-
-/* 对话列表样式 */
-.chat-list {
-    margin-bottom: 20px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-    max-height: 200px;  
-    overflow-y: auto;   
-}
-
-.chat-item {
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* 笔记列表样式 */
-.note-list {
-    flex: 1;
-    overflow-y: auto;
-}
-
-.note-item {
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 4px;
-    background-color: #fff;
-}
-
-.note-item button {
-    width: 100%;
-    margin-bottom: 10px;
-}
-
-.note-title {
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.note-content {
-    color: #666;
-    font-size: 0.9em;
-}
-
-/* 对话列表样式 */
-.chat-list {
-    margin-bottom: 20px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 10px;
-}
-
-.chat-item {
-    padding: 10px;
-    margin: 5px 0;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.chat-item:hover {
-    background-color: #f5f5f5;
-}
-
-.chat-title {
-    flex-grow: 1;
-    margin-right: 10px;
-}
-
-.chat-actions {
-    display: none;
-}
-
-.chat-item:hover .chat-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.chat-actions button {
-    padding: 2px 5px;
-    font-size: 12px;
-    border: none;
-    background: none;
-    color: #666;
-    cursor: pointer;
-}
-
-.chat-actions button:hover {
-    color: #000;
-}
-
-.chat-toolbar {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
-}
-
-.new-chat-btn {
-    padding: 5px 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.new-chat-btn:hover {
-    background-color: #0056b3;
-}
-
-/* 编辑对话标题的样式 */
-.edit-title-input {
-    width: 100%;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-right: 5px;
 }
