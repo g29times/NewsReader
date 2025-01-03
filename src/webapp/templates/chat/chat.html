@@ -39,7 +39,7 @@
                 </div>
                 <div id="expandedArticle" style="display: none;">
                     <div class="article-header">
-                        <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">收起</button>
+                        <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">回到列表</button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="quoteContent('full')">引用全文</button>
                     </div>
                     <h2 class="article-title" id="expandedArticleTitle"></h2>
@@ -277,7 +277,6 @@
         function toggleArticlesPanel() {
             const panel = document.querySelector('.articles-panel');
             const button = panel.querySelector('.toggle-panel-btn');
-            console.log(panel.classList);
             if (panel.classList.contains('expanded')) {
                 // 如果是展开状态，先恢复到默认宽度
                 panel.classList.remove('expanded');
@@ -879,6 +878,7 @@
                 conversations.forEach(chat => {
                     const chatItem = document.createElement('div');
                     chatItem.className = 'chat-item';
+                    chatItem.dataset.conversationId = chat.conversation_id;
                     chatItem.innerHTML = `
                         <div class="chat-title">${chat.title || '新对话'}</div>
                         <div class="chat-actions">
@@ -1069,6 +1069,7 @@
             chats.forEach(chat => {
                 const chatItem = document.createElement('div');
                 chatItem.className = 'chat-item';
+                chatItem.dataset.conversationId = chat.conversation_id;
                 chatItem.innerHTML = `
                     <div class="chat-title">${chat.title || '新对话'}</div>
                     <div class="chat-actions">
@@ -1102,6 +1103,8 @@
 
         // 处理对话列表点击事件 移动端
         function handleChatClick(event) {
+            const convId = event.target.getAttribute('data-conversation-id');
+            loadConversation(convId);
             // 移动端自动收起面板
             if (window.innerWidth <= 768) {
                 const panel = document.querySelector('.right-panel');
