@@ -276,13 +276,16 @@ def create_conversation():
             'message': str(e)
         }), 500
 
-# 更新对话标题 DONE
+# 更新对话 DONE
 @chat_bp.route('/api/conversation/<int:chat_id>', methods=['PUT'])
 def update_conversation(chat_id):
     try:
         data = request.get_json()
         title = data.get('title')
-        update_chat(db_session, chat_id, title=title)
+        if title is not None and title != '':
+            update_chat(db_session, chat_id, title=title, updated_at=datetime.now())
+        else: # 只更新时间
+            update_chat(db_session, chat_id, updated_at=datetime.now())
         return jsonify({
             'success': True,
             'data': {

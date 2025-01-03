@@ -495,7 +495,7 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // 发送聊天消息 重点
+        // 对话聊天 重点 
         async function sendChatMessage() {
             const messageInput = document.getElementById('messageInput');
             const sendButton = document.querySelector('.btn-primary');
@@ -522,10 +522,8 @@
                 addUserMessageToChat(message);
                 // 添加思考中提示
                 addThinkingMessage();
-                
                 // 清空输入框
                 messageInput.value = '';
-
                 let result;
                 if (selectedArticles.length > 0) {
                     result = await call_chat('/chat/api/chat', message, selectedArticles);
@@ -549,12 +547,13 @@
             }
         }
 
-        // sendChatMessage调用后端chat服务 重点
+        // sendChatMessage 调用后端chat服务 重点 每次聊天都触发更新对话
         async function call_chat(url, message, selectedArticles = []) {
             try {
                 // 如果没有当前对话ID，先创建一个新对话
                 if (!currentConversationId) {
                     try {
+                        // 创建对话 create_conversation
                         const response = await fetch('/chat/api/conversation', {
                             method: 'POST',
                             headers: {
@@ -564,7 +563,6 @@
                                 user_id: '1'
                             })
                         });
-                        
                         const result = await response.json();
                         if (result.success) {
                             currentConversationId = result.data.conversation_id;
@@ -578,8 +576,26 @@
                         showToast('创建对话失败', 'error');
                         throw error;  // 继续抛出错误，中断聊天请求
                     }
+                } else {
+                    // 刷新当前对话时间
+                    try { // update_conversation update_chat
+                        const response = await fetch(`/chat/api/conversation/${chatId}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                user_id: '1'
+                            })
+                        });
+                    } catch (error) {
+                        // 不处理
+                    } finally {
+                        // 刷新对话列表
+                        loadConversationList();
+                    }
                 }
-
+                // 调用chat服务
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -591,12 +607,10 @@
                             conversation_id: currentConversationId
                     })
                 });
-
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(`服务响应：(${error.message || '未知错误'})`);
                 }
-
                 const result = await response.json();
                 return result;
             } catch (error) {
@@ -822,6 +836,7 @@
 
         // 当前选中的对话ID
         let currentConversationId = null;
+        let chatId = null;
         
         // 调用后端加载对话列表 DONE
         async function loadConversationList() {
@@ -845,7 +860,7 @@
                         </div>
                         <div class="chat-title">${chat.title || '新对话'}</div>
                     `;
-                    chatItem.onclick = () => loadConversation(chat.conversation_id);
+                    chatItem.onclick = () => loadConversation(chat.id, chat.conversation_id);
                     chatList.appendChild(chatItem);
                 });
                 // addChatListeners();
@@ -878,8 +893,9 @@
         });
         
         // 加载特定对话内容 DONE
-        async function loadConversation(conversationId) {
+        async function loadConversation(chat_id, conversationId) {
             try {
+                chatId = chat_id;
                 currentConversationId = conversationId;  // 设置当前对话ID
                 const response = await fetch(`/chat/api/conversation?conversation_id=${conversationId}`);
                 const history = await response.json();
@@ -911,6 +927,7 @@
                 
                 const result = await response.json();
                 if (result.success) {
+                    chatId = result.data.id;
                     currentConversationId = result.data.conversation_id;  // 设置当前对话ID
                     // 清空现有对话
                     const chatMessages = document.getElementById('chatMessages');
@@ -945,7 +962,7 @@
             titleDiv.appendChild(input);
             input.focus();
             
-            // 保存编辑
+            // 保存编辑 update_conversation
             async function saveTitle() {
                 const newTitle = input.value.trim();
                 if (newTitle && newTitle !== originalTitle) {
@@ -1013,6 +1030,7 @@
                     if (currentConversationId === convId) {
                         document.getElementById('chatMessages').innerHTML = '';
                         currentConversationId = null;
+                        chatId = null;
                     }
                 } else {
                     showToast(result.message || '删除失败', 'error');
@@ -1042,37 +1060,11 @@
                     </div>
                     <div class="chat-title">${chat.title || '新对话'}</div>
                 `;
-                chatItem.onclick = () => loadConversation(chat.conversation_id);
+                chatItem.onclick = () => loadConversation(chat.id, chat.conversation_id);
                 chatList.appendChild(chatItem);
             });
             // addChatListeners();
         }
-
-        // // 为对话列表项添加事件监听
-        // function addChatListeners() {
-        //     const chatItems = document.querySelectorAll('.chat-item');
-        //     chatItems.forEach(item => {
-        //         // 移除旧的事件监听（如果有的话）
-        //         item.removeEventListener('click', handleChatClick);
-        //         item.removeEventListener('touchstart', handleChatClick);
-                
-        //         // 添加新的事件监听
-        //         item.addEventListener('click', handleChatClick);
-        //         item.addEventListener('touchstart', handleChatClick);
-        //     });
-        // }
-
-        // // 处理对话列表点击事件 移动端
-        // function handleChatClick(event) {
-        //     const convId = event.target.getAttribute('data-conversation-id');
-        //     loadConversation(convId);
-        //     // 移动端自动收起面板
-        //     if (window.innerWidth <= 768) {
-        //         const panel = document.querySelector('.right-panel');
-        //         panel.classList.add('collapsed');
-        //         panel.querySelector('.toggle-panel-btn').textContent = '⬅';
-        //     }
-        // }
 
         // -------------------------------- 笔记管理 --------------------------------
 
