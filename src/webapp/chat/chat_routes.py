@@ -206,7 +206,7 @@ def search_chats_api():
         query = request.args.get('query')
         user_id = request.args.get('user_id', '1')
         chats = search_chats(db_session, int(user_id), query)
-        logger.info(f"Search {len(chats)} chats")
+        logger.info(f"Searched chats: {len(chats)}")
         return jsonify([{
                     'id': chat.id,
                     'title': chat.title,

@@ -56,7 +56,7 @@ class Milvus:
                 log.info(f"Connected to Zilliz Cloud: {milvus_uri}")
             except Exception as e:
                 log.info(f"Failed to connect to Zilliz Cloud: {str(e)}, using local database instead")
-                self.client = MilvusClient("src/database/milvus_demo.db")
+                self.client = MilvusClient("src/database/milvus_local.db")
 
         if embedding_fn is None:
             embedding_fn = VoyageEmbeddingFunction(

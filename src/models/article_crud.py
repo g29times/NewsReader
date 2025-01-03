@@ -11,6 +11,7 @@ from src import logy
 from src.models.article import Base, Article
 from src.database.connection import db_session
 
+# 创建文章
 @logy
 def create_article(db: Session, article_data: dict):
     new_article = Article(**article_data)
@@ -19,26 +20,32 @@ def create_article(db: Session, article_data: dict):
     db.refresh(new_article)
     return new_article
 
+# 按id获取文章
 @logy
 def get_article_by_id(db: Session, article_id: int):
     return db.query(Article).filter(Article.id == article_id).first()
 
+# 按url获取文章
 @logy
 def get_article_by_url(db: Session, article_url: str):
     return db.query(Article).filter(Article.url == article_url).first()
 
+# 返回限定数量的多篇文章
 @logy
 def get_articles(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Article).offset(skip).limit(limit).all()
 
+# 按ids获取多篇文章
 @logy
 def get_article_by_ids(db: Session, article_ids: list):
     return db.query(Article).filter(Article.id.in_(article_ids)).all()
 
+# 全部文章 倒排
 @logy
 def get_all_articles(db: Session):
     return db.query(Article).order_by(Article.id.desc()).all()
 
+# 搜索文章
 @logy
 def search_articles(db: Session, query: str):
     return db.query(Article).filter(
@@ -48,6 +55,7 @@ def search_articles(db: Session, query: str):
         Article.tags.contains(query)
     ).all()
 
+# 更新文章
 @logy
 def update_article(db: Session, article_id: int, update_data: dict):
     article = get_article_by_id(db, article_id)
@@ -58,7 +66,7 @@ def update_article(db: Session, article_id: int, update_data: dict):
         db.refresh(article)
     return article
 
-
+# 删除文章
 @logy
 def delete_article(db: Session, article_id: int):
     article = get_article_by_id(db, article_id)

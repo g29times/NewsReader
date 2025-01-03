@@ -20,7 +20,7 @@
                 <div class="toolbar">
                     <input type="text" placeholder="搜索文章..." class="form-control">
                 </div>
-                <button class="toggle-panel-btn" onclick="toggleArticlesPanel()">⬅</button>
+                <button class="toggle-panel-btn" onclick="toggleArticlesPanel()">➡</button>
             </div>
             <div class="panel-content">
                 <div id="articleList" class="article-list">
@@ -86,8 +86,7 @@
                 <textarea id="messageInput" class="chat-input" placeholder="输入消息..."></textarea>
                 <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
                 <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
-                <button class="btn btn-outline-secondary" onclick="startRecording()">录音</button>
-                <button class="btn btn-outline-secondary" onclick="openCamera()">相机</button>
+                <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
             </div>
         </div>
 
@@ -154,6 +153,7 @@
                 if (!response.ok) throw new Error('搜索失败');
                 const chats = await response.json();
                 updateChatList(chats);
+                addChatListeners();
             } catch (error) {
                 showToast('搜索失败: ' + error.message, 'error');
             }
@@ -269,28 +269,25 @@
             showToast('录音功能即将推出', 'info');
         }
 
-        // 相机功能（待实现）
-        function openCamera() {
-            showToast('相机功能即将推出', 'info');
-        }
-
         // -------------------------------- 文章管理 --------------------------------
         let isExpanded = false;
         let currentArticle = null;
 
-        // 切换文章面板展开/收起
+        // 文章区 面板展开/收起 默认收起
         function toggleArticlesPanel() {
             const panel = document.querySelector('.articles-panel');
             const button = panel.querySelector('.toggle-panel-btn');
-            
+            console.log(panel.classList);
             if (panel.classList.contains('expanded')) {
                 // 如果是展开状态，先恢复到默认宽度
                 panel.classList.remove('expanded');
                 button.textContent = '⬅';
+                panel.classList.add('collapsed');
             } else if (panel.classList.contains('collapsed')) {
                 // 如果是收起状态，恢复到默认宽度
                 panel.classList.remove('collapsed');
                 button.textContent = '➡';
+                panel.classList.add('expanded');
             } else {
                 // 如果是默认状态，收起面板
                 panel.classList.add('collapsed');
@@ -298,11 +295,10 @@
             }
         }
 
-        // 切换右侧面板展开/收起
+        // 笔记区 面板展开/收起 默认展开
         function toggleRightPanel() {
             const panel = document.querySelector('.right-panel');
             const button = panel.querySelector('.toggle-panel-btn');
-            
             if (panel.classList.contains('collapsed')) {
                 panel.classList.remove('collapsed');
                 button.textContent = '➡';
@@ -312,11 +308,10 @@
             }
         }
 
-        // 展开文章面板（用于显示文章详情）
+        // 展开新文章详情
         function expandArticlesPanel() {
             const panel = document.querySelector('.articles-panel');
             const button = panel.querySelector('.toggle-panel-btn');
-            
             // 移除收起状态（如果有的话）
             panel.classList.remove('collapsed');
             // 添加展开状态
@@ -324,7 +319,7 @@
             button.textContent = '⬅';
         }
 
-        // 切换文章展开/收起状态
+        // 点击同一篇文章详情 展开/收起
         function toggleArticleExpand() {
             const panel = document.querySelector('.articles-panel');
             if (panel.classList.contains('expanded')) {
@@ -334,6 +329,33 @@
                 panel.classList.add('expanded');
                 hideArticleList();
             }
+        }
+
+        // 文章概要 展开/收起
+        function toggleSourceGuide(element) {
+            const content = element.nextElementSibling;
+            content.classList.toggle('expanded');
+            
+            // 更新箭头方向
+            const arrow = element.querySelector('.arrow');
+            if (content.classList.contains('expanded')) {
+                arrow.textContent = '▼';
+            } else {
+                arrow.textContent = '▶';
+            }
+        }
+
+        // 从文章详情返回文章列表
+        function collapseArticle() {
+            const panel = document.querySelector('.articles-panel');
+            const articleList = document.getElementById('articleList');
+            const expandedArticle = document.getElementById('expandedArticle');
+            
+            // 移除展开状态
+            panel.classList.remove('expanded');
+            // 显示文章列表，隐藏文章详情
+            articleList.style.display = 'block';
+            expandedArticle.style.display = 'none';
         }
 
         // 显示文章列表 重点
@@ -350,9 +372,6 @@
 
         // 显示文章内容
         function displayArticleContent(article) {
-            // 展开面板
-            expandArticlesPanel();
-            
             const articleList = document.getElementById('articleList');
 
             const expandedArticle = document.getElementById('expandedArticle');
@@ -402,20 +421,7 @@
             }
         }
 
-        // 折叠文章
-        function collapseArticle() {
-            const panel = document.querySelector('.articles-panel');
-            const articleList = document.getElementById('articleList');
-            const expandedArticle = document.getElementById('expandedArticle');
-            
-            // 移除展开状态
-            panel.classList.remove('expanded');
-            // 显示文章列表，隐藏文章详情
-            articleList.style.display = 'block';
-            expandedArticle.style.display = 'none';
-        }
-
-        // 更新文章列表
+        // 搜索后 更新文章列表
         function updateArticlesList(articles) {
             const articleList = document.querySelector('.article-items');
             articleList.innerHTML = articles.map(article => `
@@ -437,7 +443,7 @@
             });
         }
 
-        // 添加全选功能
+        // 文章列表全选功能
         document.getElementById('selectAll').addEventListener('change', function(e) {
             const checkboxes = document.querySelectorAll('.article-items .article-checkbox');
             checkboxes.forEach(checkbox => {
@@ -455,20 +461,6 @@
                 document.getElementById('selectAll').checked = allChecked;
             });
         });
-
-        // 文章展开/收起相关函数
-        function toggleSourceGuide(element) {
-            const content = element.nextElementSibling;
-            content.classList.toggle('expanded');
-            
-            // 更新箭头方向
-            const arrow = element.querySelector('.arrow');
-            if (content.classList.contains('expanded')) {
-                arrow.textContent = '▼';
-            } else {
-                arrow.textContent = '▶';
-            }
-        }
 
         // -------------------------------- 聊天消息管理 --------------------------------
 
@@ -558,7 +550,7 @@
             }
         }
 
-        // sendChatMessage调用后端chat服务
+        // sendChatMessage调用后端chat服务 重点
         async function call_chat(url, message, selectedArticles = []) {
             try {
                 // 如果没有当前对话ID，先创建一个新对话
@@ -890,10 +882,10 @@
                     chatItem.innerHTML = `
                         <div class="chat-title">${chat.title || '新对话'}</div>
                         <div class="chat-actions">
-                            <button onclick="editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
+                            <button onclick="event.stopPropagation(); editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="deleteChat(event, ${chat.id}, '${chat.conversation_id}')" title="删除">
+                            <button onclick="event.stopPropagation(); deleteChat(event, ${chat.id}, '${chat.conversation_id}')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -901,6 +893,7 @@
                     chatItem.onclick = () => loadConversation(chat.conversation_id);
                     chatList.appendChild(chatItem);
                 });
+                addChatListeners();
             } catch (error) {
                 console.error('加载对话列表失败:', error);
                 showToast('加载对话列表失败', 'error');
@@ -1069,7 +1062,7 @@
             }
         }
 
-        // 更新对话列表显示
+        // 搜索后 更新对话列表显示 DONE
         function updateChatList(chats) {
             const chatList = document.getElementById('chatList');
             chatList.innerHTML = ''; // 清空现有列表
@@ -1079,10 +1072,10 @@
                 chatItem.innerHTML = `
                     <div class="chat-title">${chat.title || '新对话'}</div>
                     <div class="chat-actions">
-                        <button onclick="editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
+                        <button onclick="event.stopPropagation(); editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button onclick="deleteChat(event, ${chat.id}, '${chat.conversation_id}')" title="删除">
+                        <button onclick="event.stopPropagation(); deleteChat(event, ${chat.id}, '${chat.conversation_id}')" title="删除">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -1090,6 +1083,31 @@
                 chatItem.onclick = () => loadConversation(chat.conversation_id);
                 chatList.appendChild(chatItem);
             });
+            addChatListeners();
+        }
+
+        // 为对话列表项添加事件监听
+        function addChatListeners() {
+            const chatItems = document.querySelectorAll('.chat-item');
+            chatItems.forEach(item => {
+                // 移除旧的事件监听（如果有）
+                item.removeEventListener('click', handleChatClick);
+                item.removeEventListener('touchstart', handleChatClick);
+                
+                // 添加新的事件监听
+                item.addEventListener('click', handleChatClick);
+                item.addEventListener('touchstart', handleChatClick);
+            });
+        }
+
+        // 处理对话列表点击事件 移动端
+        function handleChatClick(event) {
+            // 移动端自动收起面板
+            if (window.innerWidth <= 768) {
+                const panel = document.querySelector('.right-panel');
+                panel.classList.add('collapsed');
+                panel.querySelector('.toggle-panel-btn').textContent = '⬅';
+            }
         }
 
         // -------------------------------- 笔记管理 --------------------------------
