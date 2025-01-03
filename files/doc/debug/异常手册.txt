@@ -1,0 +1,2 @@
+chat_routes.py[line:226] - Error in get_chat_history: a coroutine was expected, got True
+可重试，有时候是数据导致
