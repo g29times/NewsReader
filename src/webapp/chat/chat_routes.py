@@ -20,7 +20,6 @@ rag_service = RAGService()
 # 搜索文章
 @chat_bp.route('/api/articles/search', methods=['GET'])
 def articles_search():
-    """搜索文章"""
     query = request.args.get('query', '').strip()
     if not query:
         articles = get_all_articles(db_session)
@@ -42,7 +41,6 @@ def articles_search():
 # 获取文章详情
 @chat_bp.route('/api/articles/<int:article_id>', methods=['GET'])
 def get_article_details(article_id):
-    """获取文章详情"""
     article = get_article_by_id(db_session, article_id)
     logger.info(f"获取文章详情成功：{article.title[:30]}")
     if not article:
@@ -71,14 +69,12 @@ def get_article_details(article_id):
 # 聊天页面
 @chat_bp.route('/')
 def chat_page():
-    """聊天页面路由"""
     articles = get_all_articles(db_session)
     return render_template('chat/chat.html', articles=articles)
 
 # 聊天
 @chat_bp.route('/api/chat', methods=['POST'])
 def chat():
-    """处理聊天请求"""
     try:
         data = request.get_json()
         message = data.get('message', '')

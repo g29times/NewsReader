@@ -37,7 +37,7 @@ def get_article_by_ids(db: Session, article_ids: list):
 
 @logy
 def get_all_articles(db: Session):
-    return db.query(Article).all()
+    return db.query(Article).order_by(Article.id.desc()).all()
 
 @logy
 def search_articles(db: Session, query: str):
