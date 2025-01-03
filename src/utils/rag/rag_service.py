@@ -219,9 +219,9 @@ class RAGService:
         # 模块4 聊天记忆 Initialize ChatStore and ChatMemoryBuffer
         from llama_index.storage.chat_store.upstash import UpstashChatStore
         from llama_index.core.memory import ChatMemoryBuffer
-        remote_chat_store = UpstashChatStore( # TODO move to evn
-            redis_url="https://patient-cricket-24702.upstash.io",
-            redis_token="AWB-AAIjcDE1NjVlYjJhNGU0NmY0NjYyYTA1MDIzMzhkZTFhMjJjZnAxMA",
+        remote_chat_store = UpstashChatStore(
+            redis_url=os.getenv("REDIS_URL"),
+            redis_token=os.getenv("REDIS_TOKEN"),
             # ttl=300,  # Optional: Time to live in seconds
         )
         local_chat_store = SimpleChatStore.from_persist_path(
@@ -296,8 +296,8 @@ class RAGService:
             # Create vector store
             if self.vector_db_type == "chroma":
                 vector_store = ChromaVectorStore(chroma_collection=collection)
-            elif self.vector_db_type == "milvus": # windows本地无法测试 TODO remove token
-                vector_store = MilvusVectorStore(uri="https://in05-a2375130220598d.serverless.ali-cn-hangzhou.cloud.zilliz.com.cn", token="db5bde077eb9a3f48c745706eb58a1c970ef3b556ff2119c7c2c0a0e38fb1222ca6f9e819837d0518a5eaa902ba5634deec7c804", collection_name=VECTOR_DB_ARTICLES)
+            elif self.vector_db_type == "milvus": # TODO windows本地无法测试 远程报错
+                vector_store = MilvusVectorStore(uri=os.getenv("ZILLIZ_MILVUS_URL"), token=os.getenv("ZILLIZ_MILVUS_KEY"), collection_name=VECTOR_DB_ARTICLES)
             else:
                 raise ValueError(f"Unsupported vector database type: {self.vector_db_type}")
             # 如果collection不为空，从向量库加载索引
@@ -670,7 +670,7 @@ class RAGService:
                     role=msg['role'],
                     content=content
                 ))
-            # 异步保存到Redis TODO 报错
+            # 异步保存到Redis TODO 报错但可用
             asyncio.run(self.chat_store.async_set_messages(conversation_id, chat_messages))
             return True
         except Exception as e:
