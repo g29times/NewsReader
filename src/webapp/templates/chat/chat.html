@@ -93,10 +93,10 @@
         <!-- 右侧笔记区域 -->
         <div class="right-panel">
             <div class="panel-header">
+                <button class="toggle-panel-btn" onclick="toggleRightPanel()">➡</button>
                 <div class="toolbar">
                     <input type="text" placeholder="搜索对话..." class="form-control">
                 </div>
-                <button class="toggle-panel-btn" onclick="toggleRightPanel()">➡</button>
             </div>
             <div class="panel-content">
                 <div class="chat-list" id="chatList">
@@ -880,7 +880,6 @@
                     chatItem.className = 'chat-item';
                     chatItem.dataset.conversationId = chat.conversation_id;
                     chatItem.innerHTML = `
-                        <div class="chat-title">${chat.title || '新对话'}</div>
                         <div class="chat-actions">
                             <button onclick="event.stopPropagation(); editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
                                 <i class="fas fa-edit"></i>
@@ -889,6 +888,7 @@
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
+                        <div class="chat-title">${chat.title || '新对话'}</div>
                     `;
                     chatItem.onclick = () => loadConversation(chat.conversation_id);
                     chatList.appendChild(chatItem);
@@ -1071,7 +1071,6 @@
                 chatItem.className = 'chat-item';
                 chatItem.dataset.conversationId = chat.conversation_id;
                 chatItem.innerHTML = `
-                    <div class="chat-title">${chat.title || '新对话'}</div>
                     <div class="chat-actions">
                         <button onclick="event.stopPropagation(); editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
                             <i class="fas fa-edit"></i>
@@ -1080,6 +1079,7 @@
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
+                    <div class="chat-title">${chat.title || '新对话'}</div>
                 `;
                 chatItem.onclick = () => loadConversation(chat.conversation_id);
                 chatList.appendChild(chatItem);
