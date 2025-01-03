@@ -37,7 +37,7 @@ body {
 .articles-panel,
 .notes-panel,
 .right-panel {
-    width: 360px;
+    width: 320px;
     min-width: 50px;
     transition: all 0.3s ease;
     background: #f8f9fa;
