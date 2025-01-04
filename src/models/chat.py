@@ -20,8 +20,10 @@ class Chat(Base):
     user_id = Column(Integer, nullable=False)  # 不使用外键 示例：1,2,3
     conversation_id = Column(String(50), nullable=False, unique=True)  # 对话ID 示例：1,12345678
     title = Column(String(200))
-    created_at = Column(DateTime, default=func.now())
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=func.datetime('now', 'localtime'),
+        server_default=func.datetime('now', 'localtime'))
+    updated_at = Column(DateTime, default=func.datetime('now', 'localtime'), 
+        onupdate=func.datetime('now', 'localtime'))
     is_active = Column(Boolean, default=True)  # 是否有效
     
     def __repr__(self):

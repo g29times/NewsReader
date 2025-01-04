@@ -18,14 +18,14 @@ from datetime import datetime
 def get_user_all_chats(db: Session, user_id: int):
     return db.query(Chat).filter(Chat.user_id == user_id).all()
 
-# 按聊天名称 搜索用户的有效的聊天记录
+# 按聊天名称 搜索用户的有效的聊天记录 倒排
 @logy
 def search_chats(db: Session, user_id: int, query: str):
     return db.query(Chat).filter(
         Chat.user_id == user_id,
         Chat.is_active == True,
         Chat.title.contains(query)
-    ).all()
+    ).order_by(Chat.updated_at.desc()).all()
 
 # 创建新的聊天记录
 @logy

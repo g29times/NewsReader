@@ -50,7 +50,7 @@ def get_article_by_ids(db: Session, article_ids: list):
 def get_all_articles(db: Session, limit: int = 100):
     return db.query(Article).order_by(Article.id.desc()).limit(limit).all()
 
-# 搜索文章
+# 搜索文章 倒排
 @logy
 def search_articles(db: Session, query: str):
     return db.query(Article).filter(

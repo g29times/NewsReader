@@ -21,7 +21,7 @@ class Article(Base):
     tags = Column(String, index=True) # 人工备注
 
     source = Column(String) # 原始文档（website, github or paper等） 可选
-    collection_date = Column(DateTime, default=func.now()) # 收集文章的时间
+    collection_date = Column(DateTime, default=func.datetime('now', 'localtime')) # 收集文章的时间
     publication_date = Column(String) # 粗略文章发布时间 由LLM生成 格式可能不统一 因此不使用DateTime
     authors = Column(String) # 作者
     type = Column(String) # 资源类型 （WEB FILE 等）

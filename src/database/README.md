@@ -17,3 +17,13 @@ TODO
             id conversation_id 整合
     cache
     memory
+
+# Alembic
+# 1. 初始化 Alembic
+alembic init migrations
+
+# 2. 创建迁移脚本
+alembic revision --autogenerate -m "update datetime columns"
+
+# 3. 应用迁移
+alembic upgrade head
