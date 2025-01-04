@@ -177,6 +177,8 @@ https://zhuanlan.zhihu.com/p/641822949
 2 Milvus
 
 ## AI Design (LLM/VLM)
+### 问题集
+[问答集](Prompts.txt)
 ### Design Considerations
 1. Local LLM and Remote API Support
 Local LLMs: Use open-source models like GPT-Neo or LLaMA for on-device processing, which offers privacy and control over data.

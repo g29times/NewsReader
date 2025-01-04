@@ -26,6 +26,3 @@ class Chat(Base):
     
     def __repr__(self):
         return f"<Chat {self.conversation_id}>"
-
-if __name__ == "__main__":
-    Base.metadata.create_all(bind=engine)

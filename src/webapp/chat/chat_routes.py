@@ -84,8 +84,6 @@ def chat():
         message = data.get('message', '')
         article_ids = data.get('article_ids', [])
         conversation_id = data.get('conversation_id', '')
-        
-        # 调试日志
         logger.info(f"收到聊天请求：conversation_id={conversation_id}, message={message}, article_ids={article_ids}")
         if article_ids in [None, []]:
             response = rag_service.chat(conversation_id, message)
@@ -101,7 +99,6 @@ def chat():
                 'response': str(response)
             }
         })
-
     except Exception as e:
         error_msg = f'处理聊天请求失败: {str(e)}'
         logger.error(error_msg)
@@ -114,34 +111,28 @@ def chat():
 # 聊天文件上传
 @chat_bp.route('/api/chat/with_file', methods=['POST'])
 def chat_with_file():
-    """处理文件上传和对话"""
     try:
         if 'file' not in request.files:
             return jsonify({'success': False, 'message': '未找到上传的文件'})
-            
         file = request.files['file']
         question = request.form.get('question')
-        
+        conversation_id = request.form.get('conversation_id')
+        logger.info(f"收到文件请求：question={question}, file={file.filename}")
         # 读取文件内容
         content = FileInputHandler.read_from_file(file)
         if not content:
             return jsonify({'success': False, 'message': '文件内容为空或无法读取'})
-        
         # 使用文件内容回答问题
-        response = gemini_client.query_with_content(content, question)
-        
+        response = rag_service.chat_with_file(conversation_id, content, question) # gemini_client.query_with_content(content, question)
         if not response:
             return jsonify({'success': False, 'message': '对话失败'})
-            
         # 在后台线程中异步保存文件
         run_async_save(content, file.filename)
-        
         return jsonify({
             'success': True,
-            'message': '对话成功',
-            'response': response
+            'message': '处理文件请求',
+            'data': response
         })
-            
     except Exception as e:
         error_msg = f'文件处理失败: {str(e)}'
         logger.error(error_msg)
@@ -293,8 +284,8 @@ def get_conversation():
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 messages = data['store'].get(f'user{user_id}', [])
-                # 缓存到Redis TODO (仅用于刷数据，开发)
-                asyncio.run(rag_service.save_chat(redis_key, messages))
+                # 缓存到Redis (仅用于刷数据，开发)
+                rag_service.save_chat(redis_key, messages)
                 return jsonify(messages)
         return jsonify([])
     except Exception as e:

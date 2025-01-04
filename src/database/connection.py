@@ -3,6 +3,8 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 import os
 from dotenv import load_dotenv
+import logging
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -35,12 +37,12 @@ def get_db():
     finally:
         db.close()
 
-def init_db():
-    """
-    Initialize the database, create all tables
-    """
-    from ..models import article  # Import models
+def init_database():
+    """Initialize the database, create all tables"""
+    logger.info("Initializing database...")
+    from models import article, chat, idea, relation, user
     Base.metadata.create_all(bind=engine)
+    logger.info("Database initialized successfully")
 
 # 测试方法：验证数据库连接
 def test_connection():

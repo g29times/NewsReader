@@ -32,7 +32,7 @@
                         {% for article in articles %}
                         <div class="article-item">
                             <input type="checkbox" class="article-checkbox" data-article-id="{{ article.id }}">
-                            <div class="article-title" onclick="fetchArticleDetails('{{ article.id }}')">{{ article.title }}</div>
+                            <div class="article-title" title="点击查看详情" onclick="fetchArticleDetails('{{ article.id }}')">{{ article.title }}</div>
                         </div>
                         {% endfor %}
                     </div>
@@ -45,26 +45,26 @@
                     <h2 class="article-title" id="expandedArticleTitle"></h2>
                     <div class="source-guide-container">
                         <div class="source-guide-header" onclick="toggleSourceGuide(this)">
-                            <h5 class="source-guide-title btn btn-outline-primary">Source guide</h5>
+                            <h5 class="source-guide-title btn btn-outline-primary">学习指南</h5>
                             <span class="arrow">▶</span>
                         </div>
                         <div class="source-guide-content">
                             <div class="source">
-                                <h4>Source</h4>
+                                <h4>来源</h4>
                                 <div id="expandedArticleSource"></div>
                             </div>
-                            <div class="summary">
-                                <h4>Summary</h4>
-                                <button class="btn btn-sm btn-outline-secondary" onclick="quoteContent('summary')">引用摘要</button>
-                                <div id="expandedArticleSummary"></div>
-                            </div>
                             <div class="key-topics">
-                                <h4>Key Topics</h4>
+                                <h4>关键主题</h4>
                                 <div id="expandedArticleTopics"></div>
                             </div>
                             <div class="tags">
-                                <h4>Tags</h4>
+                                <h4>标签</h4>
                                 <ul id="expandedArticleTags"></ul>
+                            </div>
+                            <div class="summary">
+                                <h4>摘要</h4>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="quoteContent('summary')">引用摘要</button>
+                                <div id="expandedArticleSummary"></div>
                             </div>
                         </div>
                     </div>
@@ -119,7 +119,7 @@
     <!-- 浮动引用按钮 -->
     <div id="floatQuoteBtn" class="float-quote-btn">
         <button class="btn btn-sm btn-outline-secondary" onclick="quoteSelection()">
-            <i class="fas fa-quote-right"></i> 引用选中内容
+            <i class="fas fa-quote-right"></i> 继续引用
         </button>
     </div>
 
@@ -266,14 +266,12 @@
             fileInput.onchange = async function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
-                
                 const question = document.getElementById('messageInput').value;
                 if (!question.trim()) {
                     showToast('请输入要询问的问题', 'warning');
                     return;
                 }
-                
-                // 调用统一的对话入口，传入文件
+                // 传入文件并对话
                 await sendChatMessage(file);
             }
             fileInput.click();
@@ -555,22 +553,21 @@
 
                 // 调用chat服务
                 let result;
-                if (file) {
-                    // 如果有文件，使用文件上传接口
+                if (file) { // 如果有文件，使用文件上传接口
                     const formData = new FormData();
                     formData.append('file', file);
                     formData.append('question', message);
-                    
+                    formData.append('conversation_id', currentConversationId);
                     const response = await fetch('/chat/api/chat/with_file', {
                         method: 'POST',
                         body: formData
                     });
                     result = await response.json();
-                } else if (selectedArticles.length > 0) {
-                    // 如果选择了文章，使用文章对话接口
+                }
+                else if (selectedArticles.length > 0) { // 如果选择了文章，使用文章对话接口
                     result = await call_chat('/chat/api/chat', message, selectedArticles);
-                } else {
-                    // 普通对话
+                }
+                else { // 普通对话接口
                     result = await call_chat('/chat/api/chat', message);
                 }
                 // 移除思考中提示
@@ -911,56 +908,6 @@
                 showToast('加载对话失败', 'error');
             }
         }
-        
-        // async function create_conv() {
-        //     // 如果没有当前对话ID，先创建一个新对话
-        //     if (!currentConversationId) {
-        //         try {
-        //             // 创建对话 create_conversation
-        //             const response = await fetch('/chat/api/conversation', {
-        //                 method: 'POST',
-        //                 headers: {
-        //                     'Content-Type': 'application/json',
-        //                 },
-        //                 body: JSON.stringify({
-        //                     user_id: '1'
-        //                 })
-        //             });
-        //             const result = await response.json();
-        //             if (result.success) {
-        //                 currentConversationId = result.data.conversation_id;
-        //                 // 刷新对话列表
-        //                 loadConversationList();
-        //             } else {
-        //                 throw new Error('创建对话失败');
-        //             }
-        //         } catch (error) {
-        //             console.error('创建对话失败:', error);
-        //             showToast('创建对话失败', 'error');
-        //             throw error;  // 继续抛出错误，中断聊天请求
-        //         }
-        //     }
-        //     // 如果有当前对话ID，更新对话时间
-        //     else {
-        //         // 刷新当前对话时间
-        //         try { // update_conversation update_chat
-        //             const response = await fetch(`/chat/api/conversation/${chatId}`, {
-        //                 method: 'PUT',
-        //                 headers: {
-        //                     'Content-Type': 'application/json',
-        //                 },
-        //                 body: JSON.stringify({
-        //                     user_id: '1'
-        //                 })
-        //             });
-        //         } catch (error) {
-        //             // 不处理
-        //         } finally {
-        //             // 刷新对话列表
-        //             loadConversationList();
-        //         }
-        //     }
-        // }
 
         // 创建或更新新对话 DONE
         async function createUpdateChat() {

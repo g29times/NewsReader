@@ -8,8 +8,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__))))
 
 from webapp import create_app
 from database.connection import db_session
-
+from database.connection import init_database
 app = create_app()
+
+# 在应用启动时初始化数据库
+init_database()
 
 # 在请求结束时移除数据库会话
 @app.teardown_appcontext

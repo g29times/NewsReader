@@ -19,7 +19,7 @@ class FileInputHandler:
     SUPPORTED_IMAGE_FILES = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
     SUPPORTED_VIDEO_FILES = {'mp4', 'avi', 'mov', 'wmv'}
     SUPPORTED_AUDIO_FILES = {'mp3', 'wav', 'ogg', 'flac'}
-    
+    # 统一的文件读取入口
     @classmethod
     def read_from_file(cls, file, mime_type=None):
         """统一的文件读取入口
@@ -109,25 +109,25 @@ class FileInputHandler:
             logger.error(f"PDF处理失败: {str(e)}")
             return None
     
-    @staticmethod
+    @staticmethod # TODO
     def _extract_text_from_office(file_path):
         """处理Office文件（待实现）"""
         # TODO: 实现Office文件的文本提取
         raise NotImplementedError('Office文件处理功能即将推出')
     
-    @staticmethod
+    @staticmethod # TODO
     def _process_image(file_path):
         """处理图片文件（预留）"""
         # TODO: 实现图片处理
         raise NotImplementedError('图片处理功能即将推出')
     
-    @staticmethod
+    @staticmethod # TODO
     def _process_video(file_path):
         """处理视频文件（预留）"""
         # TODO: 实现视频处理
         raise NotImplementedError('视频处理功能即将推出')
     
-    @staticmethod
+    @staticmethod # TODO
     def _process_audio(file_path):
         """处理音频文件（预留）"""
         # TODO: 实现音频处理

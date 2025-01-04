@@ -332,8 +332,6 @@ def chat_with_articles():
                 'data': None
             }), 400
         response = rag_service.chat_with_articles(article_ids, message)
-        
-        # return jsonify({'response': response})
         return jsonify({
             'success': True,
             'message': '已成功处理',

@@ -273,11 +273,18 @@ class RAGService:
         # chat_engine.chat_repl()
         response = chat_engine.chat(query)
         logger.info(f"LLM response: {response}")
-
-        # 持久化对话 LlamaIndex 会自动保存
+        # LLM response 格式：纯字符串
+        # LlamaIndex 会自动保存持久化（本地json或redis）
         # self.save_chat(chat_store_key, chat_engine.chat_history)
         # self.chat_store.persist(persist_path="chat_store.json")
         return response
+    
+    def chat_with_file(self, conversation_id: str, file_content: str, question: str) -> str:
+        # 1. 构建上下文
+        context = f"文件内容：\n{file_content}\n问题：{question}"
+        
+        # 2. 使用现有的chat方法
+        return self.chat(conversation_id, context)
 
     # 对话知识库（资料） TODO 改造
     def chat_with_articles(self, conversation_id: str, article_ids: List[int], query: str) -> str:
@@ -651,8 +658,8 @@ class RAGService:
                     role=msg.role,
                     content=content
                 ))
-            # 异步保存到Redis
-            asyncio.run(self.chat_store.async_set_messages(conversation_id, chat_messages))
+            # 保存到Redis
+            self.chat_store.set_messages(conversation_id, chat_messages)
             return True
         except Exception as e:
             logger.error(f"Error in save_chat: {e}")

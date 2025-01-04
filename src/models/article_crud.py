@@ -58,7 +58,7 @@ def search_articles(db: Session, query: str):
         Article.summary.contains(query) |
         Article.key_topics.contains(query) |
         Article.tags.contains(query)
-    ).all()
+    ).order_by(Article.id.desc()).all()
 
 # 更新文章
 @logy
