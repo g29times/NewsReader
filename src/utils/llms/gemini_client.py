@@ -153,9 +153,9 @@ class GeminiClient:
         logger.info("All files are ready.")
 
     # ----------------------------------- 对外方法 -----------------------------------
-    # 使用Gemini API生成内容
+    # 使用Gemini API生成内容 核心
     @classmethod
-    def chat(cls, question: str, context: str = None) -> Optional[dict]:
+    def _chat(cls, question: str, context: str = None) -> Optional[dict]:
         try:
             cls._validate_api_key()
             headers = {"Content-Type": "application/json"}
@@ -194,7 +194,7 @@ class GeminiClient:
                 }
             }
 
-    # 使用内容查询，本方法是对chat的多次重试封装
+    # 使用内容查询，本方法是对chat方法的多次重试封装 其他方法用该调用本方法
     @classmethod
     def query_with_content(cls, content: str, question: str, retries: int = 2) -> Optional[str]:
         if not content:
@@ -207,7 +207,7 @@ class GeminiClient:
         # prompt = question
         for attempt in range(retries + 1):
             try:
-                response = cls.chat(f"{question} : ```{content}```")
+                response = cls._chat(f"{question} : ```{content}```")
                 if response:
                     return response
             except Exception as e:
@@ -216,7 +216,7 @@ class GeminiClient:
                     return None
                 continue
 
-    # 业务方法：使用Gemini总结文本
+    # 业务方法：使用Gemini总结文本 内嵌PROMPT 重要
     @classmethod
     def summarize_text(cls, content: str, question: str = None, language: str = "Chinese") -> LLMResponse:
         if question is None:

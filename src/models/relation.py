@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -13,8 +13,8 @@ class Relation(Base):
     __tablename__ = 'relations'
 
     id = Column(Integer, primary_key=True, index=True)
-    article_id_1 = Column(Integer, ForeignKey('articles.id'))
-    article_id_2 = Column(Integer, ForeignKey('articles.id'))
+    article_id_1 = Column(Integer)
+    article_id_2 = Column(Integer)
     # same topic - same method, same topic - different method, ...
     relation_type = Column(String)
 

@@ -25,7 +25,7 @@ class User(Base):
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())  # 更新时间
 
     # 关系
-    articles = relationship("Article", back_populates="user", lazy="dynamic")  # 用户的文章
+    # articles = relationship("Article", back_populates="user", lazy="dynamic")  # 用户的文章
 
     def __repr__(self):
         return f"<User {self.username}>"

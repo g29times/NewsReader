@@ -28,7 +28,7 @@ def article():
 def add_article(type: str = "WEB"):
     """添加新文章"""
     try:
-        # 获取表单数据
+        # 1 获取表单数据
         article_data = {
             'title': request.form.get('title', ''),
             'url': request.form.get('url', ''),
@@ -36,7 +36,7 @@ def add_article(type: str = "WEB"):
             'content': ''  # 将从URL获取内容
         }
         
-        # 先判断库内是否已经有同样url的文章，如果有，退出
+        # 2 先判断库内是否已经有同样url的文章，如果有，退出
         article = get_article_by_url(db_session, article_data['url'])
         if article:
             logger.info(f"已经存在同样url的文章：{article.title}")
@@ -45,10 +45,12 @@ def add_article(type: str = "WEB"):
                 'message': '已经存在同样url的文章',
                 'data': None
             }), 400
-        # 如果有URL，通过JINA Reader获取web内容
+        # 3 如果是通过URL方式，通过JINA Reader获取web内容
         if article_data['url']:
             article_data['content'] = FileInputHandler.jina_read_from_url(article_data['url'])
-        # 如果没有url、url不正确，或JINA返回的内容为空，则返回400错误
+        # else if FILE ... see chat_routes.chat_with_file
+
+        # 如果没有内容，则返回400错误
         if not article_data['content']:
             return jsonify({
                 'success': False,
@@ -56,43 +58,23 @@ def add_article(type: str = "WEB"):
                 'data': None
             }), 400
 
-        # 使用LLM处理内容
-        response = LLMTasks.summarize_and_key_topics(article_data['content'])
-        # 异常处理
-        if response.state == "ERROR" or response.body.get('title') == "":
-            error_msg = f'LLM API 调用出错 - {response.desc}'
-            logger.error(error_msg)
-            return jsonify({
-                'success': False,
-                'message': error_msg,
-                'data': None
-            }), response.status_code # 原始异常码
-
-        # 更新文章数据
-        logger.info(f"LLM SUMMARY: {response}")
+        # 4 使用LLM处理内容 进行文章摘要/概要/概括，url和tags来自前端，content来自JINA，6个来自LLM的返回-summary.body.get
+        article_data = summarize_article_content(article_data['content'], article_data)
+        
+        # 5 组合文章数据并入库
+        logger.info(f"LLM SUMMARY: {article_data}")
         article_data.update({
-            'title': response.body.get('title', ''),
-            # url
-            'content': article_data['content'],
-            'summary': response.body.get('summary', ''),
-            'key_topics': response.body.get('key_topics', ''),
-            # tags
-            'source': response.body.get('source', ''),
-            'publication_date': response.body.get('publication_date', ''),
-            'authors': response.body.get('authors', ''),
             'type': type,
             'user_id': 1 # TODO 从全局获取
         })
-
-        # 创建新文章
+        # 文章入库
         new_article = Article(**article_data)
         db_session.add(new_article)
         db_session.commit()
         logger.info(f"成功添加文章到数据库: {new_article.title}")
 
-        # 每次添加文章后，将文章转存向量数据库
+        # 6 次添加文章后，将文章转存向量数据库
         add_articles_to_vector_store(new_article)
-
         return jsonify({
             'success': True,
             'message': '文章添加成功',
@@ -103,7 +85,6 @@ def add_article(type: str = "WEB"):
                 'key_topics': new_article.key_topics
             }
         })
-
     except Exception as e:
         db_session.rollback()
         error_msg = f'添加文章失败: {str(e)}'
@@ -188,6 +169,41 @@ def search_articles_route():
         logger.error(f"Error searching articles: {e}")
         flash('Error performing search')
         return render_template('article/article.html', articles=[])
+
+# 文章摘要
+def summarize_article_content(content: str, article_data: dict = None) -> dict:
+    """处理文章内容的公共方法
+    Args:
+        content: 文章内容
+        article_data: 可选的文章基础数据
+    Returns:
+        处理后的文章数据字典
+    """
+    if article_data is None:
+        article_data = {}
+    
+    if not content:
+        raise ValueError('文章内容为空')
+    
+    # 使用LLM处理内容
+    summary = LLMTasks.summarize_and_key_topics(content)
+    if summary.state == "ERROR" or summary.body.get('title') == "":
+        raise ValueError(f'LLM API 调用出错 - {summary.desc}')
+    
+    # 组合文章数据
+    article_data.update({
+        'content': content,
+        'title': summary.body.get('title', ''),
+        'summary': summary.body.get('summary', ''),
+        'key_topics': summary.body.get('key_topics', ''),
+        'source': summary.body.get('source', ''),
+        'publication_date': summary.body.get('publication_date', ''),
+        'authors': summary.body.get('authors', ''),
+        'type': article_data.get('type', 'FILE'),
+        'user_id': article_data.get('user_id', 1)  # TODO 从全局获取
+    })
+    
+    return article_data
 
 def add_articles_to_vector_store(article: Article):
     """将文章添加到向量数据库"""

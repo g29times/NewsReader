@@ -30,6 +30,11 @@ def get_article_by_id(db: Session, article_id: int):
 def get_article_by_url(db: Session, article_url: str):
     return db.query(Article).filter(Article.url == article_url).first()
 
+# 按标题获取文章
+@logy
+def get_article_by_title(db: Session, title: str):
+    return db.query(Article).filter(Article.title == title).first()
+
 # 返回限定数量的多篇文章
 @logy
 def get_articles(db: Session, skip: int = 0, limit: int = 10):
@@ -40,10 +45,10 @@ def get_articles(db: Session, skip: int = 0, limit: int = 10):
 def get_article_by_ids(db: Session, article_ids: list):
     return db.query(Article).filter(Article.id.in_(article_ids)).all()
 
-# 全部文章 倒排
+# 最近100篇文章 倒排
 @logy
-def get_all_articles(db: Session):
-    return db.query(Article).order_by(Article.id.desc()).all()
+def get_all_articles(db: Session, limit: int = 100):
+    return db.query(Article).order_by(Article.id.desc()).limit(limit).all()
 
 # 搜索文章
 @logy

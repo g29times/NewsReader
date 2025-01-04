@@ -6,12 +6,16 @@ from models.article_crud import *
 from models.chat import Chat
 from models.chat_crud import *
 from utils.rag.rag_service import RAGService
+from utils.file_input_handler import FileInputHandler
+from utils.llms.gemini_client import GeminiClient as gemini_client
+from webapp.article import article_routes
 from database.connection import db_session
 import logging
 import asyncio
 import uuid
 import os
 import json
+import threading
 
 logger = logging.getLogger(__name__)
 rag_service = RAGService()
@@ -107,51 +111,102 @@ def chat():
             'data': None
         }), 500
 
-# # 聊资料 合并
-# @chat_bp.route('/api/chat/with_articles', methods=['POST'])
-# def chat_with_articles():
-#     """处理多文档RAG对话"""
-#     try:
-#         data = request.get_json()
-#         article_ids = data.get('article_ids', [])
-#         message = data.get('message', '')
-        
-#         if not article_ids or not message:
-#             # return jsonify({'error': '缺少必要参数'}), 400
-#             return jsonify({
-#                 'success': False,
-#                 'message': '缺少必要参数',
-#                 'data': None
-#             }), 400
+# 聊天文件上传
+@chat_bp.route('/api/chat/with_file', methods=['POST'])
+def chat_with_file():
+    """处理文件上传和对话"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'message': '未找到上传的文件'})
             
-#         # 使用RAG服务处理对话
-#         logger.info(f"处理聊天请求：message={message}, article_ids={article_ids}")
-#         if len(article_ids) > 10:
-#             return jsonify({
-#                 'success': False,
-#                 'message': '最多选择10篇文章',
-#                 'data': None
-#             }), 400
-#         response = rag_service.chat_with_articles(article_ids, message)
+        file = request.files['file']
+        question = request.form.get('question')
         
-#         # return jsonify({'response': response})
-#         return jsonify({
-#             'success': True,
-#             'message': '已成功处理',
-#             'data': {
-#                 'received_message': message,
-#                 'response': response
-#             }
-#         })
-#     except Exception as e:
-#         error_msg = f'处理聊天请求失败: {str(e)}'
-#         logger.error(f"Error in chat_with_articles: {e}")
-#         # return jsonify({'error': str(e)}), 500
-#         return jsonify({
-#             'success': False,
-#             'message': error_msg,
-#             'data': None
-#         }), 500
+        # 读取文件内容
+        content = FileInputHandler.read_from_file(file)
+        if not content:
+            return jsonify({'success': False, 'message': '文件内容为空或无法读取'})
+        
+        # 使用文件内容回答问题
+        response = gemini_client.query_with_content(content, question)
+        
+        if not response:
+            return jsonify({'success': False, 'message': '对话失败'})
+            
+        # 在后台线程中异步保存文件
+        run_async_save(content, file.filename)
+        
+        return jsonify({
+            'success': True,
+            'message': '对话成功',
+            'response': response
+        })
+            
+    except Exception as e:
+        error_msg = f'文件处理失败: {str(e)}'
+        logger.error(error_msg)
+        return jsonify({'success': False, 'message': error_msg})
+# 异步文件上传
+def run_async_save(content: str, filename: str):
+    """在新线程中运行异步保存任务"""
+    async def _run_save():
+        try:
+            await save_file_as_article(content, filename)
+        except Exception as e:
+            logger.error(f"异步保存文件失败: {str(e)}")
+    
+    def _run_in_thread():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(_run_save())
+        finally:
+            loop.close()
+    
+    # 启动后台线程运行异步任务
+    thread = threading.Thread(target=_run_in_thread)
+    thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
+    thread.start()
+# 异步文件上传
+async def save_file_as_article(content: str, filename: str):
+    """异步保存文件为文章"""
+    try:
+        # 处理文件内容，生成文章
+        article_data = {
+            'title': filename,  # 临时标题，会被LLM更新
+            'url': '',  # 文件类型没有URL
+            'tags': '',  # 可以后续添加文件类型标签
+            'type': 'FILE'
+        }
+        
+        # 先查重 title
+        from models.article_crud import get_article_by_title
+        if get_article_by_title(db_session, filename):
+            logger.info(f"文件已存在，跳过保存: {filename}")
+            return None
+        
+        # 使用公共方法处理文章
+        article_data = article_routes.summarize_article_content(content, article_data)
+        
+        # 再次查重（因为LLM可能生成了一个已存在的标题）
+        if get_article_by_title(db_session, article_data['title']):
+            logger.info(f"文章标题已存在，跳过保存: {article_data['title']}")
+            return None
+        
+        # 创建新文章
+        new_article = Article(**article_data)
+        db_session.add(new_article)
+        db_session.commit()
+        
+        # 添加到向量库
+        article_routes.add_articles_to_vector_store(new_article)
+        
+        logger.info(f"文件保存成功: {filename}")
+        return new_article
+    except Exception as e:
+        logger.error(f"文件保存失败: {str(e)}")
+        db_session.rollback()
+        return None
 
 # 删除消息
 @chat_bp.route('/api/chat/delete', methods=['POST'])

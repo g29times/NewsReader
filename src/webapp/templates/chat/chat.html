@@ -77,7 +77,7 @@
         <div class="chat-area">
             <div class="chat-toolbar">
                 <button class="btn btn-outline-secondary" onclick="toNote()">转为笔记</button>
-                <button class="btn btn-outline-secondary" onclick="createNewChat()">新建对话</button>
+                <button class="btn btn-outline-secondary" onclick="createUpdateChat()">新建对话</button>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <!-- 聊天消息将在这里动态添加 -->
@@ -179,8 +179,7 @@
             }
         });
 
-        
-        // 引用消息 DONE
+        // 引用消息
         function quoteMessage(button) {
             const content = button.closest('.message').querySelector('.content').innerText;
             const messageInput = document.getElementById('messageInput');
@@ -259,9 +258,25 @@
             }, 3000);
         }
 
-        // 文件上传功能（待实现）
+        // 文件上传功能
         function uploadFile() {
-            showToast('文件上传功能即将推出', 'info');
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.txt,.pdf,.doc,.docx';
+            fileInput.onchange = async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const question = document.getElementById('messageInput').value;
+                if (!question.trim()) {
+                    showToast('请输入要询问的问题', 'warning');
+                    return;
+                }
+                
+                // 调用统一的对话入口，传入文件
+                await sendChatMessage(file);
+            }
+            fileInput.click();
         }
 
         // 录音功能（待实现）
@@ -367,6 +382,16 @@
         function hideArticleList() {
             document.querySelector('.article-list').style.display = 'none';
             document.getElementById('expandedArticle').style.display = 'block';
+        }
+
+        // 上传文件后 显示文章
+        function showArticleInfo(article) {
+            // 在文章面板中显示新添加的文章
+            const articlePanel = document.querySelector('.articles-panel');
+            if (articlePanel && !articlePanel.classList.contains('collapsed')) {
+                // 如果文章面板打开，刷新文章列表
+                showArticleList();
+            }
         }
 
         // 显示文章内容
@@ -495,41 +520,61 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
-        // 对话聊天 重点 
-        async function sendChatMessage() {
+        // 对话聊天 重点 每次聊天生成对话或更新对话
+        async function sendChatMessage(file = null) {
             const messageInput = document.getElementById('messageInput');
             const sendButton = document.querySelector('.btn-primary');
             const message = messageInput.value.trim();
-
             if (message === '') {
                 showToast('请输入消息内容', 'error');
                 return;
             }
-
             // 禁用发送按钮
             sendButton.disabled = true;
-
-            // 获取选中的文章ID
-            const selectedArticles = Array.from(document.querySelectorAll('.article-items .article-checkbox:checked'))
-                .map(checkbox => checkbox.dataset.articleId);
-            
             try {
+                // 获取选中的文章ID
+                const selectedArticles = Array.from(document.querySelectorAll('.article-items .article-checkbox:checked'))
+                    .map(checkbox => checkbox.dataset.articleId);
                 if (selectedArticles.length > 10) {
                     showToast('最多选择10篇文章', 'error');
                     return;
-                } 
+                }
                 // 立即添加用户消息
-                addUserMessageToChat(message);
+                if (file) {
+                    addUserMessageToChat(`文件：${file.name}\n问题：${message}`);
+                } else {
+                    addUserMessageToChat(message);
+                }
                 // 添加思考中提示
                 addThinkingMessage();
                 // 清空输入框
                 messageInput.value = '';
+                
+                // 生成对话 重点
+                createUpdateChat();
+
+                // 调用chat服务
                 let result;
-                if (selectedArticles.length > 0) {
+                if (file) {
+                    // 如果有文件，使用文件上传接口
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('question', message);
+                    
+                    const response = await fetch('/chat/api/chat/with_file', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    result = await response.json();
+                } else if (selectedArticles.length > 0) {
+                    // 如果选择了文章，使用文章对话接口
                     result = await call_chat('/chat/api/chat', message, selectedArticles);
                 } else {
+                    // 普通对话
                     result = await call_chat('/chat/api/chat', message);
                 }
+                // 移除思考中提示
+                document.querySelector('.thinking-message')?.remove();
                 if (result.success) {
                     if (result.data && result.data.response) {
                         addAssistantMessageToChat(result.data.response);
@@ -547,54 +592,9 @@
             }
         }
 
-        // sendChatMessage 调用后端chat服务 重点 每次聊天都触发更新对话
+        // sendChatMessage 调用后端chat服务
         async function call_chat(url, message, selectedArticles = []) {
             try {
-                // 如果没有当前对话ID，先创建一个新对话
-                if (!currentConversationId) {
-                    try {
-                        // 创建对话 create_conversation
-                        const response = await fetch('/chat/api/conversation', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                user_id: '1'
-                            })
-                        });
-                        const result = await response.json();
-                        if (result.success) {
-                            currentConversationId = result.data.conversation_id;
-                            // 刷新对话列表
-                            loadConversationList();
-                        } else {
-                            throw new Error('创建对话失败');
-                        }
-                    } catch (error) {
-                        console.error('创建对话失败:', error);
-                        showToast('创建对话失败', 'error');
-                        throw error;  // 继续抛出错误，中断聊天请求
-                    }
-                } else {
-                    // 刷新当前对话时间
-                    try { // update_conversation update_chat
-                        const response = await fetch(`/chat/api/conversation/${chatId}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                user_id: '1'
-                            })
-                        });
-                    } catch (error) {
-                        // 不处理
-                    } finally {
-                        // 刷新对话列表
-                        loadConversationList();
-                    }
-                }
                 // 调用chat服务
                 const response = await fetch(url, {
                     method: 'POST',
@@ -715,7 +715,7 @@
             }
         }
 
-        // 删除消息
+        // 删除消息 对话中的一段消息 对话聊天
         async function deleteMessage(button) {
             event.stopPropagation();
             const messageDiv = button.closest('.message');
@@ -760,7 +760,7 @@
             }
         }
 
-        // 编辑消息
+        // 编辑消息 对话中的一段消息 对话聊天
         function editMessage(button) {
             const messageDiv = button.closest('.message');
             const contentDiv = messageDiv.querySelector('.content');
@@ -912,34 +912,108 @@
             }
         }
         
-        // 创建新对话 DONE
-        async function createNewChat() {
-            try {
-                const response = await fetch('/chat/api/conversation', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        user_id: '1'
-                    })
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    chatId = result.data.id;
-                    currentConversationId = result.data.conversation_id;  // 设置当前对话ID
-                    // 清空现有对话
-                    const chatMessages = document.getElementById('chatMessages');
-                    chatMessages.innerHTML = '';
+        // async function create_conv() {
+        //     // 如果没有当前对话ID，先创建一个新对话
+        //     if (!currentConversationId) {
+        //         try {
+        //             // 创建对话 create_conversation
+        //             const response = await fetch('/chat/api/conversation', {
+        //                 method: 'POST',
+        //                 headers: {
+        //                     'Content-Type': 'application/json',
+        //                 },
+        //                 body: JSON.stringify({
+        //                     user_id: '1'
+        //                 })
+        //             });
+        //             const result = await response.json();
+        //             if (result.success) {
+        //                 currentConversationId = result.data.conversation_id;
+        //                 // 刷新对话列表
+        //                 loadConversationList();
+        //             } else {
+        //                 throw new Error('创建对话失败');
+        //             }
+        //         } catch (error) {
+        //             console.error('创建对话失败:', error);
+        //             showToast('创建对话失败', 'error');
+        //             throw error;  // 继续抛出错误，中断聊天请求
+        //         }
+        //     }
+        //     // 如果有当前对话ID，更新对话时间
+        //     else {
+        //         // 刷新当前对话时间
+        //         try { // update_conversation update_chat
+        //             const response = await fetch(`/chat/api/conversation/${chatId}`, {
+        //                 method: 'PUT',
+        //                 headers: {
+        //                     'Content-Type': 'application/json',
+        //                 },
+        //                 body: JSON.stringify({
+        //                     user_id: '1'
+        //                 })
+        //             });
+        //         } catch (error) {
+        //             // 不处理
+        //         } finally {
+        //             // 刷新对话列表
+        //             loadConversationList();
+        //         }
+        //     }
+        // }
+
+        // 创建或更新新对话 DONE
+        async function createUpdateChat() {
+            // 创建对话
+            if (!currentConversationId) {
+                try {
+                    const response = await fetch('/chat/api/conversation', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: '1'
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        chatId = result.data.id;
+                        currentConversationId = result.data.conversation_id;  // 设置当前对话ID
+                        // 清空现有对话
+                        const chatMessages = document.getElementById('chatMessages');
+                        chatMessages.innerHTML = '';
+                        // 刷新对话列表
+                        loadConversationList();
+                    } else {
+                        showToast('创建对话失败', 'error');
+                    }
+                } catch (error) {
+                    console.error('创建对话失败:', error);
+                    showToast('创建对话失败', 'error');
+                    throw error;  // 继续抛出错误，中断聊天请求
+                }
+            }
+            // 更新对话
+            else {
+                // 刷新当前对话时间
+                try { // update_conversation update_chat
+                    const response = await fetch(`/chat/api/conversation/${chatId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: '1'
+                        })
+                    });
+                } catch (error) {
+                    // 不处理
+                } finally {
                     // 刷新对话列表
                     loadConversationList();
-                } else {
-                    showToast('创建对话失败', 'error');
                 }
-            } catch (error) {
-                console.error('创建对话失败:', error);
-                showToast('创建对话失败', 'error');
             }
         }
         
@@ -961,7 +1035,7 @@
             titleDiv.innerHTML = '';
             titleDiv.appendChild(input);
             input.focus();
-            
+
             // 保存编辑 update_conversation
             async function saveTitle() {
                 const newTitle = input.value.trim();

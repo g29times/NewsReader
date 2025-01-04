@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,7 +15,7 @@ class Idea(Base):
     id = Column(Integer, primary_key=True, index=True)
     article_ids = Column(String)  # Comma-separated list of article IDs
     generated_idea = Column(Text)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=func.now())  # 改用func.now()
     relevance_score = Column(Integer, default=0)
 
     def __repr__(self):

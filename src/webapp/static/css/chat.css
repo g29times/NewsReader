@@ -324,40 +324,46 @@ body {
     display: block;
 }
 
-/* -------------------------------- Toast提示 -------------------------------- */
+/* -------------------------------- Toast 提示框 -------------------------------- */
 .toast-container {
     position: fixed;
     top: 20px;
     right: 20px;
-    z-index: 1050;
+    z-index: 9999;
 }
 
 .toast {
-    background-color: #fff;
+    background: #333;
+    color: white;
+    padding: 12px 24px;
     border-radius: 4px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    padding: 5px;
     margin-bottom: 10px;
-    min-width: 250px;
     opacity: 0;
-    transform: translateX(100%);
+    transform: translateY(-20px);
     transition: all 0.3s ease;
-    color: #fff;
 }
 
 .toast.show {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
+}
+
+/* Toast 类型样式 */
+.toast.info {
+    background: #17a2b8;
 }
 
 .toast.success {
-    border-left: 4px solid #28a745;
-    background-color: #28a745;
+    background: #28a745;
+}
+
+.toast.warning {
+    background: #ffc107;
+    color: #333;
 }
 
 .toast.error {
-    border-left: 4px solid #dc3545;
-    background-color: #dc3545;
+    background: #dc3545;
 }
 
 /* -------------------------------- 浮动引用按钮 -------------------------------- */
