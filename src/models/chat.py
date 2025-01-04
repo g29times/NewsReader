@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy.sql import func
 from datetime import datetime
 import os
 import sys
