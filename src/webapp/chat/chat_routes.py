@@ -328,15 +328,18 @@ def update_conversation(chat_id):
     try:
         data = request.get_json()
         title = data.get('title')
+        from sqlalchemy.sql import func
+        update = func.datetime('now', 'localtime')
+        logger.info(f"更新对话：{datetime.now()}")
         if title is not None and title != '':
             update_chat(db_session, chat_id, title=title)
         else: # 只更新时间
-            from sqlalchemy.sql import func
-            update_chat(db_session, chat_id, updated_at=func.datetime('now', 'localtime'))
+            update_chat(db_session, chat_id, updated_at=update)
+        logger.info(f"更新对话成功：{datetime.now()}")
         return jsonify({
             'success': True,
             'data': {
-                'title': title,
+                'updated_at': datetime.now(),
             }
         })
     except Exception as e:
