@@ -26,7 +26,7 @@
                 <div id="articleList" class="article-list">
                     <div class="article-list-header">
                         <input type="checkbox" id="selectAll" class="article-checkbox">
-                        <label for="selectAll">全选</label>
+                        <label for="selectAll">全选<span id="articleCount"></span></label>
                     </div>
                     <div class="article-items">
                         {% for article in articles %}
@@ -452,7 +452,7 @@
                     <div class="article-title" onclick="fetchArticleDetails(${article.id})">${article.title}</div>
                 </div>
             `).join('');
-
+            document.getElementById('articleCount').textContent = articles.length ? ` ${articles.length}篇` : '';
             // 重新绑定复选框事件
             document.querySelectorAll('.article-items .article-checkbox').forEach(checkbox => {
                 checkbox.addEventListener('change', function(e) {

@@ -266,7 +266,8 @@ class RAGService:
         # logger.info(f"LLM response: {resp}")
         # return resp
         # logger.info(f"Query: {query}")
-
+        if not conversation_id:
+            raise ValueError("no conversation_id")
         # 方式2 使用LlamaIndex框架对话
         chat_store_key = "user1_conv" + conversation_id
         chat_engine = self.get_chat_engine(chat_store_key)

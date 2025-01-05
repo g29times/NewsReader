@@ -216,7 +216,7 @@ class GeminiClient:
                     return None
                 continue
 
-    # 业务方法：使用Gemini总结文本 内嵌PROMPT 重要
+    # 业务方法：使用Gemini总结文本 含提示词 PROMPT 重要
     @classmethod
     def summarize_text(cls, content: str, question: str = None, language: str = "Chinese") -> LLMResponse:
         if question is None:

@@ -85,6 +85,12 @@ def chat():
         article_ids = data.get('article_ids', [])
         conversation_id = data.get('conversation_id', '')
         logger.info(f"收到聊天请求：conversation_id={conversation_id}, message={message}, article_ids={article_ids}")
+        if not conversation_id:
+            return jsonify({
+                'success': False,
+                'message': 'no conversation_id',
+                'data': None
+            }), 400
         if article_ids in [None, []]:
             response = rag_service.chat(conversation_id, message)
         else:
