@@ -550,7 +550,7 @@
                 
                 // 生成或更新对话 重点
                 conv_id = await createUpdateChat();
-								
+                console.log('Conversation ID:', conv_id);
                 // 调用chat服务
                 let result;
                 if (file) { // 如果有文件，使用文件上传接口
@@ -590,6 +590,9 @@
         // sendChatMessage 调用后端chat服务
         async function call_chat(url, conv_id, message, selectedArticles = []) {
             try {
+                if (conv_id == undefined || conv_id == null || conv_id == '') {
+                   throw new Error('请稍后再试');
+                }
                 // 调用chat服务
                 const response = await fetch(url, {
                     method: 'POST',
@@ -907,7 +910,7 @@
             }
         }
 
-        // 创建或更新新对话 DONE
+        // 创建或更新新对话 DONE 四种情况：1 空白新页面 直接对话 此时没有对话ID 2 在已有对话的情况下点击新建对话(force) 点的时候 没有新ID 但是点完后页面清屏 并且有ID 3 点击某个对话，进行对话，此时有ID
         async function createUpdateChat(force=false) {
             // 创建对话
             if (!currentConversationId || force) {
@@ -926,12 +929,12 @@
                         chatId = result.data.id;
                         currentConversationId = result.data.conversation_id;  // 设置当前对话ID
                         if (force) { // 点击新建按钮 清空现有对话
-														const chatMessages = document.getElementById('chatMessages');
-														chatMessages.innerHTML = '';
+                            const chatMessages = document.getElementById('chatMessages');
+                            chatMessages.innerHTML = '';
                         }
-												// 刷新对话列表
+                        // 刷新对话列表
                         loadConversationList();
-												return currentConversationId;
+                        return currentConversationId;
                     } else {
                         showToast('创建对话失败', 'error');
                     }
@@ -953,8 +956,10 @@
                             user_id: '1'
                         })
                     });
+                    return currentConversationId;
                 } catch (error) {
                     // 不处理
+                    return currentConversationId;
                 } finally {
                     // 刷新对话列表
                     loadConversationList();
@@ -998,7 +1003,7 @@
                         });
                         const result = await response.json();
                         if (result.success) {
-                            titleDiv.innerHTML = result.data.title;
+                            titleDiv.innerHTML = result.data?.title || newTitle;  // 使用可选链操作符，如果result.data.title不存在就使用newTitle
                             showToast('标题更新成功', 'success');
                         } else {
                             titleDiv.innerHTML = originalTitle;
