@@ -570,8 +570,6 @@
                 else { // 普通对话接口
                     result = await call_chat('/chat/api/chat', conv_id, message);
                 }
-                // 移除思考中提示
-                document.querySelector('.thinking-message')?.remove();
                 if (result.success) {
                     if (result.data && result.data.response) {
                         addAssistantMessageToChat(result.data.response);
@@ -923,15 +921,15 @@
                             user_id: '1'
                         })
                     });
-                    
                     const result = await response.json();
                     if (result.success) {
                         chatId = result.data.id;
                         currentConversationId = result.data.conversation_id;  // 设置当前对话ID
-                        // 清空现有对话
-                        const chatMessages = document.getElementById('chatMessages');
-                        chatMessages.innerHTML = '';
-                        // 刷新对话列表
+                        if (force) { // 点击新建按钮 清空现有对话
+														const chatMessages = document.getElementById('chatMessages');
+														chatMessages.innerHTML = '';
+                        }
+												// 刷新对话列表
                         loadConversationList();
 												return currentConversationId;
                     } else {
