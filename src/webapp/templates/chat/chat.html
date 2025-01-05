@@ -549,14 +549,15 @@
                 messageInput.value = '';
                 
                 // 生成或更新对话 重点
-                createUpdateChat();
+                conv_id = createUpdateChat();
+								
                 // 调用chat服务
                 let result;
                 if (file) { // 如果有文件，使用文件上传接口
                     const formData = new FormData();
                     formData.append('file', file);
                     formData.append('question', message);
-                    formData.append('conversation_id', currentConversationId);
+                    formData.append('conversation_id', conv_id);
                     const response = await fetch('/chat/api/chat/with_file', {
                         method: 'POST',
                         body: formData
@@ -564,10 +565,10 @@
                     result = await response.json();
                 }
                 else if (selectedArticles.length > 0) { // 如果选择了文章，使用文章对话接口
-                    result = await call_chat('/chat/api/chat', message, selectedArticles);
+                    result = await call_chat('/chat/api/chat', conv_id, message, selectedArticles);
                 }
                 else { // 普通对话接口
-                    result = await call_chat('/chat/api/chat', message);
+                    result = await call_chat('/chat/api/chat', conv_id, message);
                 }
                 // 移除思考中提示
                 document.querySelector('.thinking-message')?.remove();
@@ -589,7 +590,7 @@
         }
 
         // sendChatMessage 调用后端chat服务
-        async function call_chat(url, message, selectedArticles = []) {
+        async function call_chat(url, conv_id, message, selectedArticles = []) {
             try {
                 // 调用chat服务
                 const response = await fetch(url, {
@@ -600,7 +601,7 @@
                     body: JSON.stringify({
                             message: message,
                             article_ids: selectedArticles,
-                            conversation_id: currentConversationId
+                            conversation_id: conv_id
                     })
                 });
                 if (!response.ok) {
@@ -932,6 +933,7 @@
                         chatMessages.innerHTML = '';
                         // 刷新对话列表
                         loadConversationList();
+												return currentConversationId;
                     } else {
                         showToast('创建对话失败', 'error');
                     }
