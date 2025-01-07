@@ -5,6 +5,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import sys
 import os
+from pymilvus import DataType
 
 from scipy.linalg import basic
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,6 +17,7 @@ from src.utils.rag.dataset_generator import DatasetGenerator
 from src.utils.rag.context_generator import ContextGenerator
 from src.database.milvus_client import Milvus
 from llama_index.core import Document, SimpleDirectoryReader
+from src.utils.rag.rag_service import RAGService
 from src.utils.rag.rag_service_context import ContextualRAGService
 
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +27,7 @@ class RAGEvaluator:
 
     def __init__(self):
         """初始化评估器"""
-        self.evaluation_set_path = "./src/utils/rag/data/evaluation_set.json"
+        self.evaluation_set_path = "./src/utils/rag/data/evaluation_set_010601.json"
         self.evaluation_set = self._load_evaluation_set(self.evaluation_set_path)
         self.metrics = {
             'basic_rag': {'pass@5': 0, 'pass@10': 0, 'pass@20': 0},
@@ -35,23 +37,21 @@ class RAGEvaluator:
         # 初始化Milvus客户端
         self.milvus_basic = Milvus()
         self.milvus_context = Milvus()
-        
         # 设置collection名称
         self.rag_basic = "rag_basic"
         self.rag_context = "rag_context"
-        
         # 初始化数据集生成器和上下文生成器
         self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
         self.context_generator = ContextGenerator()
-
-        self.rag_context_service = ContextualRAGService(current_collection_name=self.rag_context)
-            
+        # 设置服务
+        self.rag_service = RAGService()
+        self.rag_context_service = ContextualRAGService()
+    
+    # 加载评估数据集
     def _load_evaluation_set(self, path: str) -> List[Dict[str, Any]]:
         """加载评估数据集
-        
         Args:
             path: 评估集文件路径
-            
         Returns:
             评估集列表
         """
@@ -113,10 +113,9 @@ class RAGEvaluator:
                 logger.info(f"Ground Truth Golden: {golden_chunk[:20].encode('utf-8').decode('utf-8')}...")
         
         return results
-        
+    # 评估RAG系统的性能
     def evaluate(self) -> Dict[str, Dict[str, float]]:
         """评估RAG系统的性能
-        
         Returns:
             Dict[str, Dict[str, float]]: 包含Pass@5、Pass@10、Pass@20的评估结果
         """
@@ -143,7 +142,7 @@ class RAGEvaluator:
             logger.info(f' ???????? Question: {query} ???????? ')
             logger.info(f' ============= Answer: {eval_item["answer"]} ============= ')
 
-            # 使用基础RAG进行检索
+            # 使用基础RAG进行检索 # milvus_basic.search
             retrieved_results = self.milvus_basic.search("rag_basic", query, limit=20)
             logger.info(f' +++++++++++++++ Basic Retrieved {len(retrieved_results[0])}')
             # 计算指标
@@ -173,22 +172,21 @@ class RAGEvaluator:
                 logger.info(f'{k} {sub_k}: {metrics[k][sub_k]:.4f}')
             
         return metrics
-        
+    
+    # 将文档添加到向量库（文档来源在init配置）
     def _add_documents_to_vector_store(self, collection_name: str, with_context: bool = False, schema=None, index_params=None):
         """将文档添加到向量库
         Args:
-            collection_name: 集合名称
-            with_context: 是否添加上下文（使用answer作为上下文）
+            collection_name: 要添加到的集合名称
+            with_context: 是否添加上下文（默认使用answer作为上下文）
         """
         logger.info(f"Adding documents to vector store {collection_name}...")
-        
         # # 加载文档目录下的所有文件
         # docs_dir = "./src/utils/rag/docs"
         # reader = SimpleDirectoryReader(docs_dir)
         # raw_documents = reader.load_data()
         # 处理每个文档
         # self._add_document
-        
         # 选择对应的Milvus实例
         milvus_instance = self.milvus_context if with_context else self.milvus_basic
         # 设置schema
@@ -209,7 +207,6 @@ class RAGEvaluator:
                 # basic版本：直接使用golden_chunk
                 content = item['golden_chunk']
             documents.append(content)
-        
         # 批量添加到Milvus
         milvus_instance.upsert_docs(
             collection_name=collection_name,
@@ -220,6 +217,7 @@ class RAGEvaluator:
         logger.info(f"Added {len(documents)} documents to {collection_name}")
         
     from pymilvus import MilvusClient
+    # 设置milvus schema
     def set_schema(self, client: MilvusClient, with_context: bool = False, dense_dim: int = 1024):
         if not with_context:
             return None, None
@@ -227,13 +225,11 @@ class RAGEvaluator:
             auto_id=False,
             enable_dynamic_field=True,
         )
-
         # Add fields to schema
         schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
         schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=512, enable_analyzer=True)
         schema.add_field(field_name="sparse_bm25", datatype=DataType.SPARSE_FLOAT_VECTOR)
         schema.add_field(field_name="dense", datatype=DataType.FLOAT_VECTOR, dim=dense_dim)
-
         from pymilvus import Function
         from pymilvus import FunctionType
         bm25_function = Function(
@@ -243,9 +239,7 @@ class RAGEvaluator:
                 output_field_names="sparse_bm25",
             )
         schema.add_function(bm25_function)
-
         index_params = client.prepare_index_params()
-
         # Add indexes
         index_params.add_index(
             field_name="dense",
@@ -254,7 +248,6 @@ class RAGEvaluator:
             metric_type="IP",
             params={"nlist": 128},
         )
-
         index_params.add_index(
             field_name="sparse_bm25",
             index_name="sparse_bm25_index",
@@ -267,16 +260,15 @@ if __name__ == "__main__":
     # 初始化评估器
     evaluator = RAGEvaluator()
 
-    # # 1. 初始化数据库
+    # # 1. 初始化数据
     # # 基础版本（不带上下文）
     # evaluator._add_documents_to_vector_store("rag_basic", with_context=False)
-    # # 上下文增强版本
+    # # # 上下文增强版本
     # evaluator._add_documents_to_vector_store("rag_context", with_context=True)
 
     # 2. 评估
     results = evaluator.evaluate()
     print(results)
-
 
 
 

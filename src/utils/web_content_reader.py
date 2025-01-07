@@ -2,6 +2,7 @@ from file_input_handler import FileInputHandler
 import os
 import sys
 
+# 给cascade的工具
 def fetch_and_save_web_content(url, output_file='temp_article_content.txt'):
     """
     Fetch web content from a given URL using the JINA Reader and write it to a file.

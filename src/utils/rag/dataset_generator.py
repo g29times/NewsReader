@@ -9,6 +9,7 @@ Features:
 """
 
 import os
+import sys
 import json
 import logging
 from typing import List, Dict, Any, Optional
@@ -17,6 +18,14 @@ from llama_index.core import Document, SimpleDirectoryReader
 from llama_index.core.schema import NodeWithScore, TextNode
 import google.generativeai as genai
 from tqdm import tqdm
+
+# 添加项目根目录到 Python 路径 标准方式
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from src.utils.text_input_handler import TextInputHandler
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
@@ -65,7 +74,85 @@ class DatasetGenerator:
         except Exception as e:
             logger.error(f"Failed to load documents: {str(e)}")
             raise
-            
+
+    # 生成评估数据集
+    def generate_dataset(self, output_file: str, samples_per_chunk: int = 5) -> List[EvaluationPair]:
+        """生成评估数据集
+        Args:
+            output_file: 输出文件路径
+            samples_per_chunk: 每个文档生成的样本数量
+        Returns:
+            List[EvaluationPair]: 生成的评估数据对列表
+        """
+        all_evaluation_pairs = []
+        question_types = {
+            'factual': 0,
+            'comparative': 0,
+            'causal': 0,
+            'methodological': 0,
+            'enumerative': 0
+        }
+        for doc in tqdm(self.documents, desc="Generating dataset"):
+            doc_evaluation_pairs = []
+            logger.info(f"Processing document: {doc.metadata.get('file_name', '')}")
+            # 分割文档，生成语义完整的黄金块
+            chunks = self._split_document(doc)
+            attempts = 0
+            successful_pairs = 0
+            # 比如，预期是5，那么最多尝试10次，因为LLM每次生成的都可能数量不够或过长过短 _is_valid_qa_pair
+            while successful_pairs < samples_per_chunk and attempts < samples_per_chunk * 2:
+                chunk = chunks[attempts % len(chunks)]
+                try:
+                    # LLM为文档块生成问题
+                    qa_pairs = self.generate_question(chunk.text)
+                    # logger.info(f"LLM Generated {len(qa_pairs)} pairs for chunk: 【{chunk.text}】")
+                    effective_pairs = 0
+                    for qa_pair in qa_pairs:
+                        # 检查生成的问答对
+                        if qa_pair and self._is_valid_qa_pair(qa_pair):
+                            q_type = qa_pair.get('type', 'factual')
+                            question_types[q_type] = question_types.get(q_type, 0) + 1
+                            pair = EvaluationPair(
+                                question=qa_pair['question'],
+                                answer=qa_pair['answer'],
+                                golden_chunk=chunk.text,
+                                chunk_id=chunk.id_,
+                                metadata={
+                                    'source': doc.metadata.get('file_name', ''),
+                                    'chunk_index': chunks.index(chunk), # 有BUG 都是0
+                                    'question_type': q_type
+                                }
+                            )
+                            doc_evaluation_pairs.append(pair)
+                            all_evaluation_pairs.append(pair)
+                            successful_pairs += 1
+                            effective_pairs += 1
+                    logger.info(f"{effective_pairs} Effective pairs for chunk")
+                except Exception as e:
+                    logger.error(f"Failed to generate question for chunk: {str(e)}")
+                attempts += 1
+            # 每处理完文档的一个chunk就保存一次
+            if doc_evaluation_pairs:
+                logger.info(f"Saving {len(doc_evaluation_pairs)} pairs from <{doc.metadata.get('file_name', '')}>")
+                self._save_to_file(doc_evaluation_pairs, output_file, mode='a')
+            logger.info(f"Finished processing document with {successful_pairs} pairs")
+        # 最终统计
+        logger.info(f"Total docs: {len(self.documents)}")
+        logger.info(f"Total generated pairs: {len(all_evaluation_pairs)}")
+        logger.info(f"Question type distribution: {question_types}")
+        return all_evaluation_pairs
+    
+    # 分割文档，生成语义完整的黄金块
+    def _split_document(self, doc: Document) -> List[NodeWithScore]:
+        """智能分割文档，生成语义完整的黄金块
+        Args:
+            doc: 输入文档
+        Returns:
+            List[NodeWithScore]: 黄金块列表
+        """
+        import asyncio
+        return asyncio.run(TextInputHandler.split_text(doc.text, 1024))
+
     # 为文档块生成问题
     def generate_question(self, chunk: str) -> Optional[Dict[str, str]]:
         """为文档块生成问题
@@ -97,7 +184,7 @@ class DatasetGenerator:
         
         try:
             response = self.model.generate_content(prompt)
-            logger.info(f"Generated question: {response.text}")
+            logger.info(f"LLM Initial Generated question: {response.text}")
             # 清理返回的文本
             text = response.text.strip()
             # 移除可能的 markdown 代码块标记
@@ -114,80 +201,12 @@ class DatasetGenerator:
         except Exception as e:
             logger.error(f"Failed to generate question: {str(e)}")
             return None
-            
-    def generate_dataset(self, output_file: str, samples_per_doc: int = 5) -> List[EvaluationPair]:
-        """生成评估数据集
-        
-        Args:
-            output_file: 输出文件路径
-            samples_per_doc: 每个文档生成的样本数量
-            
-        Returns:
-            List[EvaluationPair]: 生成的评估数据对列表
-        """
-        all_evaluation_pairs = []
-        question_types = {
-            'factual': 0,
-            'comparative': 0,
-            'causal': 0,
-            'methodological': 0,
-            'enumerative': 0
-        }
-        
-        for doc in tqdm(self.documents, desc="Generating dataset"):
-            doc_evaluation_pairs = []
-            logger.info(f"Processing document: {doc.metadata.get('file_name', '')}")
-            chunks = self._split_document(doc)
-            
-            attempts = 0
-            successful_pairs = 0
-            while successful_pairs < samples_per_doc and attempts < samples_per_doc * 2:
-                chunk = chunks[attempts % len(chunks)]
-                try:
-                    # LLM关键调用位置 此注解不要删除
-                    qa_pairs = self.generate_question(chunk.text)
-                    for qa_pair in qa_pairs:
-                        if qa_pair and self._is_valid_qa_pair(qa_pair):
-                            q_type = qa_pair.get('type', 'factual')
-                            question_types[q_type] = question_types.get(q_type, 0) + 1
-                            
-                            pair = EvaluationPair(
-                                question=qa_pair['question'],
-                                answer=qa_pair['answer'],
-                                golden_chunk=chunk.text,
-                                chunk_id=chunk.id_,
-                                metadata={
-                                    'source': doc.metadata.get('file_name', ''),
-                                    'chunk_index': chunks.index(chunk),
-                                    'question_type': q_type
-                                }
-                            )
-                            doc_evaluation_pairs.append(pair)
-                            all_evaluation_pairs.append(pair)
-                            successful_pairs += 1
-                except Exception as e:
-                    logger.error(f"Failed to generate question for chunk: {str(e)}")
-                attempts += 1
-                
-            # 每处理完一篇文档就保存一次
-            if doc_evaluation_pairs:
-                logger.info(f"Saving {len(doc_evaluation_pairs)} pairs from document {doc.metadata.get('file_name', '')}")
-                self._save_to_file(doc_evaluation_pairs, output_file, mode='a')
-            
-            logger.info(f"Finished processing document with {successful_pairs} pairs")
-        
-        # 最终统计
-        logger.info(f"Total generated pairs: {len(all_evaluation_pairs)}")
-        logger.info(f"Question type distribution: {question_types}")
-        
-        return all_evaluation_pairs
-        
+    
+    # 验证问答对
     def _is_valid_qa_pair(self, qa_pair: Dict[str, str]) -> bool:
         """验证问答对的质量
-        
         Args:
             qa_pair: 问答对字典
-            
         Returns:
             bool: 是否是有效的问答对
         """
@@ -218,98 +237,10 @@ class DatasetGenerator:
             return False
         
         return True
-
-    def _split_document(self, doc: Document) -> List[NodeWithScore]:
-        """智能分割文档，生成语义完整的黄金块
-        
-        Args:
-            doc: 输入文档
-            
-        Returns:
-            List[NodeWithScore]: 黄金块列表
-        """
-        from llama_index.core.node_parser import SentenceSplitter
-        
-        # 使用句子级别的分割器
-        parser = SentenceSplitter(
-            chunk_size=512,
-            chunk_overlap=50,
-            separator=" ",
-            paragraph_separator="\n\n",
-        )
-        
-        # 获取初始分块
-        try:
-            initial_nodes = parser.get_nodes_from_documents([doc])
-        except Exception as e:
-            logger.error(f"Failed to split document: {str(e)}")
-        
-        # 合并短句，确保语义完整性
-        merged_nodes = []
-        current_text = []
-        current_length = 0
-        
-        for node in initial_nodes:
-            # 如果当前句子很短，尝试与下一句合并
-            if len(node.text.split()) < 10 and current_length < 512:
-                current_text.append(node.text)
-                current_length += len(node.text.split())
-            else:
-                # 如果积累了一些短句，将它们合并
-                if current_text:
-                    merged_text = " ".join(current_text)
-                    text_node = TextNode(
-                        text=merged_text,
-                        id_=f"{doc.doc_id}_golden_{len(merged_nodes)}",
-                        metadata={
-                            **node.metadata,
-                            "is_golden": True,
-                            "merged_from": len(current_text)
-                        }
-                    )
-                    merged_nodes.append(NodeWithScore(
-                        node=text_node,
-                        score=1.0  # 黄金块的得分设为1.0
-                    ))
-                    current_text = []
-                    current_length = 0
-                
-                # 将当前句子作为独立的块
-                text_node = TextNode(
-                    text=node.text,
-                    id_=f"{doc.doc_id}_golden_{len(merged_nodes)}",
-                    metadata={
-                        **node.metadata,
-                        "is_golden": True
-                    }
-                )
-                merged_nodes.append(NodeWithScore(
-                    node=text_node,
-                    score=1.0
-                ))
-        
-        # 处理剩余的短句
-        if current_text:
-            merged_text = " ".join(current_text)
-            text_node = TextNode(
-                text=merged_text,
-                id_=f"{doc.doc_id}_golden_{len(merged_nodes)}",
-                metadata={
-                    **doc.metadata,
-                    "is_golden": True,
-                    "merged_from": len(current_text)
-                }
-            )
-            merged_nodes.append(NodeWithScore(
-                node=text_node,
-                score=1.0
-            ))
-        
-        return merged_nodes
-
+    
+    # 保存评估数据
     def _save_to_file(self, evaluation_pairs: List[EvaluationPair], output_file: str, mode: str = 'w'):
         """保存评估数据对到文件
-        
         Args:
             evaluation_pairs: 评估数据对列表
             output_file: 输出文件路径
@@ -317,7 +248,6 @@ class DatasetGenerator:
         """
         # 确保输出目录存在
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
-        
         # 转换为可序列化的格式
         data = [
             {
@@ -329,14 +259,12 @@ class DatasetGenerator:
             }
             for pair in evaluation_pairs
         ]
-        
         try:
             if mode == 'a' and os.path.exists(output_file):
                 # 如果是追加模式且文件存在，先读取现有内容
                 with open(output_file, 'r', encoding='utf-8') as f:
                     existing_data = json.load(f)
                 data = existing_data + data
-            
             # 写入文件
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -347,5 +275,7 @@ class DatasetGenerator:
 
 if __name__ == "__main__":
     # 示例用法
-    generator = DatasetGenerator("./src/utils/rag/docs")
-    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set.json", samples_per_doc=5)
+    # 输入
+    generator = DatasetGenerator("C:/Users/SWIFT/Desktop/temp")
+    # 输出
+    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set_010602.json", samples_per_chunk=5)

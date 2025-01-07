@@ -1,0 +1,209 @@
+Title: 超越 "对话" : 掌握 Claude 的 5 层 Prompt 体系
+
+URL Source: https://mp.weixin.qq.com/s/8pby7at0QncsxZwbAuWW9A
+
+Markdown Content:
+![Image 29](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAQypeZicibmdlqdfSyPrtXtxhbyjTyVjtDS43pwOhj3icYNBUZxEJo4QKA/640?wx_fmt=png)
+
+在 AI 时代，我们都在学习如何与 AI 对话。
+
+但你有没有想过，为什么有时候同样的问题，别人能得到惊艳的答案，而你却只能翻到平平无奇的回应？            
+甚至，别人只需要短短的 1 句输入，就能超出预期，你尝试复现，却始终差点意思。
+
+秘密就在于 Prompt 的多层咒法 —— 就像魔法师的施法体系，每一层吟唱都有独特的作用，叠加起来才能释放出 AI 真正的力量。
+
+在和 Claude 「大战」 3000 回合之后，我发现了这套完整的施法体系：
+
+Prompt Cascade
+
+![Image 30](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gACXjY09TA90VwXNsfSkMMUfibfXlIH7uFY0eVxicLOicICuQyTrAc2Nh3A/640?wx_fmt=png)
+
+让我们逐层深入，一探究竟。
+
+1️⃣ 核心咒语：用户需求 (User Requirement)
+
+![Image 31](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gA45d2PPOVaC8UwAqDq4tzIYGnsudoUx4uj0YYBCxnFzK98zZNILsk4g/640?wx_fmt=png)
+
+属于一波流的吟唱，所有细节梭哈。            
+可以细分为提示词 (Prompt)、指令 (Instruction) 和随便闲聊 (Chat) 3 种。
+
+其中：
+
+*   提示词是最完整的结构化设计，主要包含：
+    
+
+明确做\[什么样\]的\[什么事\]
+
+预期的结果
+
+约束事项
+
+*   「做什么」就是典型的指令，大多时候缺少约束和细节，效果比较随机
+    
+
+*   至于闲聊，爱说什么说什么
+    
+
+2️⃣ 基础法阵：System Prompt
+
+隐藏的官方系统提示词 ¹，只在官网和官方 APP 上搭载, 每个模型一套。
+
+![Image 32](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAYtHe2EdwsiaTANLRdOUdZN4ktkI3IAbNHVEcvc1GpN9YicqXqhLA0hLA/640?wx_fmt=png)
+
+要点是：
+
+*   为模型量身定制、设计精良且边界清晰，能够最大化发挥模型的潜力
+    
+*   在 API 调用中，由于缺少这一部分，会呈现差异化
+    
+*   由于这个隐藏法阵的存在，设计自定义提示词时，避免重复已有的定义，具体要自己去过一遍
+    
+
+3️⃣ 魔法结界：Global Rule
+
+支配所有会话，适合收纳日常使用中的重复要求。
+
+最佳实践：
+
+*   遵循抓大放小的原则，不宜过度约束
+    
+*   由于支配全局，应该追求通用性和灵活性
+    
+*   可以定义个人特质来量身定制回应，最简单的方式是给 MBTI
+    
+*   工具偏好也可以在此定义，比如 Mermaid 可视化辅助的细节
+    
+
+例子：
+
+```
+- 请逐步思考
+```
+
+如何设置：
+
+Settings → Profile → What personal preferences should Claude consider in responses? \[图 3.1\]
+
+![Image 33](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAWVcqwBRan2lN641qq7lQcKwle74iblI587tZoqlcQRuGJYocIAerfng/640?wx_fmt=png)
+
+4️⃣ 专属法术：Project ² Custom Instruction
+
+Claude AI 里面最值钱的特性，需要的工具 (Tools) 和知识库 (Knowledge) 因项目而异，按需定义。 \[图 4.1\]
+
+![Image 34](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gA24DyMNIP70V1Bj7iaDwjBydf26NpQVABSNdbib62ytMda0tTm3LiaYFXA/640?wx_fmt=png)
+
+性质类似 ChatGPT Project \[图 4.2\]、GPTs。
+
+![Image 35](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAsA0dsMqsrQex6ibFpNqq6kN5rYX7YibCIVZVwt9IfWEBRl5dAqsVFIAQ/640?wx_fmt=png)
+
+主要用于：
+
+*   扮演具体的角色来解决特定问题
+    
+*   针对性解决某个项目
+    
+
+例子：
+
+🍀 日常助手            
+for anycase
+
+Custom instruction:
+
+```
+Generate insightful analysis to deeply understand the essence of things and concepts, seeking profound wisdom to guide action.    
+```
+
+本质上，2-4 都是 System Prompt 的变种，只是颗粒度不同。在常见的调用/工具中，对应关系如下：
+
+*   API 调用: System Role
+    
+
+*   Cursor AI: Cursor Rules \[图 3.2\]
+    
+
+![Image 36](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAYtHe2EdwsiaTANLRdOUdZN4ktkI3IAbNHVEcvc1GpN9YicqXqhLA0hLA/640?wx_fmt=png)
+
+*   Windsurf: Global Rules → Workspace Rules（相当于 Project Custom Instruction，多拆分了 1 层）\[图 3.3\]
+    
+
+![Image 37](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gASDofibYYzDtial7c5eJs2NiaV8S37DQrnLC6fZiat3Hiaic2rKnCZCGZ9Bog/640?wx_fmt=png)
+
+5️⃣ 魔法调律：Styles
+
+定义回应口吻，一个会话中，支持多种风格切换。
+
+最佳实践：
+
+*   细节的格式，适合在这里定义
+    
+*   按自己的应用场合，针对性设计
+    
+*   在输出中有的放矢地切换，匹配不同的场合
+    
+
+官方预设速通：
+
+*   Normal：裸奔，Claude 本色
+    
+*   Concise：精确，少废话
+    
+*   Explanatory：解释，像老师
+    
+*   Formal：正式，能交付
+    
+
+例子：
+
+```
+- 流畅叙述，除非明确需要列点
+```
+
+图示：
+
+*   Styles 面板
+    
+
+![Image 38](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAcLo08WtRUDEyRVO85KtgvALJjAyxS3ReAyrh9Gs1IAoBHLbND6XX7A/640?wx_fmt=png)
+
+*   Style 自定义
+    
+
+![Image 39](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAIQYFUEHH70aib9EvgQMbawVpgejj5niahapzp0JSJRTS5KFKvIicUMP6Q/640?wx_fmt=png)
+
+*   在会话中切换 Style
+    
+
+![Image 40](https://mmbiz.qpic.cn/sz_mmbiz_png/iagzD3qNYgicenm3v56C0nbMwJZmpez4gAWPMxU6Blia2MJRX0tcmj3uCgZtREB3JHlia780zlmibtcy18a29nvgFsw/640?wx_fmt=png)
+
+小结：
+
+Claude 的 5 层 Prompt 体系包含：
+
+*   User Requirement：针对特定场景的用户需求
+    
+*   System Prompt：官方预设的系统提示
+    
+*   Global Rule：全局的个性化约束
+    
+*   Project Custom Instruction：项目级的定制化指令
+    
+*   Styles：可灵活切换的输出风格
+    
+
+这种层层递进的体系设计，让我们能够实现：
+
+✦ 原子设计：将复杂需求拆解为结构化的指令组件            
+✦ 灵活组合：在不同层级灵活组合和调用规则            
+✦ 以少胜多：用简洁的表达获得精准的输出
+
+需要注意的是，清晰地表达需求，始终是影响结果的最大变量，这是需要反复锤炼的基本功。
+
+Expressions should be simple, but not simple-minded.            
+Let it flow like a cascade.
+
+* * *
+
+\[1\] 官方系统提示词，只在官方 APP/Web 上搭载, 每个模型一套 https://docs.anthropic.com/en/release-notes/system-prompts#oct-22nd-2024
+
+\[2\] Projects 为 Pro 用户专享，可以搭载 custom instruction (自定义指令) 和 knowledge（知识库）

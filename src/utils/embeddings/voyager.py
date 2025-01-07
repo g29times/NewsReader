@@ -2,7 +2,6 @@ import os
 import voyageai
 from typing import List, Union
 import logging
-import requests
 from typing import List, Dict, Any, Optional, Tuple
 
 # 配置日志
@@ -10,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 # 初始化 Voyage 客户端
 voyage = voyageai.Client(api_key=os.getenv('VOYAGE_API_KEY'))
-JINA_API_KEY = os.getenv("JINA_API_KEY")
 
 # 嵌入模型配置
 EMBED_MODES = ["voyage-3", "voyage-3-lite", "voyage-multilingual-2"]  # 1024 512 1024
@@ -141,33 +139,6 @@ def get_query_embedding(query):
 #         logger.error(f"获取文档嵌入向量失败: {str(e)}")
 #         return []
 
-# JINA的实现 task：多种下游任务优化
-def get_doc_embeddings_jina(documents, task="text-matching"):
-    # text-matching，retrieval.passage文档, retrieval.query查询, separation 聚类, classification分类
-    url = 'https://api.jina.ai/v1/embeddings'
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {JINA_API_KEY}'
-    }
-    print(f"---------------- jina embedding task: `{len(documents)}` ----------------")
-    embeddings = []
-    data = {
-        "model": "jina-embeddings-v3",
-        "task": task,
-        "late_chunking": True, # late_chunking 技术
-        "dimensions": 128, # MRL技术 可以根据需要减少嵌入的维度（甚至可以降到单个维度！）。较小的嵌入对向量数据库更友好
-        "embedding_type": "float",
-        "input": documents
-    }
-    response = requests.post(url, json=data, headers=headers)
-    response.raise_for_status()
-    response_json = response.json()
-    # JINA API 返回格式中，嵌入向量在 data[i].embedding 中
-    if response_json.get('data'):
-        embeddings.extend([item['embedding'] for item in response_json['data']])
-    logger.info(f"JINA embedding success")
-    return embeddings
-
 # Retrieval 使用KNN召回 TODO 研究 最终的召回效果是KNN影响的吗?
 def knn_algo(query, k, doc_embeddings):
     # Get the embedding of the query
@@ -194,10 +165,10 @@ def knn_algo(query, k, doc_embeddings):
     retrieved_docs_with_scores = [(my_documents[index], score) for index, score in zip(retrieved_embd_indices, top_k_scores)]
     return retrieved_docs_with_scores
 
-# Retrieval 使用ANN召回
+# Retrieval 使用ANN召回 # TODO
 def ann_algo(query, k, doc_embeddings):
     query_embedding = get_query_embedding(query)
-    # TODO  
+    
 
 # Reranking 外部调用
 def rerank(query, k=k_default):
@@ -267,5 +238,4 @@ def query_doc(query=query_default, k=k_default, dev=False, dev_len=20, doc_embed
 if __name__ == "__main__":
     # 测试
     print()
-    # print(get_query_embedding("你好"))
-    print(get_doc_embeddings_jina("你好", "retrieval.query"))
+    print(get_query_embedding("你好"))

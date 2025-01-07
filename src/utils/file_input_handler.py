@@ -1,6 +1,15 @@
 import requests
 import logging
 from PyPDF2 import PdfReader
+import os
+import sys
+
+# 添加项目根目录到 Python 路径 标准方式
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+from src.utils.embeddings import jina
 
 # 获取模块特定的logger
 logger = logging.getLogger(__name__)
@@ -19,9 +28,10 @@ class FileInputHandler:
     SUPPORTED_IMAGE_FILES = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
     SUPPORTED_VIDEO_FILES = {'mp4', 'avi', 'mov', 'wmv'}
     SUPPORTED_AUDIO_FILES = {'mp3', 'wav', 'ogg', 'flac'}
+    
     # 统一的文件读取入口
-    @classmethod
-    def read_from_file(cls, file, mime_type=None):
+    @staticmethod
+    def read_from_file(file, mime_type=None):
         """统一的文件读取入口
         Args:
             file: 可以是文件路径(str)或FileStorage对象
@@ -34,15 +44,15 @@ class FileInputHandler:
             if hasattr(file, 'filename'):
                 file_ext = file.filename.split('.')[-1].lower()
                 # 保存到临时文件
-                temp_path = cls._save_temp_file(file)
-                content = cls._process_file(temp_path, file_ext)
-                cls._remove_temp_file(temp_path)
+                temp_path = FileInputHandler._save_temp_file(file)
+                content = FileInputHandler._process_file(temp_path, file_ext)
+                FileInputHandler._remove_temp_file(temp_path)
                 return content
             
             # 处理文件路径
             if isinstance(file, str):
                 file_ext = file.split('.')[-1].lower()
-                return cls._process_file(file, file_ext)
+                return FileInputHandler._process_file(file, file_ext)
             
             raise ValueError('不支持的文件类型')
             
@@ -50,8 +60,8 @@ class FileInputHandler:
             logger.error(f"文件处理失败: {str(e)}")
             return None
     
-    @classmethod
-    def _process_file(cls, file_path, file_ext):
+    @staticmethod
+    def _process_file(file_path, file_ext):
         """根据文件类型处理文件
         Args:
             file_path: 文件路径
@@ -60,23 +70,23 @@ class FileInputHandler:
             str: 提取的文本内容
         """
         # 文本类文件处理
-        if file_ext in cls.SUPPORTED_TEXT_FILES:
+        if file_ext in FileInputHandler.SUPPORTED_TEXT_FILES:
             if file_ext == 'pdf':
-                return cls._extract_text_from_pdf(file_path)
+                return FileInputHandler._extract_text_from_pdf(file_path)
             elif file_ext in {'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}:
-                return cls._extract_text_from_office(file_path)
+                return FileInputHandler._extract_text_from_office(file_path)
             else:
-                return cls._extract_text_from_plain(file_path)
+                return FileInputHandler._extract_text_from_plain(file_path)
         
         # 视觉类文件处理（预留） TODO
-        elif file_ext in cls.SUPPORTED_IMAGE_FILES:
-            return cls._process_image(file_path)
-        elif file_ext in cls.SUPPORTED_VIDEO_FILES:
-            return cls._process_video(file_path)
+        elif file_ext in FileInputHandler.SUPPORTED_IMAGE_FILES:
+            return FileInputHandler._process_image(file_path)
+        elif file_ext in FileInputHandler.SUPPORTED_VIDEO_FILES:
+            return FileInputHandler._process_video(file_path)
             
         # 音频类文件处理（预留） TODO
-        elif file_ext in cls.SUPPORTED_AUDIO_FILES:
-            return cls._process_audio(file_path)
+        elif file_ext in FileInputHandler.SUPPORTED_AUDIO_FILES:
+            return FileInputHandler._process_audio(file_path)
             
         else:
             raise ValueError(f'不支持的文件类型: {file_ext}')
@@ -156,30 +166,10 @@ class FileInputHandler:
         except:
             pass
     
-    @classmethod
-    def jina_read_from_url(cls, url: str, mode='read') -> str:
-        """
-        Fetch and read text from a URL using JINA Reader
-        Args:
-            url: The URL to fetch content from
-            mode: 'read' to return content directly, 'write' to write to file and return None
-        """
-        url = f"https://r.jina.ai/{url}"
-        logger.info(f"JINA Reader Fetching content from: {url}")
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            logger.info(f"JINA Reader SUCCESS: {response.status_code}, First 30 chars: '{response.text[:30]}'")
-            
-            if mode == 'write':
-                with open('src/utils/jina_read_from_url_response_demo.txt', 'w', encoding='utf-8') as f:
-                    f.write(response.text)
-                return None
-            else:
-                return response.text
-        except requests.RequestException as e:
-            logger.error(f"JINA Reader Error fetching '{url}': {e}")
-            return None
+    @staticmethod
+    def jina_read_from_url(url: str, mode='read') -> str:
+        return jina.read_from_url_jina(url, mode)
+
 
 # Example usage
 if __name__ == "__main__":

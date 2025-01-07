@@ -38,18 +38,18 @@ class SearchResult:
 class ContextualRAGService(RAGService):
     """上下文增强的RAG服务"""
     
-    def __init__(self, vector_db_type: str = "milvus", current_collection_name: str = None):
+    def __init__(self, vector_db_type: str = "milvus", vector_db_collection_name: str = "rag_context"):
         """Initialize contextual RAG service
         
         Args:
             vector_db_type: Type of vector database to use ("chroma" or "milvus")
-            current_collection_name: 当前collection名称
+            vector_db_collection_name: 当前collection名称
         """
         super().__init__(vector_db_type=vector_db_type)
         
         # 设置collection名称
-        if current_collection_name:
-            self.current_collection_name = current_collection_name
+        if vector_db_collection_name:
+            self.vector_collection_name = vector_db_collection_name
         
         # 创建数据集生成器（用于文档分割和上下文生成）
         # self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
@@ -61,7 +61,7 @@ class ContextualRAGService(RAGService):
         """使用语义检索方法进行检索"""
         try:
             # 使用基类的retrieve方法进行语义搜索
-            results = super().retrieve(self.current_collection_name, query, top_k=top_k)
+            results = super().retrieve(self.vector_collection_name, query, top_k=top_k)
             logger.info(f" +++++++++++++++ semantic_search {len(results)} results")
             return results
         except Exception as e:

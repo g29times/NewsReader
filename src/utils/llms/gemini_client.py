@@ -5,7 +5,6 @@ import sys
 from typing import Optional, Dict, Any
 import google.generativeai as genai
 from dotenv import load_dotenv
-import requests
 
 # 添加项目根目录到 Python 路径 标准方式
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,13 +12,13 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
 from src.utils.llms.models import LLMResponse
-from src.utils.text_input_handler import TextInputHandler
 from src.utils.file_input_handler import FileInputHandler
 
 # Load environment variables and configure logging
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+# 实例工具类，应用中可能有多个实例
 class GeminiClient:
     """
     Google Gemini API 客户端

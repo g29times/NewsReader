@@ -17,7 +17,8 @@ class ContextGenerator:
             model_name: 使用的模型名称，默认为gemini-pro
         """
         self.model = GenerativeModel(model_name)
-        
+    
+    # 暂未启用 使用了evalset中的answer作为context
     def generate_context(self, chunk_content: str, document_content: str) -> str:
         """为chunk生成上下文描述
         

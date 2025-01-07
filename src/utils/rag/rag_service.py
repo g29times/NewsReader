@@ -36,7 +36,8 @@ from src.models.article import Article
 from src.models.article_crud import *
 from src import VECTOR_DB_ARTICLES, VECTOR_DB_CHATS, VECTOR_DB_NOTES
 import src.utils.embeddings.voyager as voyager
-from src.utils.text_input_handler import TextInputHandler as textUtils
+import src.utils.embeddings.jina as jina
+from src.utils.text_input_handler import TextInputHandler
 from models.chat import Base, Chat
 from models.chat_crud import *
 
@@ -77,7 +78,7 @@ class ChromaDB(VectorDB):
         self.client = chromadb.Client()
         
     def create_collection(self, collection_name: str, embedding_fn=None):
-        return self.client.create_collection(
+        return self.client.get_or_create_collection(
             name=collection_name,
             embedding_function=embedding_fn
         )
@@ -101,6 +102,7 @@ class ChromaDB(VectorDB):
         results = collection.query(
             query_texts=[query],
             n_results=limit
+            #  include=["documents", "distances", "metadatas"]
         )
         return results
 
@@ -146,7 +148,6 @@ class RAGService:
     
     def __init__(self, vector_db_type: str = "milvus"):
         """Initialize RAG service
-        
         Args:
             vector_db_type: 向量数据库类型，可选 "chroma" 或 "milvus"
         """
@@ -157,10 +158,8 @@ class RAGService:
         self.JINA_API_KEY = os.getenv("JINA_API_KEY")
         if not self.voyage_api_key or not self.google_api_key:
             raise ValueError("Missing required API keys")
-
         # 数据库
         self.session = db_session
-
         # 向量数据库
         self.vector_db_type = vector_db_type
         if vector_db_type == "chroma":
@@ -169,7 +168,6 @@ class RAGService:
             self.vector_db = MilvusDB()
         else:
             raise ValueError(f"Unsupported vector database type: {vector_db_type}")
-            
         # 模块1 嵌入 Initialize embedding model
         self.voyage = VoyageEmbedding(
             model_name = "voyage-3",
@@ -181,7 +179,6 @@ class RAGService:
             dimensions = 128, # MRL技术
             late_chunking = True # late_chunking 技术
         )
-        
         # 模块2 大模型 Initialize LLM
         self.genimi = Gemini(
             system_prompt=os.getenv("SYSTEM_PROMPT"),
@@ -190,7 +187,6 @@ class RAGService:
             temperature=1,
             max_tokens=16000 # 8192
         )
-        
         # 模块3 存储 Initialize Chroma client
         # 向量数据库优化 https://docs.trychroma.com/docs/collections/configure
         # https://www.llamaindex.ai/blog/evaluating-the-ideal-chunk-size-for-a-rag-system-using-llamaindex-6207e5d3fec5
@@ -199,23 +195,22 @@ class RAGService:
         # self.chroma_client = chromadb.HttpClient(host='localhost', port=8000)
         # Current collection name
         self.current_collection_name = "news_reader_rag" # 默认值
-
-        class DocEmbedding(EmbeddingFunction):
+        class DocEmbeddingJINA(EmbeddingFunction):
             def __call__(self, input: Documents) -> Embeddings:
-                # return voyager.get_doc_embeddings_jina(documents=input, task="retrieval.passage")
-                return voyager.get_doc_embeddings(documents=input)
-        self._embed_doc = DocEmbedding()
-
-        class QueryEmbedding(EmbeddingFunction):
+                return jina.get_doc_embeddings_jina(documents=input, task="retrieval.passage")
+        self._embed_doc_jina = DocEmbeddingJINA()
+        class QueryEmbeddingJINA(EmbeddingFunction):
             def __call__(self, input: Documents) -> Embeddings:
-                # return voyager.get_doc_embeddings_jina(documents=input, task="retrieval.query")
-                return voyager.get_doc_embeddings(documents=input)
-        self._embed_query = QueryEmbedding()
-
-        class EmbeddingVoyage(EmbeddingFunction):
+                return jina.get_doc_embeddings_jina(documents=input, task="retrieval.query")
+        self._embed_query_jina = QueryEmbeddingJINA()
+        class DocEmbeddingVoyage(EmbeddingFunction):
             def __call__(self, input: Documents) -> Embeddings:
                 return voyager.get_doc_embeddings(documents=input)
-        self._embed_doc_voyage = EmbeddingVoyage()
+        self._embed_doc_voyage = DocEmbeddingVoyage()
+        class QueryEmbeddingVoyage(EmbeddingFunction):
+            def __call__(self, input: Documents) -> Embeddings:
+                return voyager.get_query_embedding(query=input)
+        self._embed_query_voyage = QueryEmbeddingVoyage()
 
         # 模块4 聊天记忆 Initialize ChatStore and ChatMemoryBuffer
         from llama_index.storage.chat_store.upstash import UpstashChatStore
@@ -268,6 +263,7 @@ class RAGService:
         # logger.info(f"Query: {query}")
         if not conversation_id:
             raise ValueError("no conversation_id")
+        logger.info(f"Conversation ID: {conversation_id}")
         # 方式2 使用LlamaIndex框架对话
         chat_store_key = "user1_conv" + conversation_id
         chat_engine = self.get_chat_engine(chat_store_key)
@@ -283,30 +279,27 @@ class RAGService:
     def chat_with_file(self, conversation_id: str, file_content: str, question: str) -> str:
         # 1. 构建上下文
         context = f"文件内容：\n{file_content}\n问题：{question}"
-        
         # 2. 使用现有的chat方法
         return self.chat(conversation_id, context)
 
-    # 对话知识库（资料） TODO 改造
+    # 对话知识库（资料） TODO 待改造
     def chat_with_articles(self, conversation_id: str, article_ids: List[int], query: str) -> str:
         """Chat with selected articles
-        
         Args:
             article_ids: List of article IDs
             query: User query
-            
         Returns:
             Response from LLM
         """
         try:
             logger.info(f"用户选择了文章: {article_ids}")
+            logger.info(f"Conversation ID: {conversation_id}")
             # Create collection for these documents
             collection = self.vector_db.get_collection(
                 collection_name = VECTOR_DB_ARTICLES,
                 embedding_fn = self._embed_doc_voyage
             )
-            logger.info(f"Got collection: {VECTOR_DB_ARTICLES}")
-            
+            logger.info(f"Got DB collection: {VECTOR_DB_ARTICLES}")
             # Create vector store
             if self.vector_db_type == "chroma":
                 vector_store = ChromaVectorStore(chroma_collection=collection)
@@ -437,7 +430,6 @@ class RAGService:
             logger.info(f"LLM response: {response}")
             # 持久化
             self.chat_store.persist(persist_path="chat_store.json")
-            
             # Format response with sources
             response_text = str(response)
             if response.source_nodes:
@@ -482,7 +474,7 @@ class RAGService:
             
             # 切分文本并入库
             for article in articles:
-                chunks = await textUtils.split_text_with_jina(article.content or article.summary, max_chunk_length=2000)
+                chunks = await TextInputHandler.split_text(article.content or article.summary, max_chunk_length=2000)
                 if not chunks:
                     logger.warning(f"文章 {article.id} 没有有效内容可切分")
                     continue
@@ -561,29 +553,14 @@ class RAGService:
     # RAG测评用
     def retrieve(self, collection_name, query: str, top_k: int = 20) -> List[Dict]:
         """统一的检索接口，用于评估
-        
         Args:
             query: 查询文本
             top_k: 返回结果数量
-            
         Returns:
             List[Dict]: 检索结果列表，包含chunk_id和score
         """
         try:
-            # 获取集合
-            # collection = self.chroma_client.get_or_create_collection(
-            #     name=self.current_collection_name, # news_reader_rag
-            #     embedding_function=self._embed_doc_voyage
-            # )
-            
-            # 执行查询
-            # results = collection.query(
-            #     query_texts=[query],
-            #     n_results=top_k,
-            #     include=["documents", "distances", "metadatas"]
-            # )
             results = self.vector_db.search(collection_name, query, limit=top_k)
-            
             # 格式化结果
             formatted_results = []
             if results and results[0]:
@@ -744,7 +721,7 @@ if __name__ == "__main__":
     # chroma_client = chromadb.HttpClient(host='localhost', port=8000)
     # chroma_client.delete_collection(name=VECTOR_DB_ARTICLES)
 
-    # 查询测试
+    # 查询测试 chroma
     # chroma_client = chromadb.HttpClient(host='localhost', port=8000)
     # class EmbeddingVoyage(EmbeddingFunction):
     #         def __call__(self, input: Documents) -> Embeddings:

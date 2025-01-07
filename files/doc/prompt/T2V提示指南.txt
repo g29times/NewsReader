@@ -1,0 +1,283 @@
+# T2V提示指南
+
+T2V(Text to video)具有无限潜力，可以在各种用例中将您的艺术构想变为现实。创建传达场景的强大提示是生成符合您概念的视频的关键。
+
+本文介绍了不同的示例结构、关键字和提示技巧，以帮助您开始使用 T2V。这些只是示例 - 在将您的想法付诸实践时，不要害怕进行实验。
+
+
+## 文章重点
+the camera doesn't move避免在文本提示中使用否定措辞，例如
+使用简单直接的提示来描述使用输入图像时所需的动作
+您无需在文本提示中描述输入图像
+
+# 提示基础知识
+## 所有提示都应该直接、容易理解，而不是概念性的
+在编写提示时，假装您正在向不熟悉您之前的作品和偏好的审美的新合作者描述一个场景会很有帮助。这位新合作者将负责拍摄您描述的场景，因此请确保清晰地传达重要元素。
+
+当简单的描述能够有效地传达场景时，请避免使用过于概念化的语言和措辞。 
+
+❌ 一名男子侵入了主机。
+✅ 一名男子在键盘上用力打字。
+
+## 提示应该是描述性的，而不是对话式或命令式的
+虽然外部 LLM 注重自然对话，但 T2V 的模型则注重视觉细节。在提示中添加对话内容不会给您的结果带来价值，在某些情况下甚至可能对您的结果产生负面影响。
+
+❌ 你能给我制作一段关于两个朋友吃生日蛋糕的视频吗？
+✅两个朋友吃生日蛋糕。
+使用基于命令的提示可能会产生类似的负面影响，因为它可能不包含足够的细节来创建所需的场景：
+
+❌ 在图片中添加一只狗
+✅ 一只狗在镜头外顽皮地跑过田野
+
+## 提示应使用积极的措辞
+生成视频模型不支持负面提示或描述不应发生的事情的提示。包含负面提示可能会导致相反的情况发生。
+
+❌ 相机不动。没有动作。天空中没有云。
+✅ 静态相机。相机保持静止。晴朗的蓝天
+
+## 纯文本提示
+纯文本提示在遵循清晰的结构（将场景、主题和摄像机运动的细节分成不同的部分）时最有效。
+
+在您熟悉 T2V 时，使用以下结构应该有助于提供一致的结果：
+
+[摄像机移动]：[建立场景]。[附加细节]。
+使用这种结构，你对站在热带雨林中的女人的提示可能看起来像这样：
+
+低角度静态拍摄：镜头向上倾斜，对准一位身穿橙色衣服的女士，她站在一片植物色彩缤纷的热带雨林中。天空阴云密布，灰蒙蒙的。
+在提示的不同部分重复或强化关键思想有助于提高输出的一致性。例如，您可能会注意到摄像机以超高速镜头快速飞过场景。
+
+尽量让你的提示集中在场景中应该出现的内容上。例如，你应该提示晴朗的天空，而不是没有云的天空。
+
+## 图片+文字提示
+使用输入图像时，请使用简单直接的文本提示来描述您希望在输出中呈现的动作。您无需描述图像的内容。
+
+例如，如果使用包含字符的输入图像，您可以尝试以下提示：
+
+对象愉快地摆出姿势，双手做出和平手势。
+使用与输入图像明显不同的文本提示可能会导致意外结果。请记住，复杂的场景转换可能需要多次迭代才能实现所需的输出。
+
+## 示例提示
+无缝过渡
+连续超高速 FPV 镜头：摄像机无缝飞过冰川峡谷到达梦幻般的云景。
+
+摄影机运动
+夜晚闪闪发光的海洋，水下有发光生物。镜头从发光水母的微距特写开始，然后扩大，露出星空下整个海洋被各种发光颜色照亮。镜头移动：从水母的微距镜头开始，然后轻轻向后向上拉，展示闪闪发光的海洋。
+
+文字标题卡
+带有动态运动的标题屏幕。场景从一面涂满彩色油漆的墙壁开始。突然，黑色油漆流淌在墙上，形成了“T2V”这个词。滴落的油漆细节丰富、纹理鲜明、居中，具有极佳的电影灯光效果。
+
+# 提示关键词
+关键字有助于在输出中实现特定风格。确保关键字与整体提示保持一致，可让其在输出中更加明显。
+
+例如，在广角镜头中，如果相机无法紧密对焦于面部，那么添加有关皮肤纹理的关键词就没什么用。相反，添加有关环境的更多细节可能会对广角镜头大有裨益。
+
+牢记这种凝聚力，以下是在起草提示时可以尝试的不同关键词。
+
+## 相机风格
+关键词	输出
+低角度	
+高角度	
+开销	
+第一人称视角	
+手持式	
+广角	
+特写	
+微距摄影	
+越过肩膀	
+追踪	
+建立广泛的	
+50mm 镜头	
+Snorri相机	
+现实主义纪录片	
+摄像机	
+
+## 光源样式
+关键词	输出
+漫射照明	
+轮廓	
+镜头光晕	
+背光	
+侧光	
+[颜色] 凝胶照明	
+威尼斯照明	
+
+## 移动速度
+关键词	输出
+动态运动	
+慢动作	
+快速动作	
+延时摄影	
+
+## 运动类型
+关键词	输出
+成长	
+出现	
+爆炸	
+上升	
+波动	
+扭曲	
+变换	
+涟漪	
+破碎	
+展开	
+涡流	
+
+## 风格与美学
+关键词	输出
+穆迪	
+电影	
+彩虹色	
+家庭录像 VHS	
+故障核	
+
+## 文本样式
+关键词	输出
+大胆的	
+涂鸦	
+氖	
+校队	
+刺绣	
+
+# English Manual
+T2V Alpha has endless potential to bring your artistic vision to life for a wide variety of use cases. Creating a strong prompt that conveys the scene is the key to generating video aligned with your concept.
+
+This article covers different example structures, keywords and prompting tips to help you get started with T2V Alpha. These are just examples – don’t be afraid to experiment when bringing your ideas to life.
+
+## Article Highlights
+Avoid negative phrasing, such as the camera doesn't move, in your text prompts
+Use a simple and direct prompt that describes the desired movement when using an input image
+You do not need to describe your input image in a text prompt
+
+# Prompting Basics
+## All prompts should be direct and easily understood, not conceptual
+When crafting a prompt, it can be helpful to pretend that you're describing a scene to a new collaborator who is unfamiliar with your previous work and preferred aesthetic. This new collaborator will be responsible for filming the scene that you're describing, so ensure that important elements are conveyed with clarity.
+
+Avoid using overly conceptual language and phrasing when a simplistic description would efficiently convey the scene. 
+
+❌ a man hacking into the mainframe.
+✅ a man vigorously typing on the keyboard.
+
+## Prompts should be descriptive, not conversational or command-based
+While external LLMs thrive on natural conversation, T2V's models are designed to thrive on visual detail. Including conversational additions to your prompt will not bring value to your results, and could even negatively impact your results in certain cases.
+
+❌ can you please make me a video about two friends eating a birthday cake?
+✅ two friends eat birthday cake. 
+Using a command-based prompt may have a similar negative effect, as it may not include sufficient details to create the desired scene:
+
+❌ add a dog to the image
+✅ a dog playfully runs across the field from out of frame
+
+## Prompts should use positive phrasing
+Negative prompts, or prompts that describe what shouldn't happen, are not supported in the Generative Video models. Including a negative prompt may result in the opposite happening.
+
+❌ the camera doesn't move. no movement. no clouds in the sky.
+✅ static camera. the camera remains still. a clear blue sky
+
+## Text-only Prompting
+Text-only prompts are most effective when they follow a clear structure that divides details about the scene, subject and camera movement into separate sections.
+
+Using the following structure should help provide consistent results while you’re familiarizing yourself with T2V Alpha:
+
+[camera movement]: [establishing scene]. [additional details].
+Using this structure, your prompt for a woman standing in a tropical rainforest might look like this:
+
+Low angle static shot: The camera is angled up at a woman wearing all orange as she stands in a tropical rainforest with colorful flora. The dramatic sky is overcast and gray.
+Repeating or reinforcing key ideas in different sections of your prompt can help increase adherence in the output. For example, you might note that the camera quickly flies through the scenes in a hyperspeed shot.
+
+Try to keep your prompt focused on what should be in the scene. For example, you would prompt for a clear sky rather than a sky with no clouds.
+
+
+## Image + Text Prompting
+When using input images, use a simple and direct text prompt that describes the movement you'd like in the output. You do not need to describe the contents of the image.
+
+In example, you might try the following prompt if using an input image that features a character:
+
+Subject cheerfully poses, her hands forming a peace sign.
+Using a text prompt that significantly differs from the input image may lead to unexpected results. Keep in mind that complex scene transitions may require multiple iterations to achieve the desired output.
+
+
+## Sample Prompts
+Seamless Transitions
+Continuous hyperspeed FPV footage: The camera seamlessly flies through a glacial canyon to a dreamy cloudscape.
+
+
+Camera Movement
+A glowing ocean at night time with bioluminescent creatures under water. The camera starts with a macro close-up of a glowing jellyfish and then expands to reveal the entire ocean lit up with various glowing colors under a starry sky. Camera Movement: Begin with a macro shot of the jellyfish, then gently pull back and up to showcase the glowing ocean.
+
+
+Text Title Cards
+A title screen with dynamic movement. The scene starts at a colorful paint-covered wall. Suddenly, black paint pours on the wall to form the word "T2V". The dripping paint is detailed and textured, centered, superb cinematic lighting.
+
+
+# Prompt Keywords
+Keywords can be beneficial to achieve specific styles in your output. Ensuring that keywords are cohesive with your overall prompt will make them more apparent in your output.
+
+In example, including keywords about skin texture wouldn't be beneficial to a wide angle shot where the camera is not closely focused on a face. A wide angle shot might instead benefit from additional details about the environment.
+
+While keeping this cohesiveness in mind, below are different keywords you can experiment with while drafting your prompts.
+
+
+## Camera Styles
+Keyword	Output
+Low angle	
+High angle	
+Overhead	
+FPV	
+Hand held	
+Wide angle	
+Close up	
+Macro cinematography	
+Over the shoulder	
+Tracking	
+Establishing wide	
+50mm lens	
+SnorriCam	
+Realistic documentary	
+Camcorder	
+
+## Lighting Styles
+Keyword	Output
+Diffused lighting	
+Silhouette	
+Lens flare	
+Back lit	
+Side lit	
+[color] gel lighting	
+Venetian lighting	
+
+## Movement Speeds
+Keyword	Output
+Dynamic motion	
+Slow motion	
+Fast motion	
+Timelapse	
+
+## Movement Types
+Keyword	Output
+Grows	
+Emerges	
+Explodes	
+Ascends	
+Undulates	
+Warps	
+Transforms	
+Ripples	
+Shatters	
+Unfolds	
+Vortex	
+
+## Style and Aesthetic
+Keyword	Output
+Moody	
+Cinematic	
+Iridescent	
+Home video VHS	
+Glitchcore	
+
+## Text Styles
+Keyword	Output
+Bold	
+Graffiti	
+Neon	
+Varsity	
+Embroidery

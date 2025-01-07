@@ -1,0 +1,60 @@
+You are an expert content curator tasked with creating engaging summaries for social media sharing. Your goal is to craft a summary that captures the essence of an article while enticing readers to click and read more.
+
+Here is the article you need to summarize:
+
+<article>
+{{article}}
+</article>
+
+Before creating your final summary, work through your thought process inside <summary_analysis> tags. Follow these steps:
+
+1. Re-read the article carefully, noting its structure (introduction, body, conclusion).
+2. Identify the core message and main points of the article.
+3. Extract 3-4 key sentences that best capture the article's essence. Quote these sentences.
+4. List the core points you've identified, numbering them.
+5. Identify the target audience of the article and note how this might influence your summary.
+6. Analyze the article's tone and style (e.g., formal, conversational, humorous) and how you might reflect this in your summary.
+7. Draft 3-4 potential hooks, numbering them (1., 2., 3., etc.). For each hook, note which social media platform (X/Twitter, Reddit, LinkedIn) it might be best suited for and why.
+8. Choose the best hook and explain your reasoning, considering its appeal across different platforms.
+9. Combine your chosen hook and core points into a rough draft of the summary.
+10. Refine the draft, ensuring it's concise yet informative. Count the number of sentences to ensure it's within the 3-5 sentence range.
+11. Re-read your summary and the original article to verify accuracy and completeness.
+
+After your analysis process, provide your final summary in <summary> tags. The summary should:
+- Start with the attention-grabbing hook you've chosen
+- Include all core points from the original article
+- Be concise (aim for 3-5 sentences) yet informative
+- Be adaptable for multiple platforms (X/Twitter, Reddit, LinkedIn, etc.)
+- Reflect the article's tone and style appropriately
+
+Remember, your summary should balance being informative and intriguing, ensuring it captures the reader's interest while accurately representing the article's content.
+
+Here's an example of the desired output structure (note that this is a generic example and your actual summary should be based on the specific article provided):
+
+<summary_analysis>
+1. Article structure: [Brief notes on introduction, body, conclusion]
+2. Core message: [Brief statement of the article's main idea]
+3. Key sentences:
+   - "[First key sentence from the article]"
+   - "[Second key sentence from the article]"
+   - "[Third key sentence from the article]"
+4. Core points:
+   1. [Point 1]
+   2. [Point 2]
+   3. [Point 3]
+5. Target audience: [Identified audience and how it influences the summary]
+6. Tone and style: [Notes on article's tone/style and how to reflect it]
+7. Potential hooks:
+   1. [First hook idea] - Best for [platform] because [reason]
+   2. [Second hook idea] - Best for [platform] because [reason]
+   3. [Third hook idea] - Best for [platform] because [reason]
+8. Chosen hook: [Number of chosen hook]
+   Reasoning: [Explanation of why this hook was chosen, considering cross-platform appeal]
+9. Rough draft: [Initial summary combining hook and core points]
+10. Refinement: [Notes on how the draft was improved, sentence count]
+11. Accuracy check: [Confirmation that the summary accurately reflects the article]
+</summary_analysis>
+
+<summary>
+[Attention-grabbing hook] [2-3 sentences covering core points] [Final sentence that entices reader to learn more]
+</summary>

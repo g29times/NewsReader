@@ -1,7 +1,7 @@
 from file_input_handler import FileInputHandler
 import logging
 
-# Cascade阅读PDF工具
+# 给cascade的阅读PDF工具
 # 设置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -10,7 +10,7 @@ def main():
     pdf_path = './files/temp/LlamaIndex-RAG.pdf'
     output_file = './src/utils/temp_article_content.txt'
     try:
-        text = FileInputHandler.extract_text_from_pdf(pdf_path)
+        text = FileInputHandler._extract_text_from_pdf(pdf_path)
         # 保存提取的文本到文件
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(text)
