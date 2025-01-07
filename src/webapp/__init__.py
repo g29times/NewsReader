@@ -1,6 +1,7 @@
 from flask import Flask
 from webapp.article import article_bp
 from webapp.chat import chat_bp
+from webapp.note import note_bp
 
 def create_app():
     app = Flask(__name__)
@@ -13,5 +14,6 @@ def create_app():
     # 注册蓝图
     app.register_blueprint(article_bp)
     app.register_blueprint(chat_bp)
+    app.register_blueprint(note_bp)
     
     return app

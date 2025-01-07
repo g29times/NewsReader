@@ -44,7 +44,9 @@ logging.basicConfig(
 def logy(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
-        logging.info(f"LOG ASPECT START - Function: {func.__name__} - Args: {args}")
+        args_str = str(args)[:100] + ("..." if len(args) > 100 else "")
+        kwargs_str = str(kwargs)[:100] + ("..." if len(kwargs) > 100 else "")
+        logging.info(f"LOG ASPECT START - Function: {func.__name__} - Args: {args_str} - Kwargs: {kwargs_str}")
         result = func(*args, **kwargs)
         logging.info(f"LOG ASPECT  END  - Function: {func.__name__}")
         # if result is not None:

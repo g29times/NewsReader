@@ -9,29 +9,6 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
     <link rel="stylesheet" href="/static/css/chat.css">
-    <style>
-        /* 分隔条样式 */
-        .resizer {
-            width: 4px;
-            background: #e0e0e0;
-            cursor: col-resize;
-            transition: background 0.2s;
-            position: absolute;
-            top: 0;
-            bottom: 0;
-        }
-        .resizer:hover, .resizer.dragging {
-            background: #bdbdbd;
-        }
-        .chat-container {
-            position: relative;
-        }
-        .articles-panel {
-            min-width: 200px;
-            max-width: 800px;
-            position: relative;
-        }
-    </style>
 </head>
 <body>
     <!-- Toast 容器 -->
@@ -96,9 +73,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- 分隔条 -->
-        <div class="resizer" id="dragMe"></div>
 
         <!-- 中间聊天区域 -->
         <div class="chat-area">
@@ -548,7 +522,7 @@
         // 对话聊天 重点 每次聊天生成对话或更新对话
         async function sendChatMessage(file = null) {
             const messageInput = document.getElementById('messageInput');
-            const sendButton = document.querySelector('.chat-input-area button.btn-primary');
+            const sendButton = document.querySelector('.btn-primary');
             const message = messageInput.value.trim();
             if (message === '') {
                 showToast('请输入消息内容', 'error');
@@ -1176,55 +1150,6 @@
             const checkboxes = document.querySelectorAll('.article-items .article-checkbox:checked');
             return Array.from(checkboxes).map(cb => cb.dataset.articleId);
         }
-
-        // 拖动分隔条功能
-        const resizer = document.getElementById('dragMe');
-        const leftPanel = document.querySelector('.articles-panel');
-        let isResizing = false;
-        let lastDownX = 0;
-
-        // 更新分隔条位置
-        function updateResizerPosition() {
-            resizer.style.left = `${leftPanel.offsetWidth + 6}px`; // +6是container的padding
-        }
-
-        // 初始化时设置位置
-        updateResizerPosition();
-
-        // 监听面板展开/收起
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
-                if (mutation.attributeName === 'class') {
-                    updateResizerPosition();
-                }
-            });
-        });
-        observer.observe(leftPanel, { attributes: true });
-
-        resizer.addEventListener('mousedown', (e) => {
-            isResizing = true;
-            lastDownX = e.clientX;
-            resizer.classList.add('dragging');
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-
-            const delta = e.clientX - lastDownX;
-            const newWidth = leftPanel.offsetWidth + delta;
-
-            // 限制最小和最大宽度
-            if (newWidth >= 200 && newWidth <= 800) {
-                leftPanel.style.width = `${newWidth}px`;
-                lastDownX = e.clientX;
-                updateResizerPosition();
-            }
-        });
-
-        document.addEventListener('mouseup', () => {
-            isResizing = false;
-            resizer.classList.remove('dragging');
-        });
     </script>
 </body>
 </html>

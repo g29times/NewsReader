@@ -1,12 +1,82 @@
 # 系统设计专题
 关于笔记和认知 https://help.flomoapp.com/basic/xgbj.html
 上下文检索 https://www.anthropic.com/news/contextual-retrieval
-NoteBookLM
+NoteBookLM https://notebooklm.google.com/
 设计数据库 https://milvus.io/docs/zh/schema-hands-on.md#Schema-Design-Hands-On
 RAG最佳实践 https://mp.weixin.qq.com/s/VYWoluo2BFXhWVRBjeP5IA
 设计RAG工作流 https://docs.llamaindex.ai/en/stable/
 
-## Project Background
+# Design Priciple
+4S: 1 scene 2 service 3 store 4 scale
+1. Scenario/Background：From Output to Input 以终(真实需求）为始（哪些伪需求 - 收藏焦虑）
+2. Service：LESS is More
+3. Storage：可用性大于一致性（本系统原则）AP系统
+4. Scale：可扩展 可演进
+
+- 产品驱动流程闭环 File(Input输入) -> Summary -> Relation -> Note -> Idea -> Blog(Output输出)
+- 核心原则：
+	1 flomo - 真正学会的含义，帮助用户做知识萃取，而不是知识收集。
+	2 有哪些是google没做的，notion做不到的？我的产品优势在哪里？
+	相比google，支持了更灵活的llm输出和agent能力，但借鉴了其项目式文档管理和笔记闭环（播客未采用）；相比notion，更加轻量，并且有和google一样的输入-输出闭环；相比kimi等浏览器插件，一是防丢（原文可能删除），因为一上来就做了summary，再就是LLM跨聊天的用户个性化认知（未实现）
+	3 少即是多，简单原则，哪些东西是会被LLM大厂逐渐取代的？（已取代：CoT框架、提示词框架）
+		复杂性案例：https://blog.csdn.net/juan9872/article/details/137658555
+		1. 层出不穷的设计模式：CoT、ReACT等框架，最初是因为LLM不具备（LLM厂商精力不在此），但是随着LLM的发展，这些模式逐渐被集成在了LLM内部（o1，gemini-thinking），框架变得臃肿多余。
+		2. Agent是否也会被取代？
+		3. 跨聊天记忆和跨文档记忆，哪个优先？
+- 需求辨别
+		场景：
+			遗忘资料源：我的笔记哪去了？
+			写文章是真实需求吗？
+			买相机 买无人机是真实需求吗？是控制 还是被控制？
+			买课是真实需求吗？
+			主观优先级是真实需求吗？
+- 系统设计
+	每篇文章进来，先embedding并存储 + 数据库和向量库是否要关联起来 DONE
+	内容分类 筛选 聚合 归并 和笔记 课程 脑图打通
+	系统设计参考 discord shape
+	关注LLM窗口上限
+	第四格 - 生成笔记博客 灵感 - https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/
+	LLM自动维护知识词典、提示词典 - 凝萃知识库 + 代码实训库
+		https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/q_and_a/terms_definitions_tutorial/#conclusiontldr
+		亟需提示词模板存放处：
+			1 帮我把这篇文章里面的专业术语（如token...）提取出来，如果文章内已经解释，则引用原文，如果没有，则加以简要的一句话解释，以 “· 概念A：A是指...” 的形式输出
+			2 （如果词典里已有）我们可以回顾下...，与新概念的联系 - *生图
+	由AI自主决定调chat还是知识库接口
+- 产品心理学
+	视觉激励、反馈引导、自然想起、产生依赖（我用过哪些这样的产品？Notion 微信 食之契约）
+	灵感：New Yorker - 一图胜千言
+	灵感：Date 每次对话加入时间信息
+	LLM个性：吐槽小助手
+	多LLM 分布式共识
+	更了解用户 自身也更个性化
+		人类心理学 + 数据飞轮（新学） + SLM训练（灵感） + 论文（TODO）
+		了解用户笔记、划线习惯（具体小点研究）
+	用户反馈机制
+	用户激励机制 视觉 日历？点图？路径图？
+		
+## 可能的产品形态：
+1 AI百科全书（助手、被动）
+2 AI探路者（从被动到主动）
+
+到这里为止，我有点卡住了，因为下面，我这些需求怎么一个一个解决，优先级应该如何设计，接下来的网站（多页面）和系统应该怎么设计，我有点乱，请帮我进行规划。
+
+## 问题：V3 1208 不做收藏侠 如何做笔记
+https://www.mubu.com/doc/6ehQkiMAnvQ
+https://help.flomoapp.com/basic/xgbj.html
+
+## Design Considerations
+Naming: 万源 书链 鸽鸽-Google之意
+Slogan: You never know where knowledge leads you, 
+
+
+# Key Files 重点文件
+应用启动 src\app.py
+LLM客户端 src\utils\llms\gemini_client.py
+RAG中枢 src\utils\rag\rag_service.py
+文章管理 src\webapp\article\article_routes.py
+对话管理 src\webapp\chat\chat_routes.py
+
+# 1 Project Background
 背景：V1 1205
 I like to read AI news and papers, but I need a system to help me collect them, let's design a system together
 
@@ -18,7 +88,7 @@ e.g.Article(main table)[weight(to record how much I'm interested in this article
 
 now let's think about how to Integrate LLM/VLM, I think we need consider these main aspects: 1. locally LLM and remote API support 2. vision/text/audio input socket 3. framework/RAG/Agent support rather than just LLM call
 
-背景：V2 1207
+## 背景：V2 1207
 我们经常在往上浏览大量的文章，以学习知识，接收新信息，以往都是看一遍之后，要么是丢进文件传输助手（微信聊天）尘封，要么是看一遍就忘了。
 现代的信息量太大，而且非常分散，那么这些碎片信息如果看过之后就忘，实际上是浪费了我的时间，而没有转化成价值。
 因此，我希望给自己打造一个AI助手，让他来帮我归集信息，并且提取精华，然后甚至获得灵感，这一系列的萃取，对于一篇篇来自网络的文章，形成了有价值的转化和有效聚焦。
@@ -26,79 +96,17 @@ now let's think about how to Integrate LLM/VLM, I think we need consider these m
 因此，我做出了这款原型，你从图中可以看到，页面的标题是Articles，代表他是一个文章列表，但特殊的是，列表里的Summary和Key Points两个字段，是经过LLM对原文的处理提炼出来的，而Tags则是留给用户人工补充一些他需要的标签以作备注。
 我还给页面增加了基础的增删改查功能。
 
-接下来的需求是：聚焦、TODO+提醒、分类、灵感、推荐
+## 接下来的需求是：
+聚焦、TODO+提醒、分类、灵感、推荐
 聚焦是指，我是一个AI的程序员、从业者，而不是一个游客，仅仅大量浏览是不够的，甚至是有害的，我需要的是知行合一，也就是浏览的内容能和我的实践（写代码或做业务工程）结合起来，越发的聚焦、深入、专业而不是发散。
 TODO+提醒是指，文章很多，有些文章里面提到的一个小观点、小方法，可能是需要我去写代码实践的，而不能只是看一下就忘。
 分类很好理解，文章太多，如果只是一个维度的无限添加下去，就很不理想了，而且分类有一个价值，就是后面可以基于每个分类下的文章数量，进一步分析我对某些分类的倾向，给出相应的推荐。
 灵感是指，对一篇文章进行Summary总结，提取Key Points关键词，这只是第一道工序，那么AI可以利用Summary、Key Points、Tags的关系，发现不同文章之间的Relation，进而，通过Relation（可能）产生灵感，所以是“要点-关系-灵感”这样的一个三级递进关系。
 最后，基于聚焦、提醒、灵感、分类等等，AI可能在具备一定数据量的基础上在未来做出一些推荐。
 
-可能的产品形态：
-1 AI百科全书（助手、被动）
-2 AI探路者（从被动到主动）
 
-到这里为止，我有点卡住了，因为下面，我这些需求怎么一个一个解决，优先级应该如何设计，接下来的网站（多页面）和系统应该怎么设计，我有点乱，请帮我进行规划。
 
-背景：V3 1208 不做收藏侠 如何做笔记
-https://www.mubu.com/doc/6ehQkiMAnvQ
-https://help.flomoapp.com/basic/xgbj.html
-
-## Key Files 重点文件
-应用启动 src\app.py
-LLM客户端 src\utils\llms\gemini_client.py
-RAG中枢 src\utils\rag\rag_service.py
-文章管理 src\webapp\article\article_routes.py
-对话管理 src\webapp\chat\chat_routes.py
-
-## Design Priciple
-![4S Scenario Service Storage Scale](design4s.png)
-1. Scenario/Background：From Output to Input 以终(真实需求）为始（哪些伪需求 - 收藏焦虑）
-2. Service：视觉激励、反馈引导、自然想起、产生依赖（我用过哪些这样的产品？Notion 微信 食之契约）
-3. Storage：LESS is More
-4. Scale：可扩展 可演进
-- 产品驱动流程 File(Input) -> Summary -> Relation -> Note -> Idea -> Blog(Output)
-- 核心原则：
-flomo - 真正学会的含义
-有哪些是google没做的，notion做不到的？我的产品优势在哪里？
-相比google，支持了更灵活的llm输出和agent能力，但借鉴了其项目式文档管理和笔记闭环（播客未采用），相比notion，更加轻量，并且有和google一样的输入-输出闭环，相比kimi等浏览器插件，一是防丢（原文可能删除），因为一上来就做了summary，再就是跨聊天的记忆（未实现）
-少即是多，简单原则，哪些东西是会被LLM大厂逐渐取代的？（已取代：CoT框架、提示词框架）
-	复杂性案例：https://blog.csdn.net/juan9872/article/details/137658555
-		1. 层出不穷的设计模式：CoT、ReACT等框架，最初是因为LLM不具备（LLM厂商精力不在此），但是随着LLM的发展，这些模式逐渐被集成在了LLM内部（o1，gemini-thinking），框架变得臃肿多余。
-		2. Agent是否也会被取代？
-		3. 跨聊天记忆和跨文档记忆，哪个优先？
-- 需求辨别
-		场景：遗忘资料源：我的笔记哪去了？
-		写文章是真实需求吗？
-			买相机 买无人机是真实需求吗？
-			买课是真实需求吗？
-		主观优先级是真实需求吗？
-- 系统设计
-	每篇文章进来，先embedding并存储 + 数据库和向量库是否要关联起来 DONE
-	内容分类 筛选 聚合 归并 和笔记 课程 脑图打通
-	系统设计参考discord
-	关注LLM窗口上限
-	第四格 - 生成笔记博客 灵感来源 - https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/
-	LLM先 生成如何学习一篇文章 的 提示词模板
-	LLM自动维护知识词典 - 凝萃知识库 + 代码实训库
-		https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/q_and_a/terms_definitions_tutorial/#conclusiontldr
-		亟需提示词模板存放处：
-			1 帮我把这篇文章里面的专业术语（如token...）提取出来，如果文章内已经解释，则引用原文，如果没有，则加以简要的一句话解释，以 “· 概念A：A是指...” 的形式输出
-			2 （如果词典里已有）我们可以回顾下...，与新概念的联系 - *生图
-	由AI自主决定调chat还是知识库接口
-	思想实验：
-		灵感：New Yorker - 一图胜千言
-		灵感：Date设计 每次对话加入时间信息
-		1 吐槽小助手
-		2 多LLM 分布式共识
-		3 更了解用户 自身也更个性化
-			人类心理学 + 数据飞轮（新学） + SLM训练（灵感） + 论文（TODO）
-			了解用户笔记、划线习惯（具体小点研究）
-		用户反馈机制
-		用户激励机制 视觉 日历？点图？路径图？
-        
-## Design Considerations
-Naming: 万源 书链 ...
-Slogan: You never know where knowledge leads you, 
+# 2 Service
 
 ## Data Collection Mechanism(Input)
 1. Positive Collecting(from browser or notebook)
@@ -129,52 +137,9 @@ Slogan: You never know where knowledge leads you,
 see files\chat-design\chat.md
 
 ## Backend Design
-- Database Design
 - AI Design
-
-## Database Design
-### Design Considerations
-- Metadata Strategy: Capture detailed metadata to facilitate search, filtering, and idea generation. Use fields like weight, area, topic, branch, and persons to categorize and relate articles.
-- Data Fusion: Use the Relations table to store static relationships between articles. This can be used to identify connections and patterns.
-- Dynamic Idea Generation: The Ideas table will store insights generated by LLMs, allowing the system to suggest new connections and ideas based on existing articles.
-### RMDBS Using SQLite
-#### User
-    TODO
-#### Article
-        id: Unique identifier
-        title: Title of the article
-        url: URL of the article
-        source: Source of the article
-        publication_date: Date of publication
-        content: Full content or summary of the article
-        weight: Interest level (could be multidimensional)
-        area: Primary domain level
-        topic: Secondary domain level
-        branch: Tertiary domain level
-        persons: People mentioned in the article
-        key_topics: Key points or topics discussed
-        problem: Problem addressed and methods used (optional)
-#### Relation
-        id: Unique identifier
-        article_id_1: Reference to an article
-        article_id_2: Reference to another article
-        relation_type: Type of relation (e.g., same topic, same author)
-#### Idea
-        id: Unique identifier
-        article_ids: List of related articles
-        generated_idea: Idea generated by LLM
-        timestamp: When the idea was generated
-        relevance_score: How relevant the idea is
-#### Note/TAG
-    TODO
-#### Memory
-    TODO
-
-
-### Vector-DB
-https://zhuanlan.zhihu.com/p/641822949
-1 Chroma
-2 Milvus
+- RAG Design
+- Agent Design
 
 ## AI Design (LLM/VLM)
 ### 问题集
@@ -212,3 +177,75 @@ Agent Support: Design agents that can autonomously interact with the system, exe
     Shape
 3. Vision & Audio
     Chatts
+
+
+
+# 3 Store
+
+## Database Design
+### Design Considerations
+- 数据源: 各种格式 转 Metadata
+- 文章：关系数据库 向量库
+- 对话：缓存 Json
+- 记忆：
+- 笔记：
+- 博客：
+### RMDBS
+	1 SQLite(local)
+    2 Notion(on cloud)
+
+#### Article
+        id: Unique identifier
+        title: Title of the article
+        url: URL of the article
+        source: Source of the article
+        publication_date: Date of publication
+        content: Full content or summary of the article
+        weight: Interest level (could be multidimensional)
+        area: Primary domain level
+        topic: Secondary domain level
+        branch: Tertiary domain level
+        persons: People mentioned in the article
+        key_topics: Key points or topics discussed
+        problem: Problem addressed and methods used (optional)
+#### Relation
+        id: Unique identifier
+        article_id_1: Reference to an article
+        article_id_2: Reference to another article
+        relation_type: Type of relation (e.g., same topic, same author)
+#### Idea
+        id: Unique identifier
+        article_ids: List of related articles
+        generated_idea: Idea generated by LLM
+        timestamp: When the idea was generated
+        relevance_score: How relevant the idea is
+#### Note/TAG
+    整体设计：
+        将笔记设计为一个非常灵活的输入源，他可以来自于以下场景（并随时扩充）：
+        1. 用户手动直接记笔记
+        2. 将用户和AI的聊天记录转换为笔记
+        3. 用户选定任意内容（不管是文章的片段还是聊天，甚至是别的笔记的片段），直接存储为笔记，这和引用功能很像
+        4. LLM在后台定期或不定期的将交互记录（包含文章收藏、聊天、查询等）转换为笔记，用户的一切行为都是可被追溯、被理解的。
+        我们希望，笔记能产生几个作用：除了最基本的记录功能，它还能帮助用户产生灵感，这一过程，可以是用户自己产生的，也可以是LLM智能体对多篇笔记分析之后“洞察”而在后台产生的。另外，用户和LLM的单次对话，应该作为一种“记忆”的载体，为用户和LLM的相互理解提供更多支持，而不应每次对话之后就被丢弃。因此，多次对话，或一次长对话，是可以被浓缩成一些“记忆”而存储在笔记中的。这样日积月累，LLM就会越来越了解它的用户。较为完整和系统性的笔记，还可以转为博客，或文章，从而在NewsReader内，形成从输入到输出的闭环。
+    字段设计：
+        id：笔记id
+        title：笔记标题（notion一级单位）
+        content：笔记内容（notion二级单位-children）
+        articles：这篇笔记与哪些文章有关（如果笔记是从本系统(NewsReader)生成的，则有此字段），比如说，用户是针对某篇文章发问，和LLM进行了对话，那么，笔记应该记录这篇文章的id作为上下文，可选。
+        chats：类似articles，显示这篇笔记是从哪些对话中生成的，只记录id，可选。
+        source：单选(NewsReader-来自于本系统, Personal-用户自己随笔, LLM-由AI基于规则在后台自动生成)
+        type：多选[NOTE-普通笔记, BLOG-博客, IDEA-灵感, MEMORY-记忆]
+        url：笔记地址（可选）
+    具体案例：
+        基于已提供的API Endpoint，我们能够为notion插入一条笔记。
+        假设我们将前端聊天页顶部的“加入笔记”按钮接入此API，那么，该场景是将用户和AI的一次多轮对话历史的完整对话内容全部作为笔记的内容(content)保存进去，id由notion自动生成，title可以用对话的title加上时间戳，chats和articles如果有相关信息则带上，source为NewsReader，type为NOTE，url为空。
+#### Memory
+    TODO
+### Vector-DB
+https://zhuanlan.zhihu.com/p/641822949
+1 Chroma
+2 Milvus
+
+
+
+# 4 Scale：可扩展

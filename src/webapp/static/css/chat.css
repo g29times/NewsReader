@@ -1,4 +1,10 @@
 /* -------------------------------- 基础布局 -------------------------------- */
+/* 整体设计 左右两侧一级伸展宽度：320px 点击详情展开二级宽度：360px*/
+/* 展开折叠逻辑：
+1 折叠时，点击展开按钮，展开到一级伸展，显示列表；点击列表里的元素，展开到二级
+2 无论是展开到一级还是二级，只要点击折叠，都会收回到最小值：50px
+3 在详情页，点击回到列表，将从二级宽度收回到一级
+*/
 body {
     margin: 0;
     padding: 0;
@@ -12,9 +18,8 @@ body {
     height: 100vh;
     overflow: hidden;
     padding: 6px;
-    gap: 0;
+    gap: 20px;
     box-sizing: border-box;
-    position: relative;
 }
 
 /* -------------------------------- 面板通用样式 -------------------------------- */
@@ -40,6 +45,7 @@ body {
 .right-panel {
     width: 320px;
     min-width: 50px;
+    transition: all 0.3s ease;
     background: #f8f9fa;
     border-radius: 8px;
     display: flex;
@@ -48,16 +54,14 @@ body {
     height: calc(100vh - 12px);
     border: 1px solid #dee2e6;
     flex-shrink: 0;
-    margin-right: 4px;
 }
 
-/* 面板状态 - 只在展开/收起时应用过渡效果 */
+/* 面板状态 */
 .articles-panel.collapsed,
 .notes-panel.collapsed,
 .right-panel.collapsed {
     width: 50px;
     min-width: 50px;
-    transition: width 0.3s ease;
 }
 
 .articles-panel.expanded,
@@ -65,29 +69,11 @@ body {
 .right-panel.expanded {
     width: 360px;
     min-width: 360px;
-    transition: width 0.3s ease;
 }
 
-/* 分隔条样式 */
-.resizer {
-    width: 4px;
-    background: #e0e0e0;
-    cursor: col-resize;
-    position: absolute;
-    top: 6px;
-    bottom: 6px;
-    left: 320px;
-    z-index: 10;
-}
-
-.resizer:hover {
-    background: #bdbdbd;
-    transition: background 0.2s;
-}
-
-.resizer.dragging {
-    background: #bdbdbd;
-    transition: none;
+.collapsed .panel-content,
+.collapsed .toolbar {
+    display: none;
 }
 
 /* -------------------------------- 聊天区域 -------------------------------- */
@@ -102,7 +88,6 @@ body {
     border: 1px solid #dee2e6;
     min-width: 0;
     height: calc(100vh - 12px);
-    margin-left: 4px;
 }
 
 .chat-messages {
@@ -133,7 +118,6 @@ body {
     display: none;
     height: 100%;
     overflow-y: auto;
-    overflow-x: hidden;
     padding: 15px;
 }
 
@@ -141,22 +125,6 @@ body {
     height: auto;
     padding: 10px;
     overflow-y: auto;
-    overflow-x: hidden;
-}
-
-.panel-content {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    overflow: hidden;
-}
-
-.article-list {
-    overflow-y: auto;
-    overflow-x: hidden;
-    flex: 1;
-    display: block;
-    transition: opacity 0.3s ease;
 }
 
 .article-content {
@@ -197,6 +165,13 @@ body {
 }
 
 /* -------------------------------- 文章列表 -------------------------------- */
+.article-list {
+    overflow-y: auto;
+    flex: 1;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
 .panel-content {
     display: flex;
     flex-direction: column;
