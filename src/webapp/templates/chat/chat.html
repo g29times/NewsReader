@@ -4,10 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - NewsReader</title>
+		<link rel="icon" href="https://drive.google.com/file/d/1Vn_00nTR1ID3LK9hvX7zgi6WRND_3SUA/view?usp=drive_link" sizes="256x256" type="image/svg+xml">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
     <link rel="stylesheet" href="/static/css/chat.css">
+    <style>
+        /* 分隔条样式 */
+        .resizer {
+            width: 4px;
+            background: #e0e0e0;
+            cursor: col-resize;
+            transition: background 0.2s;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+        }
+        .resizer:hover, .resizer.dragging {
+            background: #bdbdbd;
+        }
+        .chat-container {
+            position: relative;
+        }
+        .articles-panel {
+            min-width: 200px;
+            max-width: 800px;
+            position: relative;
+        }
+    </style>
 </head>
 <body>
     <!-- Toast 容器 -->
@@ -73,10 +97,13 @@
             </div>
         </div>
 
+        <!-- 分隔条 -->
+        <div class="resizer" id="dragMe"></div>
+
         <!-- 中间聊天区域 -->
         <div class="chat-area">
             <div class="chat-toolbar">
-                <button class="btn btn-outline-secondary" onclick="toNote()">转为笔记</button>
+                <button class="btn btn-outline-secondary" onclick="createUpdateNote()">加入笔记</button>
                 <button class="btn btn-outline-secondary" onclick="createUpdateChat(true)">新建对话</button>
             </div>
             <div class="chat-messages" id="chatMessages">
@@ -107,7 +134,7 @@
                         <div class="toolbar">
                             <input type="text" placeholder="搜索笔记..." class="form-control">
                         </div>
-                        <button class="btn btn-outline-secondary" onclick="addNote()">新建笔记</button>
+                        <button class="btn btn-outline-secondary" onclick="createUpdateNote()">新建笔记</button>
                         <div class="note-title">笔记标题</div>
                         <div class="note-content">笔记内容</div>
                     </div>
@@ -521,7 +548,7 @@
         // 对话聊天 重点 每次聊天生成对话或更新对话
         async function sendChatMessage(file = null) {
             const messageInput = document.getElementById('messageInput');
-            const sendButton = document.querySelector('.btn-primary');
+            const sendButton = document.querySelector('.chat-input-area button.btn-primary');
             const message = messageInput.value.trim();
             if (message === '') {
                 showToast('请输入消息内容', 'error');
@@ -649,7 +676,7 @@
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'message-actions';
             actionsDiv.innerHTML = `
-                <button class="action-btn save-note" title="转为笔记">
+                <button class="action-btn save-note" title="加入笔记">
                     <i class="fas fa-sticky-note"></i>
                 </button>
                 <button class="action-btn edit" title="编辑" onclick="editMessage(this)">
@@ -1091,8 +1118,113 @@
         }
 
         // -------------------------------- 笔记管理 --------------------------------
-
         
+        async function createUpdateNote() {
+            try {
+                // 获取当前对话的内容
+                const chatMessages = document.querySelectorAll('.message');
+                if (!chatMessages.length) {
+                    showToast('当前对话为空，无法创建笔记', 'warning');
+                    return;
+                }
+
+                // 收集对话内容
+                let content = '';
+                chatMessages.forEach(msg => {
+                    const text = msg.querySelector('.message-content').textContent;
+                    content += `${text}`;
+                });
+
+                // 准备笔记数据
+                const noteData = {
+                    title: `对话笔记 - ${new Date().toLocaleString()}`,
+                    content: content,
+                    source: 'NewsReader',
+                    types: ['NOTE'],
+                    chats: currentConversationId ? [currentConversationId] : []
+                };
+
+                // 如果有选中的文章，添加到笔记中
+                const selectedArticles = getSelectedArticles();
+                if (selectedArticles.length > 0) {
+                    noteData.articles = selectedArticles;
+                }
+
+                // 发送请求创建笔记
+                const response = await fetch('/note/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(noteData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('笔记创建成功', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('创建笔记失败:', error);
+                showToast('创建笔记失败: ' + error.message, 'error');
+            }
+        }
+
+        // 获取选中的文章ID列表
+        function getSelectedArticles() {
+            const checkboxes = document.querySelectorAll('.article-items .article-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.dataset.articleId);
+        }
+
+        // 拖动分隔条功能
+        const resizer = document.getElementById('dragMe');
+        const leftPanel = document.querySelector('.articles-panel');
+        let isResizing = false;
+        let lastDownX = 0;
+
+        // 更新分隔条位置
+        function updateResizerPosition() {
+            resizer.style.left = `${leftPanel.offsetWidth + 6}px`; // +6是container的padding
+        }
+
+        // 初始化时设置位置
+        updateResizerPosition();
+
+        // 监听面板展开/收起
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    updateResizerPosition();
+                }
+            });
+        });
+        observer.observe(leftPanel, { attributes: true });
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            lastDownX = e.clientX;
+            resizer.classList.add('dragging');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const delta = e.clientX - lastDownX;
+            const newWidth = leftPanel.offsetWidth + delta;
+
+            // 限制最小和最大宽度
+            if (newWidth >= 200 && newWidth <= 800) {
+                leftPanel.style.width = `${newWidth}px`;
+                lastDownX = e.clientX;
+                updateResizerPosition();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+            resizer.classList.remove('dragging');
+        });
     </script>
 </body>
 </html>
