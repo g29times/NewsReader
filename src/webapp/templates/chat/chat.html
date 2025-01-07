@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat - NewsReader</title>
-		<link rel="icon" href="https://drive.google.com/file/d/1Vn_00nTR1ID3LK9hvX7zgi6WRND_3SUA/view?usp=drive_link" sizes="256x256" type="image/svg+xml">
+	<!-- <link rel="icon" href="https://drive.google.com/file/d/1Vn_00nTR1ID3LK9hvX7zgi6WRND_3SUA/view?usp=drive_link" sizes="256x256" type="image/svg+xml"> -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
@@ -108,7 +108,7 @@
                         <div class="toolbar">
                             <input type="text" placeholder="搜索笔记..." class="form-control">
                         </div>
-                        <button class="btn btn-outline-secondary" onclick="createUpdateNote()">新建笔记</button>
+                        <button class="btn btn-outline-secondary" onclick="createNewNote()">新建笔记</button>
                         <div class="note-title">笔记标题</div>
                         <div class="note-content">笔记内容</div>
                     </div>
@@ -121,6 +121,9 @@
     <div id="floatQuoteBtn" class="float-quote-btn">
         <button class="btn btn-sm btn-outline-secondary" onclick="quoteSelection()">
             <i class="fas fa-quote-right"></i> 继续引用
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="saveSelectionAsNote()">
+            <i class="fas fa-sticky-note"></i> 记笔记
         </button>
     </div>
 
@@ -474,6 +477,12 @@
             });
         });
 
+        // 获取选中的文章ID列表
+        function getSelectedArticles() {
+            const checkboxes = document.querySelectorAll('.article-items .article-checkbox:checked');
+            return Array.from(checkboxes).map(cb => cb.dataset.articleId);
+        }
+
         // 更新文章选择状态
         document.querySelectorAll('.article-items .article-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', function(e) {
@@ -649,24 +658,47 @@
             
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'message-actions';
-            actionsDiv.innerHTML = `
-                <button class="action-btn save-note" title="加入笔记">
-                    <i class="fas fa-sticky-note"></i>
-                </button>
-                <button class="action-btn edit" title="编辑" onclick="editMessage(this)">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn delete" title="删除" onclick="deleteMessage(this)">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-                <button class="action-btn quote" title="引用" onclick="quoteMessage(this)">
-                    <i class="fas fa-quote-right"></i>
-                </button>
-                <button class="action-btn copy" title="复制" onclick="copyMessage(this)">
-                    <i class="fas fa-copy"></i>
-                </button>
-            `;
-            
+
+            // 保存笔记按钮
+            const saveNoteButton = document.createElement('button');
+            saveNoteButton.className = 'action-btn save-note';
+            saveNoteButton.title = '加入笔记';
+            saveNoteButton.innerHTML = '<i class="fas fa-sticky-note"></i>';
+            saveNoteButton.onclick = function() { saveMessageAsNote(this); };
+            actionsDiv.appendChild(saveNoteButton);
+
+            // 编辑按钮
+            const editButton = document.createElement('button');
+            editButton.className = 'action-btn edit';
+            editButton.title = '编辑';
+            editButton.innerHTML = '<i class="fas fa-edit"></i>';
+            editButton.onclick = function() { editMessage(this); };
+            actionsDiv.appendChild(editButton);
+
+            // 删除按钮
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'action-btn delete';
+            deleteButton.title = '删除';
+            deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteButton.onclick = function() { deleteMessage(this); };
+            actionsDiv.appendChild(deleteButton);
+
+            // 引用按钮
+            const quoteButton = document.createElement('button');
+            quoteButton.className = 'action-btn quote';
+            quoteButton.title = '引用';
+            quoteButton.innerHTML = '<i class="fas fa-quote-right"></i>';
+            quoteButton.onclick = function() { quoteMessage(this); };
+            actionsDiv.appendChild(quoteButton);
+
+            // 复制按钮
+            const copyButton = document.createElement('button');
+            copyButton.className = 'action-btn copy';
+            copyButton.title = '复制';
+            copyButton.innerHTML = '<i class="fas fa-copy"></i>';
+            copyButton.onclick = function() { copyMessage(this); };
+            actionsDiv.appendChild(copyButton);
+
             messageDiv.appendChild(actionsDiv);
             const chatMessages = document.getElementById('chatMessages');
             chatMessages.appendChild(messageDiv);
@@ -835,7 +867,8 @@
 
         // 当前选中的对话ID
         let currentConversationId = null;
-        let chatId = null;
+        let currentChatId = null;
+        let currentChatTitle = null;
         
         // 调用后端加载对话列表 DONE
         async function loadConversationList() {
@@ -859,7 +892,7 @@
                         </div>
                         <div class="chat-title">${chat.title || '新对话'}</div>
                     `;
-                    chatItem.onclick = () => loadConversation(chat.id, chat.conversation_id);
+                    chatItem.onclick = () => loadConversation(chat.title, chat.id, chat.conversation_id);
                     chatList.appendChild(chatItem);
                 });
                 // addChatListeners();
@@ -892,17 +925,17 @@
         });
         
         // 加载特定对话内容 DONE
-        async function loadConversation(chat_id, conversationId) {
+        async function loadConversation(chat_title, chat_id, conversationId) {
             try {
-                chatId = chat_id;
+                currentChatTitle = chat_title
+                currentChatId = chat_id;
                 currentConversationId = conversationId;  // 设置当前对话ID
+                // get_conversation
                 const response = await fetch(`/chat/api/conversation?conversation_id=${conversationId}`);
                 const history = await response.json();
-                
                 // 清空现有对话
                 const chatMessages = document.getElementById('chatMessages');
                 chatMessages.innerHTML = '';
-                
                 // 循环添加消息块
                 history.forEach((msg, index) => addMessageToChat(msg.role, msg.blocks[0].text, index));
             } catch (error) {
@@ -927,7 +960,7 @@
                     });
                     const result = await response.json();
                     if (result.success) {
-                        chatId = result.data.id;
+                        currentChatId = result.data.id;
                         currentConversationId = result.data.conversation_id;  // 设置当前对话ID
                         if (force) { // 点击新建按钮 清空现有对话
                             const chatMessages = document.getElementById('chatMessages');
@@ -948,7 +981,7 @@
             // 已有ID 更新对话 刷新当前对话时间
             else {
                 try { // update_conversation update_chat
-                    const response = await fetch(`/chat/api/conversation/${chatId}`, {
+                    const response = await fetch(`/chat/api/conversation/${currentChatId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1085,14 +1118,48 @@
                     </div>
                     <div class="chat-title">${chat.title || '新对话'}</div>
                 `;
-                chatItem.onclick = () => loadConversation(chat.id, chat.conversation_id);
+                chatItem.onclick = () => loadConversation(chat.title, chat.id, chat.conversation_id);
                 chatList.appendChild(chatItem);
             });
             // addChatListeners();
         }
 
         // -------------------------------- 笔记管理 --------------------------------
-        
+        // TODO 新建笔记， chatid conv_id精简
+
+        // 选中的文本记笔记
+        async function saveSelectionAsNote() {
+            try {
+                const selectedText = window.getSelection().toString();
+                if (selectedText) {
+                    const noteData = {
+                        title: `笔记 - ${new Date().toLocaleString()}`,
+                        content: selectedText,
+                        source: 'NewsReader',
+                        types: ['NOTE']
+                    };
+                    // 发送请求创建笔记
+                    const response = await fetch('/note/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(noteData)
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('笔记创建成功', 'success');
+                    } else {
+                        throw new Error(result.error);
+                    }
+                }
+            } catch (error) {
+                console.error('创建笔记失败:', error);
+                showToast('创建笔记失败: ' + error.message, 'error');
+            }
+        }
+
+        // 创建或更新笔记
         async function createUpdateNote() {
             try {
                 // 获取当前对话的内容
@@ -1111,7 +1178,7 @@
 
                 // 准备笔记数据
                 const noteData = {
-                    title: `对话笔记 - ${new Date().toLocaleString()}`,
+                    title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
                     content: content,
                     source: 'NewsReader',
                     types: ['NOTE'],
@@ -1145,11 +1212,39 @@
             }
         }
 
-        // 获取选中的文章ID列表
-        function getSelectedArticles() {
-            const checkboxes = document.querySelectorAll('.article-items .article-checkbox:checked');
-            return Array.from(checkboxes).map(cb => cb.dataset.articleId);
+        // 保存消息为笔记
+        async function saveMessageAsNote(button) {
+            try {
+                const messageDiv = button.closest('.message');
+                const content = messageDiv.querySelector('.message-content').textContent;
+                const noteData = {
+                    title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
+                    content: content,
+                    source: 'NewsReader',
+                    types: ['NOTE']
+                };
+
+                // 发送请求创建笔记
+                const response = await fetch('/note/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(noteData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('笔记创建成功', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('创建笔记失败:', error);
+                showToast('创建笔记失败: ' + error.message, 'error');
+            }
         }
+    
     </script>
 </body>
 </html>
