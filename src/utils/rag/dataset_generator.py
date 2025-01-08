@@ -9,6 +9,7 @@ Features:
 """
 
 import os
+import random
 import sys
 import json
 import logging
@@ -76,11 +77,11 @@ class DatasetGenerator:
             raise
 
     # 生成评估数据集
-    def generate_dataset(self, output_file: str, samples_per_chunk: int = 5) -> List[EvaluationPair]:
+    def generate_dataset(self, output_file: str,  sample_percent: int = 5) -> List[EvaluationPair]:
         """生成评估数据集
         Args:
             output_file: 输出文件路径
-            samples_per_chunk: 每个文档生成的样本数量
+            sample_percent: 每个文档生成的样本采样份（整数, 如 5 代表 5% 的采样率, 最小采样份数为1)
         Returns:
             List[EvaluationPair]: 生成的评估数据对列表
         """
@@ -92,15 +93,19 @@ class DatasetGenerator:
             'methodological': 0,
             'enumerative': 0
         }
+
         for doc in tqdm(self.documents, desc="Generating dataset"):
             doc_evaluation_pairs = []
             logger.info(f"Processing document: {doc.metadata.get('file_name', '')}")
             # 分割文档，生成语义完整的黄金块
             chunks = self._split_document(doc)
-            attempts = 0
+
+            total_pair_target = int(len(chunks)  * sample_percent/100 ) 
+
+            attempts = random.randint(0, len(chunks))
             successful_pairs = 0
             # 比如，预期是5，那么最多尝试10次，因为LLM每次生成的都可能数量不够或过长过短 _is_valid_qa_pair
-            while successful_pairs < samples_per_chunk and attempts < samples_per_chunk * 2:
+            while successful_pairs < total_pair_target and attempts < len(chunks) * 2:
                 chunk = chunks[attempts % len(chunks)]
                 try:
                     # LLM为文档块生成问题
@@ -130,7 +135,7 @@ class DatasetGenerator:
                     logger.info(f"{effective_pairs} Effective pairs for chunk")
                 except Exception as e:
                     logger.error(f"Failed to generate question for chunk: {str(e)}")
-                attempts += 1
+                attempts += random.randint(1, 10)
             # 每处理完文档的一个chunk就保存一次
             if doc_evaluation_pairs:
                 logger.info(f"Saving {len(doc_evaluation_pairs)} pairs from <{doc.metadata.get('file_name', '')}>")
@@ -278,4 +283,4 @@ if __name__ == "__main__":
     # 输入
     generator = DatasetGenerator("C:/Users/SWIFT/Desktop/temp")
     # 输出
-    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set_010602.json", samples_per_chunk=5)
+    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set_010602.json" , sample_percent=5)
