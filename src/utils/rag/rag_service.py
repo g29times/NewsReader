@@ -26,6 +26,8 @@ from llama_index.core.llms import ChatMessage
 from llama_index.core.chat_engine import SimpleChatEngine
 import json
 
+from src.models import article_crud
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
@@ -278,12 +280,18 @@ class RAGService:
     
     def chat_with_file(self, conversation_id: str, file_content: str, question: str) -> str:
         # 1. 构建上下文
-        context = f"文件内容：\n{file_content}\n问题：{question}"
+        context = f"文件内容：\n{file_content}\n\n问题：{question}"
         # 2. 使用现有的chat方法
         return self.chat(conversation_id, context)
 
-    # 对话知识库（资料） TODO 待改造
     def chat_with_articles(self, conversation_id: str, article_ids: List[int], query: str) -> str:
+        # 1. 构建上下文
+        articles = article_crud.get_article_by_ids(db_session, article_ids)
+        articles_text = "\n".join([f"标题：{article.title}\n内容：{article.content}" for article in articles])
+        return self.chat_with_file(conversation_id, articles_text, query)
+
+    # 对话知识库（资料） TODO 待改造
+    def chat_with_articles_old(self, conversation_id: str, article_ids: List[int], query: str) -> str:
         """Chat with selected articles
         Args:
             article_ids: List of article IDs
