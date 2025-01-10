@@ -2,7 +2,8 @@ import os
 import re
 import logging
 import sys
-from typing import Optional, Dict, Any
+import time
+from typing import List, Dict, Any, Optional, Tuple, Union
 import google.generativeai as genai
 from dotenv import load_dotenv
 
@@ -38,8 +39,18 @@ class GeminiClient:
         "max_output_tokens": 8192,
         "response_mime_type": "text/plain",
     }
+    
+    @classmethod
+    def _get_current_system_prompt(cls) -> str:
+        """获取包含当前时间的完整系统提示词"""
+        system_prompt_i = os.getenv("SYSTEM_PROMPT_I", "")
+        system_prompt_ii = os.getenv("SYSTEM_PROMPT_II", "")
+        system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
+        system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
+        return system_prompt_i + system_prompt_ii + system_prompt_iii
 
     # ----------------------------------- 内部方法 -----------------------------------
+    
     # 验证API密钥是否设置
     @classmethod
     def _validate_api_key(cls):
@@ -52,21 +63,36 @@ class GeminiClient:
         return genai.GenerativeModel(
             model_name=cls.MODEL,
             generation_config=cls.GENERATION_CONFIG,
-            system_instruction=cls.SYSTEM_INSTRUCTION,
+            system_instruction=cls._get_current_system_prompt(),
         )
 
     # 多轮对话 TODO 未完成 
     @classmethod
-    def _start_chat_session(cls, model: genai.GenerativeModel, context: str, file: Any):
+    def _start_chat_session(cls, model: genai.GenerativeModel, messages: List[dict]):
         """启动聊天会话"""
         return model.start_chat(
-            history=[
-                # {
-                    # "role": "user",
-                    # "parts": [file, question]
-                # }
-            ]
+            history=messages
+            # // for messages  user = message.get("user"), model = message.get("model")
+            # history = [
+            #         {"role": "user", "parts": [file, context]},
+            #         {"role": "model", "parts": [response]}
+            #     ]
         )
+
+    # @classmethod
+    # def chat_with_history(cls, model: genai.GenerativeModel, messages: List[dict], input: str = "") -> str:
+    #     """带历史记录的对话
+    #     Args:
+    #         messages: 消息列表，格式为 [{"role": "user"/"model", "parts": ["content"]}]
+    #         input: 最新的输入消息
+    #     """
+    #     try:
+    #         chat_session = model.start_chat(history=messages)
+    #         response = chat_session.send_message(input)
+    #         return response.text
+    #     except Exception as e:
+    #         logger.error(f"Error in Gemini chat_with_history: {str(e)}")
+    #         return f"对话出错: {str(e)}"
 
     # 获取响应
     @classmethod
@@ -154,7 +180,7 @@ class GeminiClient:
     # ----------------------------------- 对外方法 -----------------------------------
     # 使用Gemini API生成内容 核心
     @classmethod
-    def _chat(cls, question: str, context: str = None) -> Optional[dict]:
+    def _chat(cls, question: str, histories: List[dict] = [], files: Optional[Any] = None) -> Optional[dict]:
         try:
             cls._validate_api_key()
             headers = {"Content-Type": "application/json"}
@@ -172,7 +198,13 @@ class GeminiClient:
             # 1 初始化模型
             model = cls._initialize_model()
             # 2 启动时加载历史对话上下文
-            chat_session = cls._start_chat_session(model, context, None) # TODO File
+            # 解析历史对话和多文件，放入历史记录  # TODO
+            # // for messages  user = message.get("user"), model = message.get("model")
+            # history = [
+            #         {"role": "user", "parts": [file, context]},
+            #         {"role": "model", "parts": [response]}
+            #     ]
+            chat_session = cls._start_chat_session(model, histories)
             # 3 真正开始本轮对话
             response = cls._get_response(chat_session, question)
             if response and response.text:
@@ -195,18 +227,23 @@ class GeminiClient:
 
     # 使用内容查询，本方法是对chat方法的多次重试封装 其他方法用该调用本方法
     @classmethod
-    def query_with_content(cls, content: str, question: str, retries: int = 2) -> Optional[str]:
-        if not content:
-            logger.error("Empty content provided")
-            return None
+    def query_with_content(cls, context: str, question: str, histories: List[dict] = [], files: Optional[Any] = None) -> Optional[str]:
+        """
+        使用内容查询，本方法是对chat方法的多次重试封装
 
-        # processed_text = TextInputHandler.preprocess_text(content)
-        # prompt = f"{question}\n\nContent: {processed_text}"
-        # prompt = f"{question} {content}"
-        # prompt = question
+        Args:
+            context (str): 上下文
+            question (str): 查询的问题
+        """
+        retries = 2
         for attempt in range(retries + 1):
             try:
-                response = cls._chat(f"{question} : ```{content}```")
+                query = ""
+                if context:
+                    query = f"{question} : ```{context}```"
+                else:
+                    query = question
+                response = cls._chat(query, histories, files)
                 if response:
                     return response
             except Exception as e:
@@ -304,18 +341,44 @@ class GeminiClient:
             return None
 
 if __name__ == "__main__":
-    # OK
-    print("TEST1 query_with_url -------------")
-    response = GeminiClient.query_with_url("https://www.google.com", "这是什么网站？")
-    print(response)
-    # OK
-    print("TEST2 query_with_file -------------")
-    response = GeminiClient.query_with_file('src/utils/rag/docs/3B模型长思考后击败70B.txt', "这篇文章讲什么？")
-    print(response)
-    # OK
-    print("TEST3 summarize_text -------------")
-    response = GeminiClient.summarize_text(
-        content=FileInputHandler.read_from_file('src/utils/rag/docs/Claude 的 5 层 Prompt 体系.txt'),
-        language="Chinese", 
-    )
-    print(response)
+
+    messages=[
+            {"role": "user", "parts": ["讲个笑话？"]},
+            {"role": "model", "parts": ["有只猴子在树上"]},
+        ]
+    GeminiClient.query_with_content("", "GEMI评估更新记忆", messages)
+    # REsponse
+    #     ```json
+    # [
+    # {
+    #     "event": "*NEO* 喜欢自然、户外、游泳、滑雪、科幻小说和奇幻电影。他喜欢的书有托尔金的《魔戒》、马克吐温的《傻子
+    # 旅行》等。他喜欢听 City Pop，逛画展，他的 MBTI 是 INTP。*NEO* 通常住在中国，但部分时间在美国芝加哥求学。",        
+    #     "user_id": 1,
+    #     "layer": "PERMANENT",
+    #     "action": "UPSERT"
+    # },
+    # {
+    #     "event": "当前时间是2025年1月11日，凌晨1点多，*NEO* 还没有睡觉，他在测试我。(他怎么还不睡觉？)",
+    #     "user_id": 1,
+    #     "layer": "SHORT",
+    #     "action": "UPSERT"
+    # }
+    # ]
+    # ```
+
+
+    # # OK
+    # print("TEST1 query_with_url -------------")
+    # response = GeminiClient.query_with_url("https://www.google.com", "这是什么网站？")
+    # print(response)
+    # # OK
+    # print("TEST2 query_with_file -------------")
+    # response = GeminiClient.query_with_file('src/utils/rag/docs/3B模型长思考后击败70B.txt', "这篇文章讲什么？")
+    # print(response)
+    # # OK
+    # print("TEST3 summarize_text -------------")
+    # response = GeminiClient.summarize_text(
+    #     content=FileInputHandler.read_from_file('src/utils/rag/docs/Claude 的 5 层 Prompt 体系.txt'),
+    #     language="Chinese", 
+    # )
+    # print(response)

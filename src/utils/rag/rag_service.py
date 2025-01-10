@@ -184,24 +184,18 @@ class RAGService:
         )
         # 模块2 大模型 Initialize LLM
         self.system_prompt_i = os.getenv("SYSTEM_PROMPT_I", "")
-        # 从记忆服务获取记忆数据
-        memory_service = NotionMemoryService()
-        self.memory_data = memory_service.get_memories()
         self.system_prompt_ii = os.getenv("SYSTEM_PROMPT_II", "")
-        system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
-        logger.info(f"system_time: {system_time}")
-        # `<|current_time|>2025-01-10T00:00:00.000Z<|current_time|>`
-        system_prompt_iii = f"`<|current_time|>2025-01-10T00:00:00.000Z<|current_time|>`"
-        # 组合完整的系统提示词
-        self.system_prompt = self.system_prompt_i + self.memory_data + self.system_prompt_ii + system_prompt_iii
+        
+        # 初始化Gemini，但不包含system_prompt_iii
         self.gemini = Gemini(
-            system_prompt=self.system_prompt,
+            system_prompt=self._get_current_system_prompt(),
             model="models/" + self.GEMINI_MODEL,
             api_key=self.google_api_key,
             temperature=1,
             max_tokens=16000 # 8192
         )
-        # 模块3 存储 Initialize Chroma client
+
+        # 模块3 向量数据库
         # 向量数据库优化 https://docs.trychroma.com/docs/collections/configure
         # https://www.llamaindex.ai/blog/evaluating-the-ideal-chunk-size-for-a-rag-system-using-llamaindex-6207e5d3fec5
         # self.chroma_client = chromadb.PersistentClient(path="src/database/chroma_db")
@@ -253,22 +247,27 @@ class RAGService:
         Settings.chunk_overlap = 50
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
     
+    def _get_current_system_prompt(self) -> str:
+        """获取包含当前时间的完整系统提示词"""
+        system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
+        system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
+        
+        # 从记忆服务获取记忆数据
+        memory_service = NotionMemoryService()
+        self.memory_data = memory_service.get_memories()
+        
+        return self.system_prompt_i + self.memory_data + self.system_prompt_ii + system_prompt_iii
+
     def get_chat_from_engine(self, chat_store_key: str):
         chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
             chat_store_key=chat_store_key,
         )
-        system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
-        logger.info(f"Chat system_time: {system_time}")
-        # `<|current_time|>2025-01-10T00:00:00.000Z<|current_time|>`
-        system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
-        # 组合完整的系统提示词
-        system_prompt = self.system_prompt_i + self.memory_data + self.system_prompt_ii + system_prompt_iii
         chat_engine = SimpleChatEngine.from_defaults(
-            system_prompt=system_prompt,
+            system_prompt=self._get_current_system_prompt(), # 每次对话动态变更
             memory=chat_memory,
-            llm=self.gemini
+            # llm=self.gemini
         )
         return chat_engine
 
@@ -763,6 +762,7 @@ if __name__ == "__main__":
     # See https://docs.trychroma.com/telemetry for more information.
     # chroma_client = chromadb.PersistentClient(path="src/database/chroma_db")
     # chroma_client = chromadb.HttpClient(host='localhost', port=8000)
+    # Current collection name
     # chroma_client.delete_collection(name=VECTOR_DB_ARTICLES)
 
     # 查询测试 chroma

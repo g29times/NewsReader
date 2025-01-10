@@ -1,9 +1,19 @@
 import os
 import requests
 import json
+import re
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 import logging
+import threading
+import sys
+
+# 添加项目根目录到 Python 路径 标准方式
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+from src.utils.llms.gemini_client import GeminiClient
 
 # 创建一个日志记录器
 logger = logging.getLogger(__name__)
@@ -12,6 +22,7 @@ class NotionMemoryService:
     """Notion based memory service for managing AI memories"""
     
     def __init__(self):
+        """初始化Notion记忆服务"""
         self.api_key = os.getenv("NOTION_API_KEY")
         if not self.api_key:
             raise ValueError("NOTION_API_KEY not found in environment variables")
@@ -105,41 +116,124 @@ class NotionMemoryService:
             logger.error(f"Error getting memories: {e}")
             return ""  # 出错时返回空字符串，让系统可以继续运行
     
-    # TODO
-    def add_memory(self, event: str, layer: str = 'SHORT', user_id: str = '1') -> bool:
-        """添加新的记忆
-        
+    def manage_memory(self, event: str, layer: str = 'SHORT', user_id: str = '1', action: str = 'SAME') -> bool:
+        """记忆管理
         Args:
             event: 记忆事件内容
             layer: 记忆层级 (PERMANENT|LONG|SHORT|COLD)
             user_id: 用户ID
-            
+            action: 动作 UPSERT|DELETE|SAME(记忆不变)
         Returns:
             bool: 是否添加成功
         """
         url = f"https://api.notion.com/v1/pages"
-        
-        data = {
-            "parent": {"database_id": self.memory_db_id},
-            "properties": {
-                "event": {
-                    "title": [{"text": {"content": event}}]
-                },
-                "layer": {
-                    "select": {"name": layer}
-                },
-                "user_id": {
-                    "rich_text": [{"text": {"content": user_id}}]
+        if action == 'UPSERT':
+            data = {
+                "parent": {"database_id": self.memory_db_id},
+                "properties": {
+                    "event": {
+                        "title": [{"text": {"content": event}}]
+                    },
+                    "layer": {
+                        "select": {"name": layer}
+                    },
+                    "user_id": {
+                        "rich_text": [{"text": {"content": str(user_id)}}]
+                    }
                 }
             }
-        }
-        
-        response = requests.post(url, headers=self.headers, json=data)
-        return response.status_code == 200
+            response = requests.post(url, headers=self.headers, json=data)
+            if response.status_code != 200:
+                logger.error(f"Failed to add memory: {response.text}")
+                return False
+            else:
+                logger.info("Memory added successfully")
+                return True
+        else: # DELETE|SAME 待实现
+            return False
+            
+    def _extract_json_from_text(self, text: str) -> str:
+        """从文本中提取 JSON 内容
+        Args:
+            text: 可能包含 Markdown 格式和注释的文本
+        Returns:
+            str: 提取出的 JSON 字符串
+        """
+        # 尝试匹配 ```json ... ``` 格式
+        json_match = re.search(r'```json\s*(.*?)\s*```', text, re.DOTALL)
+        if json_match:
+            return json_match.group(1)
+            
+        # 如果没有 Markdown 格式，尝试找到第一个 [ 和最后一个 ]
+        start = text.find('[')
+        end = text.rfind(']')
+        if start != -1 and end != -1:
+            return text[start:end+1]
+            
+        # 如果都没找到，返回原文本
+        return text
 
+    def update_memory_async(self, message: str, response: str) -> threading.Thread:
+        """异步更新记忆
+        Args:
+            message: 用户消息
+            response: AI回复
+        Returns:
+            threading.Thread: 异步线程对象，可用于等待完成
+        """
+        def update_memory():
+            try:
+                # 使用MEMORY_UPDATE_PROMPT提示词让LLM评估记忆
+                memory_prompt = os.getenv("MEMORY_UPDATE_PROMPT", "GEMI评估更新记忆")
+                # 构建对话历史
+                messages = [
+                    {"role": "user", "parts": [message]},
+                    {"role": "model", "parts": [response]}
+                ]
+                # 调用LLM评估记忆
+                memory_evaluation = GeminiClient.query_with_content("", memory_prompt, messages)
+                logger.info(f"Raw memory evaluation: {memory_evaluation}")
+                
+                try:
+                    # 提取并解析 JSON
+                    json_str = self._extract_json_from_text(memory_evaluation)
+                    memory_updates = json.loads(json_str)
+                    if not isinstance(memory_updates, list):
+                        memory_updates = [memory_updates]
+                        
+                    # 处理每条记忆更新
+                    for update in memory_updates:
+                        if all(k in update for k in ['event', 'user_id', 'layer', 'action']):
+                            # 调用manage_memory写入Notion数据库
+                            self.manage_memory(
+                                event=update['event'],
+                                layer=update['layer'],
+                                user_id=update['user_id'],
+                                action=update['action']
+                            )
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse memory evaluation: {memory_evaluation}\nError: {str(e)}")
+                except Exception as e:
+                    logger.error(f"Error processing memory updates: {str(e)}")
+            except Exception as e:
+                logger.error(f"Memory update thread error: {str(e)}")
+        
+        # 启动异步线程并返回线程对象
+        thread = threading.Thread(target=update_memory, daemon=True)
+        thread.start()
+        return thread
+    
 if __name__ == "__main__":
-    # 测试代码
     memory_service = NotionMemoryService()
+
+    # 插入 OK 
+    # memory_service.manage_memory(event="test event", layer="SHORT", user_id="1", action="UPSERT")
+
+    # 异步更新
+    thread = memory_service.update_memory_async("最新消息", "最新回应")
+    thread.join()  # 等待线程完成
+    
+    # 查询 OK 
     memories = memory_service.get_memories()
     print("Formatted memories:")
     print(memories)

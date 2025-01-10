@@ -7,7 +7,7 @@ from models.chat import Chat
 from models.chat_crud import *
 from utils.rag.rag_service import RAGService
 from utils.file_input_handler import FileInputHandler
-from utils.llms.gemini_client import GeminiClient as gemini_client
+from utils.llms.gemini_client import GeminiClient
 from webapp.article import article_routes
 from database.connection import db_session
 import logging
@@ -17,9 +17,11 @@ import os
 import json
 import threading
 from src.utils.redis.redis_service import redis_service
+from src.utils.memory.memory import NotionMemoryService
 
 logger = logging.getLogger(__name__)
 rag_service = RAGService()
+gemini_client = GeminiClient()  # 创建一个全局实例
 
 # --------------------------------- 文章管理 ---------------------------------
 # 搜索文章
@@ -96,6 +98,12 @@ def chat():
             response = rag_service.chat(conversation_id, message)
         else:
             response = rag_service.chat_with_articles(conversation_id, article_ids, message)
+        # 异步更新LLM记忆
+        try:
+            memory_service = NotionMemoryService()
+            memory_service.update_memory_async(message, str(response))
+        except Exception as e:
+            logger.error(f"Failed to start memory update: {str(e)}")
         # 这里暂时只返回成功响应，不调用LLM
         return jsonify({
             'success': True,
