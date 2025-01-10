@@ -18,7 +18,7 @@ class Chat(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False)  # 不使用外键 示例：1,2,3
-    conversation_id = Column(String(50), nullable=False, unique=True)  # 对话ID 示例：1,12345678
+    conversation_id = Column(String(50), nullable=False, unique=True)  # 对话ID 示例：12345678
     title = Column(String(200))
     created_at = Column(DateTime, default=func.datetime('now', 'localtime'),
         server_default=func.datetime('now', 'localtime'))

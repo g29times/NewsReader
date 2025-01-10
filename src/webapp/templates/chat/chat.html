@@ -757,8 +757,8 @@
                 showToast('无法获取消息索引', 'error');
                 return;
             }
-            try {
-                const response = await fetch('/chat/api/chat/delete', {
+            try { // delete_message
+                const response = await fetch('/chat/api/msg/delete', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -821,8 +821,8 @@
                 const newContent = textarea.value; // 修复换行符替换
                 if (newContent && newContent !== originalContent) {
                     isSaving = true;  // 开始保存
-                    try {
-                        const response = await fetch('/chat/api/chat/edit', {
+                    try { // edit_chat_msg
+                        const response = await fetch('/chat/api/msg/edit', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -867,12 +867,11 @@
 
         // 当前选中的对话ID
         let currentConversationId = null;
-        let currentChatId = null;
         let currentChatTitle = null;
         
         // 调用后端加载对话列表 DONE
         async function loadConversationList() {
-            try {
+            try { // get_conversations
                 const response = await fetch('/chat/api/conversations');
                 const conversations = await response.json();
                 const chatList = document.getElementById('chatList');
@@ -883,16 +882,16 @@
                     chatItem.dataset.conversationId = chat.conversation_id;
                     chatItem.innerHTML = `
                         <div class="chat-actions">
-                            <button onclick="event.stopPropagation(); editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
+                            <button onclick="event.stopPropagation(); editChatTitle(event, '${chat.conversation_id}', '${chat.title}')" title="编辑">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button onclick="event.stopPropagation(); deleteChat(event, ${chat.id}, '${chat.conversation_id}')" title="删除">
+                            <button onclick="event.stopPropagation(); deleteChat(event, '${chat.conversation_id}')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                         <div class="chat-title">${chat.title || '新对话'}</div>
                     `;
-                    chatItem.onclick = () => loadConversation(chat.title, chat.id, chat.conversation_id);
+                    chatItem.onclick = () => loadConversation(chat.title, chat.conversation_id);
                     chatList.appendChild(chatItem);
                 });
                 // addChatListeners();
@@ -925,13 +924,12 @@
         });
         
         // 加载特定对话内容 DONE
-        async function loadConversation(chat_title, chat_id, conversationId) {
+        async function loadConversation(chat_title, convId) {
             try {
                 currentChatTitle = chat_title
-                currentChatId = chat_id;
-                currentConversationId = conversationId;  // 设置当前对话ID
+                currentConversationId = convId;  // 设置当前对话ID
                 // get_conversation
-                const response = await fetch(`/chat/api/conversation?conversation_id=${conversationId}`);
+                const response = await fetch(`/chat/api/conversation?conversation_id=${convId}`);
                 const history = await response.json();
                 // 清空现有对话
                 const chatMessages = document.getElementById('chatMessages');
@@ -960,7 +958,6 @@
                     });
                     const result = await response.json();
                     if (result.success) {
-                        currentChatId = result.data.id;
                         currentConversationId = result.data.conversation_id;  // 设置当前对话ID
                         if (force) { // 点击新建按钮 清空现有对话
                             const chatMessages = document.getElementById('chatMessages');
@@ -981,7 +978,7 @@
             // 已有ID 更新对话 刷新当前对话时间
             else {
                 try { // update_conversation update_chat
-                    const response = await fetch(`/chat/api/conversation/${currentChatId}`, {
+                    const response = await fetch(`/chat/api/conversation/${currentConversationId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -1002,7 +999,7 @@
         }
         
         // 编辑对话标题 DONE
-        async function editChatTitle(event, chatId, currentTitle) {
+        async function editChatTitle(event, convId, currentTitle) {
             event.stopPropagation(); // 阻止事件冒泡
             
             const chatItem = event.target.closest('.chat-item');
@@ -1020,13 +1017,13 @@
             titleDiv.appendChild(input);
             input.focus();
 
-            // 保存编辑 update_conversation
+            // 保存编辑
             async function saveTitle() {
                 const newTitle = input.value.trim();
                 if (newTitle && newTitle !== originalTitle) {
                     isSaving = true;
-                    try {
-                        const response = await fetch(`/chat/api/conversation/${chatId}`, {
+                    try { // update_conversation
+                        const response = await fetch(`/chat/api/conversation/${convId}`, {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1071,13 +1068,13 @@
         }
         
         // 删除对话 DONE
-        async function deleteChat(event, chatId, convId) {
+        async function deleteChat(event, convId) {
             event.stopPropagation(); // 阻止事件冒泡
             if (!confirm('确定要删除这个对话吗？')) {
                 return;
             }
-            try {
-                const response = await fetch(`/chat/api/conversation/${chatId}`, {
+            try { // delete_conversation
+                const response = await fetch(`/chat/api/conversation/${convId}`, {
                     method: 'DELETE'
                 });
                 const result = await response.json();
@@ -1088,7 +1085,6 @@
                     if (currentConversationId === convId) {
                         document.getElementById('chatMessages').innerHTML = '';
                         currentConversationId = null;
-                        chatId = null;
                     }
                 } else {
                     showToast(result.message || '删除失败', 'error');
@@ -1109,23 +1105,23 @@
                 chatItem.dataset.conversationId = chat.conversation_id;
                 chatItem.innerHTML = `
                     <div class="chat-actions">
-                        <button onclick="event.stopPropagation(); editChatTitle(event, ${chat.id}, '${chat.title}')" title="编辑">
+                        <button onclick="event.stopPropagation(); editChatTitle(event, '${chat.conversation_id}', '${chat.title}')" title="编辑">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button onclick="event.stopPropagation(); deleteChat(event, ${chat.id}, '${chat.conversation_id}')" title="删除">
+                        <button onclick="event.stopPropagation(); deleteChat(event, '${chat.conversation_id}')" title="删除">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                     <div class="chat-title">${chat.title || '新对话'}</div>
                 `;
-                chatItem.onclick = () => loadConversation(chat.title, chat.id, chat.conversation_id);
+                chatItem.onclick = () => loadConversation(chat.title, chat.conversation_id);
                 chatList.appendChild(chatItem);
             });
             // addChatListeners();
         }
 
         // -------------------------------- 笔记管理 --------------------------------
-        // TODO 新建笔记， chatid conv_id精简
+        // TODO 多笔记汇入合并 线上 chatid 没带过来APP类型记为NewsReader 用户界面系统提示词。项目？分组、标签， 接入搜素， 支持url， 新建/追加笔记 大笔记失败， chatid conv_id精简， 底部滚动条，Perplexiti AI集成 获取新闻，google 搜索集成，学术搜索集成，改密码，拉勾
 
         // 选中的文本记笔记
         async function saveSelectionAsNote() {

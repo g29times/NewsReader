@@ -216,8 +216,8 @@ class RAGService:
         from llama_index.storage.chat_store.upstash import UpstashChatStore
         from llama_index.core.memory import ChatMemoryBuffer
         remote_chat_store = UpstashChatStore( # https://docs.llamaindex.ai/en/stable/module_guides/storing/chat_stores/#usage
-            redis_url=os.getenv("REDIS_URL"),
-            redis_token=os.getenv("REDIS_TOKEN"),
+            redis_url=os.getenv("UPSTASH_REDIS_REST_URL"),
+            redis_token=os.getenv("UPSTASH_REDIS_REST_TOKEN"),
             # ttl=300,  # Optional: Time to live in seconds
         )
         local_chat_store = SimpleChatStore.from_persist_path(
@@ -227,7 +227,7 @@ class RAGService:
         self.chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=10000, # shape 相似
             chat_store=self.chat_store,
-            chat_store_key="user1", # TODO user_id
+            chat_store_key="user1_conv1", # TODO user_id
         )
 
         # 全局配置 Global 默认值
@@ -239,7 +239,7 @@ class RAGService:
         Settings.chunk_overlap = 50
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
     
-    def get_chat_engine(self, chat_store_key: str):
+    def get_chat_from_engine(self, chat_store_key: str):
         chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
@@ -266,7 +266,7 @@ class RAGService:
         logger.info(f"Conversation ID: {conversation_id}")
         # 方式2 使用LlamaIndex框架对话
         chat_store_key = "user1_conv" + conversation_id
-        chat_engine = self.get_chat_engine(chat_store_key)
+        chat_engine = self.get_chat_from_engine(chat_store_key)
         # chat_engine.chat_repl()
         response = chat_engine.chat(query)
         logger.info(f"LLM response: {response}")
@@ -608,13 +608,23 @@ class RAGService:
     # 加载用户的所有对话列表（仅标题和基本信息） DONE
     def load_conversations(self, user_id: str):
         try:
-            # 获取用户的所有对话(仅is_active的)
+            # 1 获取数据库用户的所有对话(仅is_active的)
             user_conversations = get_user_chats(self.session, int(user_id))
             if not user_conversations:
                 return []
-            # 转换为前端需要的格式
+            from collections import OrderedDict
+            dict = OrderedDict((chat.conversation_id, chat) for chat in user_conversations)
+            # 2 数据同步校验 获取redis中的对话 如果redis已经删除或者过期，则不显示
+            from src.utils.redis.redis_service import redis_service
+            redis_keys = redis_service.get_keys(f"user{user_id}_conv*")
+            if redis_keys:
+                for chat in user_conversations: # user1_conv1
+                    redis_key = "user" + str(user_id) + "_conv" + chat.conversation_id
+                    if redis_key not in redis_keys:
+                        dict.pop(chat.conversation_id)
+            # 3 转换为前端需要的格式
             conversations = []
-            for chat in user_conversations:
+            for chat in dict.values():
                 conversations.append({
                     'id': chat.id,
                     'title': chat.title or f'对话 {chat.id}',
@@ -626,7 +636,7 @@ class RAGService:
             return []
 
     # 保存对话内容
-    def save_chat(self, conversation_id: str, messages: json) -> bool:
+    def save_chat(self, redis_key: str, messages: json) -> bool:
         try:
             # 转换为ChatMessage列表
             chat_messages = []
@@ -637,17 +647,25 @@ class RAGService:
                     content=content
                 ))
             # 保存到Redis
-            self.chat_store.set_messages(conversation_id, chat_messages)
+            self.chat_store.set_messages(redis_key, chat_messages)
             return True
         except Exception as e:
             logger.error(f"Error in save_chat: {e}")
             return False
 
-    # 编辑消息
-    def edit_chat(self, conversation_id: str, message_index: int, new_content: str, role: str) -> bool:
+    def delete_chat(self, redis_key: str) -> bool:
         try:
-            chat_store_key = "user1_conv" + conversation_id
-            chat_engine = self.get_chat_engine(chat_store_key)
+            self.chat_store.delete_messages(redis_key)
+            return True
+        except Exception as e:
+            logger.error(f"Error in delete_chat: {e}")
+            return False
+            
+    # 编辑消息 (注意 消息只是对话中的一段)
+    def edit_chat_msg(self, redis_key: str, message_index: int, new_content: str, role: str) -> bool:
+        try:
+            chat_store_key = redis_key
+            chat_engine = self.get_chat_from_engine(chat_store_key)
             chat_history = chat_engine.chat_history
             chat_history[message_index] = ChatMessage(content=new_content, role=role)
             self.save_chat(chat_store_key, chat_history)
@@ -656,12 +674,12 @@ class RAGService:
             return False
         return True
     
-    # 删除消息
-    def delete_chat(self, conversation_id: str, message_index: int) -> bool:
+    # 删除消息 (注意 消息只是对话中的一段)
+    def delete_chat_msg(self, redis_key: str, message_index: int) -> bool:
         try:
             # 取自 engine history
-            chat_store_key = "user1_conv" + conversation_id
-            chat_engine = self.get_chat_engine(chat_store_key)
+            chat_store_key = redis_key
+            chat_engine = self.get_chat_from_engine(chat_store_key)
             chat_history = chat_engine.chat_history
             if len(chat_history) > message_index:
                 chat_history.pop(message_index)

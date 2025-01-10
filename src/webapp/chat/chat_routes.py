@@ -16,6 +16,7 @@ import uuid
 import os
 import json
 import threading
+from src.utils.redis.redis_service import redis_service
 
 logger = logging.getLogger(__name__)
 rag_service = RAGService()
@@ -205,34 +206,38 @@ async def save_file_as_article(content: str, filename: str):
         db_session.rollback()
         return None
 
-# 删除消息
-@chat_bp.route('/api/chat/delete', methods=['POST'])
-def delete_talk():
+# 删除消息 (注意 消息只是对话中的一段)
+@chat_bp.route('/api/msg/delete', methods=['POST'])
+def delete_chat_msg():
     try:
         data = request.get_json()
         conversation_id = data.get('conversation_id')
+        user_id = '1'
         if not conversation_id:
             return jsonify({'success': False, 'message': '缺少必要参数'}), 400
         message_index = data.get('message_index')
-        rag_service.delete_chat(conversation_id, int(message_index))
+        redis_key = f"user{user_id}_conv{conversation_id}"
+        rag_service.delete_chat_msg(redis_key, int(message_index))
         return jsonify({'success': True, 'message': '对话删除成功'})
     except Exception as e:
         error_msg = f'删除对话失败: {str(e)}'
         logger.error(error_msg)
         return jsonify({'success': False, 'message': error_msg}), 500
 
-# 编辑消息
-@chat_bp.route('/api/chat/edit', methods=['POST'])
-def edit_talk():
+# 编辑消息 (注意 消息只是对话中的一段)
+@chat_bp.route('/api/msg/edit', methods=['POST'])
+def edit_chat_msg():
     try:
         data = request.get_json()
         conversation_id = data.get('conversation_id')
+        user_id = '1'
         if not conversation_id:
             return jsonify({'success': False, 'message': '缺少必要参数'}), 400
         message_index = data.get('message_index')
         new_content = data.get('content')
         role = data.get('role', 'user')  # 默认用户消息
-        if rag_service.edit_chat(conversation_id, int(message_index), new_content, role):
+        redis_key = f"user{user_id}_conv{conversation_id}"
+        if rag_service.edit_chat_msg(redis_key, int(message_index), new_content, role):
             return jsonify({'success': True, 'message': '对话编辑成功'})
         else:
             return jsonify({'success': False, 'message': '对话编辑失败'})
@@ -261,13 +266,19 @@ def search_chats_api():
     try:
         query = request.args.get('query')
         user_id = request.args.get('user_id', '1')
-        chats = search_chats(db_session, int(user_id), query)
+        # 1. 从Redis模糊搜索对话内容
+        if not query or query == '':
+            conv_ids = []
+        else:
+            conv_ids = redis_service.search_conversation_content(int(user_id), query)
+        # 2. 从数据库搜索对话
+        chats = search_chats(db_session, int(user_id), query, conv_ids)
         logger.info(f"Searched chats: {len(chats)}")
         return jsonify([{
-                    'id': chat.id,
-                    'title': chat.title,
-                    'conversation_id': chat.conversation_id,
-                } for chat in chats])
+            'id': chat.id,
+            'title': chat.title,
+            'conversation_id': chat.conversation_id,
+        } for chat in chats])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -284,13 +295,13 @@ def get_conversation():
         messages = rag_service.load_conversation_from_redis(redis_key)
         if messages:
             return jsonify(messages)
-        # 如果Redis中没有，尝试从本地文件加载
+        # 如果Redis中没有，尝试从本地文件加载 (仅用于开发时首次同步数据)
         file_path = f'chat_store/user{user_id}_conv{conv_id}.json'
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 messages = data['store'].get(f'user{user_id}', [])
-                # 缓存到Redis (仅用于刷数据，开发)
+                # 缓存到Redis
                 rag_service.save_chat(redis_key, messages)
                 return jsonify(messages)
         return jsonify([])
@@ -329,18 +340,19 @@ def create_conversation():
         }), 500
 
 # 更新对话 DONE
-@chat_bp.route('/api/conversation/<int:chat_id>', methods=['PUT'])
-def update_conversation(chat_id):
+@chat_bp.route('/api/conversation/<string:conversation_id>', methods=['PUT'])
+def update_conversation(conversation_id):
     try:
+        user_id = '1'
         data = request.get_json()
         title = data.get('title')
         from sqlalchemy.sql import func
         update = func.datetime('now', 'localtime')
         logger.info(f"更新对话：{datetime.now()}")
         if title is not None and title != '':
-            update_chat(db_session, chat_id, title=title)
+            update_chat(db_session, user_id, conversation_id, title=title)
         else: # 只更新时间
-            update_chat(db_session, chat_id, updated_at=update)
+            update_chat(db_session, user_id, conversation_id, updated_at=update)
         logger.info(f"更新对话成功：{datetime.now()}")
         return jsonify({
             'success': True,
@@ -356,18 +368,16 @@ def update_conversation(chat_id):
         }), 500
 
 # 删除对话 DONE
-@chat_bp.route('/api/conversation/<int:chat_id>', methods=['DELETE'])
-def delete_conversation(chat_id):
+@chat_bp.route('/api/conversation/<string:conversation_id>', methods=['DELETE'])
+def delete_conversation(conversation_id):
     try:
-        chat = get_chat(db_session, chat_id)
-        # TODO: 检查用户权限
         user_id = '1'
-        conv_id = chat.conversation_id
-        # 删除Redis缓存（开发保留 暂不删除）
-        redis_key = f"user{user_id}_conv{conv_id}"
-        rag_service.chat_store.delete_messages(redis_key)
         # 删除数据库记录
-        delete_chat(db_session, chat_id)
+        delete_chat(db_session, user_id, conversation_id)
+        # 删除Redis缓存（开发保留 暂不删除）
+        redis_key = f"user{user_id}_conv{conversation_id}"
+        rag_service.delete_chat(redis_key)
+        # redis_service.delete_keys(redis_key)
         # 删除本地文件（开发保留 暂不删除）
         # file_path = f'chat_store/user{user_id}_conv{conv_id}.json'
         # if os.path.exists(file_path):

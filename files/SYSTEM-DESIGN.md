@@ -35,7 +35,7 @@ RAG最佳实践 https://mp.weixin.qq.com/s/VYWoluo2BFXhWVRBjeP5IA
 	内容分类 筛选 聚合 归并 和笔记 课程 脑图打通
 	系统设计参考 discord shape
 	关注LLM窗口上限
-	第四格 - 生成笔记博客 灵感 - https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/
+	第四格 - 生成文章 灵感 - https://ywctech.net/ml-ai/langchain-vs-llamaindex-rag-chat/
 	LLM自动维护知识词典、提示词典 - 凝萃知识库 + 代码实训库
 		https://docs.llamaindex.ai/en/stable/understanding/putting_it_all_together/q_and_a/terms_definitions_tutorial/#conclusiontldr
 		亟需提示词模板存放处：
@@ -189,7 +189,6 @@ Agent Support: Design agents that can autonomously interact with the system, exe
 - 对话：缓存 Json
 - 记忆：
 - 笔记：
-- 博客：
 ### RMDBS
 	1 SQLite(local)
     2 Notion(on cloud)
@@ -226,15 +225,15 @@ Agent Support: Design agents that can autonomously interact with the system, exe
         2. 将用户和AI的聊天记录转换为笔记
         3. 用户选定任意内容（不管是文章的片段还是聊天，甚至是别的笔记的片段），直接存储为笔记，这和引用功能很像
         4. LLM在后台定期或不定期的将交互记录（包含文章收藏、聊天、查询等）转换为笔记，用户的一切行为都是可被追溯、被理解的。
-        我们希望，笔记能产生几个作用：除了最基本的记录功能，它还能帮助用户产生灵感，这一过程，可以是用户自己产生的，也可以是LLM智能体对多篇笔记分析之后“洞察”而在后台产生的。另外，用户和LLM的单次对话，应该作为一种“记忆”的载体，为用户和LLM的相互理解提供更多支持，而不应每次对话之后就被丢弃。因此，多次对话，或一次长对话，是可以被浓缩成一些“记忆”而存储在笔记中的。这样日积月累，LLM就会越来越了解它的用户。较为完整和系统性的笔记，还可以转为博客，或文章，从而在NewsReader内，形成从输入到输出的闭环。
+        我们希望，笔记能产生几个作用：除了最基本的记录功能，它还能帮助用户产生灵感，这一过程，可以是用户自己产生的，也可以是LLM智能体对多篇笔记分析之后“洞察”而在后台产生的。另外，用户和LLM的单次对话，应该作为一种“记忆”的载体，为用户和LLM的相互理解提供更多支持，而不应每次对话之后就被丢弃。因此，多次对话，或一次长对话，是可以被浓缩成一些“记忆”而存储在笔记中的。这样日积月累，LLM就会越来越了解它的用户。较为完整和系统性的笔记，还可以转为文章，从而在NewsReader内，形成从输入到输出的闭环。
     字段设计：
         id：笔记id
         title：笔记标题（notion一级单位）
         content：笔记内容（notion二级单位-children）
         articles：这篇笔记与哪些文章有关（如果笔记是从本系统(NewsReader)生成的，则有此字段），比如说，用户是针对某篇文章发问，和LLM进行了对话，那么，笔记应该记录这篇文章的id作为上下文，可选。
         chats：类似articles，显示这篇笔记是从哪些对话中生成的，只记录id，可选。
-        source：单选(NewsReader-来自于本系统, Personal-用户自己随笔, LLM-由AI基于规则在后台自动生成)
-        type：多选[NOTE-普通笔记, BLOG-博客, IDEA-灵感, MEMORY-记忆]
+        source：单选(App-来自于本系统, Personal-用户自己随笔, LLM-由AI在后台自动生成)
+        type：多选[NOTE-普通笔记, ARTICLE-文章, MEMORY-记忆]
         url：笔记地址（可选）
     具体案例：
         基于已提供的API Endpoint，我们能够为notion插入一条笔记。

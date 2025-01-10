@@ -283,4 +283,4 @@ if __name__ == "__main__":
     # 输入
     generator = DatasetGenerator("C:/Users/SWIFT/Desktop/temp")
     # 输出
-    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set_010602.json" , sample_percent=5)
+    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set_010901.json" , sample_percent=5)
