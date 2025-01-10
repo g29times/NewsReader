@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Notion API配置
 NOTION_API_URL = "https://api.notion.com/v1/pages"
 NOTION_DATABASE_ID = "17430c2067b4805280dfe476b6facef1"  # 后续可以移到环境变量
-NOTION_API_KEY = getenv('NOTION_API_KEY', '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')  # 后续从环境变量获取
+NOTION_API_KEY = getenv('NOTION_API_KEY')  # 后续从环境变量获取
 NOTION_VERSION = "2022-06-28"
 
 def create_note(title, content, articles=None, chats=None, source="Personal", types=None):

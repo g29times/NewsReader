@@ -27,6 +27,7 @@ from llama_index.core.chat_engine import SimpleChatEngine
 import json
 
 from src.models import article_crud
+from src.utils.memory.memory import NotionMemoryService
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
@@ -182,8 +183,19 @@ class RAGService:
             late_chunking = True # late_chunking 技术
         )
         # 模块2 大模型 Initialize LLM
-        self.genimi = Gemini(
-            system_prompt=os.getenv("SYSTEM_PROMPT"),
+        self.system_prompt_i = os.getenv("SYSTEM_PROMPT_I", "")
+        # 从记忆服务获取记忆数据
+        memory_service = NotionMemoryService()
+        self.memory_data = memory_service.get_memories()
+        self.system_prompt_ii = os.getenv("SYSTEM_PROMPT_II", "")
+        system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
+        logger.info(f"system_time: {system_time}")
+        # `<|current_time|>2025-01-10T00:00:00.000Z<|current_time|>`
+        system_prompt_iii = f"`<|current_time|>2025-01-10T00:00:00.000Z<|current_time|>`"
+        # 组合完整的系统提示词
+        self.system_prompt = self.system_prompt_i + self.memory_data + self.system_prompt_ii + system_prompt_iii
+        self.gemini = Gemini(
+            system_prompt=self.system_prompt,
             model="models/" + self.GEMINI_MODEL,
             api_key=self.google_api_key,
             temperature=1,
@@ -233,7 +245,7 @@ class RAGService:
         )
 
         # 全局配置 Global 默认值
-        Settings.llm = self.genimi
+        Settings.llm = self.gemini
         Settings.embed_model = self.voyage
         # Settings.context_window=8192
         # Settings.text_splitter = SentenceSplitter(chunk_size=1024) # JINA 1024 最佳
@@ -247,10 +259,16 @@ class RAGService:
             chat_store=self.chat_store,
             chat_store_key=chat_store_key,
         )
+        system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
+        logger.info(f"Chat system_time: {system_time}")
+        # `<|current_time|>2025-01-10T00:00:00.000Z<|current_time|>`
+        system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
+        # 组合完整的系统提示词
+        system_prompt = self.system_prompt_i + self.memory_data + self.system_prompt_ii + system_prompt_iii
         chat_engine = SimpleChatEngine.from_defaults(
-            system_prompt=os.getenv("SYSTEM_PROMPT"),
+            system_prompt=system_prompt,
             memory=chat_memory,
-            # llm=genimi
+            llm=self.gemini
         )
         return chat_engine
 
@@ -259,7 +277,7 @@ class RAGService:
     # 二级 - 长期记忆（笔记区）
     def chat(self, conversation_id: str, query: str) -> str:
         # 方式1 直接调用LLM对话
-        # resp = self.genimi.complete(query)
+        # resp = self.gemini.complete(query)
         # logger.info(f"LLM response: {resp}")
         # return resp
         # logger.info(f"Query: {query}")
