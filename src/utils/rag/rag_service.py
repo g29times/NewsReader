@@ -253,10 +253,13 @@ class RAGService:
         system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
         
         # 从记忆服务获取记忆数据
-        memory_service = NotionMemoryService()
-        self.memory_data = memory_service.get_memories()
+        self.memory_service = NotionMemoryService()
+        memory_data = self.memory_service.get_memories()
         
-        return self.system_prompt_i + self.memory_data + self.system_prompt_ii + system_prompt_iii
+        final_prompt = self.system_prompt_i + memory_data + self.system_prompt_ii + system_prompt_iii
+        # final_prompt =  "You are an assistant"
+        print(final_prompt[:100])
+        return final_prompt
 
     def get_chat_from_engine(self, chat_store_key: str):
         chat_memory = ChatMemoryBuffer.from_defaults(

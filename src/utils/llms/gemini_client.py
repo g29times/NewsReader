@@ -3,6 +3,7 @@ import re
 import logging
 import sys
 import time
+import requests
 from typing import List, Dict, Any, Optional, Tuple, Union
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -27,15 +28,15 @@ class GeminiClient:
     提供文本、媒体和查询的处理功能
     """
     API_KEY = os.getenv("GEMINI_API_KEY")
-    MODEL = os.getenv("GEMINI_MODEL")
-    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent"
+    MODEL = os.getenv("GEMINI_THINKING_MODEL")
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
     
     # 配置生成参数
     SYSTEM_INSTRUCTION = os.getenv("SYSTEM_PROMPT")
     GENERATION_CONFIG = {
         "temperature": 1,
         "top_p": 0.95,
-        "top_k": 32, # 官方的64会偶现报错
+        "top_k": 64, # 官方的64会偶现报错
         "max_output_tokens": 8192,
         "response_mime_type": "text/plain",
     }
@@ -44,10 +45,16 @@ class GeminiClient:
     def _get_current_system_prompt(cls) -> str:
         """获取包含当前时间的完整系统提示词"""
         system_prompt_i = os.getenv("SYSTEM_PROMPT_I", "")
+        # print("system_prompt_i: ", system_prompt_i)
         system_prompt_ii = os.getenv("SYSTEM_PROMPT_II", "")
+        # print("system_prompt_ii: ", system_prompt_ii)
         system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
         system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
-        return system_prompt_i + system_prompt_ii + system_prompt_iii
+
+        final_prompt = system_prompt_i + system_prompt_ii + system_prompt_iii
+        # final_prompt =  "You are an assistant"
+        # print(final_prompt)
+        return final_prompt
 
     # ----------------------------------- 内部方法 -----------------------------------
     
@@ -182,18 +189,27 @@ class GeminiClient:
     @classmethod
     def _chat(cls, question: str, histories: List[dict] = [], files: Optional[Any] = None) -> Optional[dict]:
         try:
-            cls._validate_api_key()
-            headers = {"Content-Type": "application/json"}
-            data = {"contents": [{"parts": [{"text": question}]}]}
-            url = f"{cls.BASE_URL}?key={cls.API_KEY}"
-            # print(url)
             # 方式1 request 返回详细的json，含模型信息
+            # print("--------------------------------------------------------")
+            # print("--------------------------- 方式一 -----------------------------")
+            # cls._validate_api_key()
+            # headers = {"Content-Type": "application/json"}
+            # data = {"contents": [{"parts": [{"text": question}]}]}
+            print(cls.MODEL)
+            # print(data)
+            # url = cls.BASE_URL + cls.MODEL + ":generateContent?key=" + cls.API_KEY
+            # # url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=AIzaSyAaWkpfMwLNcznXuOb8G0m4xtx79gU1APQ"
+            # # print(url)
+            # print("CALL ------------ " + cls.BASE_URL)
             # response = requests.post(
             #     url,
             #     headers=headers,
             #     json=data,
             #     timeout=30
             # )
+            # print(response.json())
+            print("--------------------------------------------------------")
+            print("--------------------------- 方式二 -----------------------------")
             # 方式2 SDK 直接 返回字符串
             # 1 初始化模型
             model = cls._initialize_model()
@@ -204,17 +220,18 @@ class GeminiClient:
             #         {"role": "user", "parts": [file, context]},
             #         {"role": "model", "parts": [response]}
             #     ]
+            print("question: ", question)
+            print("history: ", histories)
             chat_session = cls._start_chat_session(model, histories)
             # 3 真正开始本轮对话
             response = cls._get_response(chat_session, question)
             if response and response.text:
                 response = response.text
-
             logger.info(f"Gemini Response: {response}")
-            # response.raise_for_status()
-            # return response.json()
+            # response.raise_for_status() # 'str' object has no attribute 'raise_for_status'
             return response
         except Exception as e:
+            print("_chat Exception ------------ ")
             error_message = str(e)
             status_code = 400
             logger.error(f"Failed to call Gemini API: {error_message}, Status Code: {status_code}")
@@ -235,20 +252,24 @@ class GeminiClient:
             context (str): 上下文
             question (str): 查询的问题
         """
-        retries = 2
-        for attempt in range(retries + 1):
+        for attempt in range(3):
             try:
                 query = ""
                 if context:
-                    query = f"{question} : ```{context}```"
+                    query = f"{question}```{context}```"
                 else:
                     query = question
                 response = cls._chat(query, histories, files)
                 if response:
+                    print("query_with_content SUCCESS ------------ ")
                     return response
+                else:
+                    print("query_with_content ERROR ------------ ")
+                    return None
             except Exception as e:
+                print("query_with_content Exception ------------ ")
                 logger.error(f"Attempt {attempt + 1} failed: {e}")
-                if attempt == retries:
+                if attempt == 2:
                     return None
                 continue
 
@@ -341,42 +362,29 @@ class GeminiClient:
             return None
 
 if __name__ == "__main__":
-
-    messages=[
-            {"role": "user", "parts": ["讲个笑话？"]},
-            {"role": "model", "parts": ["有只猴子在树上"]},
-        ]
-    GeminiClient.query_with_content("", "GEMI评估更新记忆", messages)
-    # REsponse
-    #     ```json
-    # [
-    # {
-    #     "event": "*NEO* 喜欢自然、户外、游泳、滑雪、科幻小说和奇幻电影。他喜欢的书有托尔金的《魔戒》、马克吐温的《傻子
-    # 旅行》等。他喜欢听 City Pop，逛画展，他的 MBTI 是 INTP。*NEO* 通常住在中国，但部分时间在美国芝加哥求学。",        
-    #     "user_id": 1,
-    #     "layer": "PERMANENT",
-    #     "action": "UPSERT"
-    # },
-    # {
-    #     "event": "当前时间是2025年1月11日，凌晨1点多，*NEO* 还没有睡觉，他在测试我。(他怎么还不睡觉？)",
-    #     "user_id": 1,
-    #     "layer": "SHORT",
-    #     "action": "UPSERT"
-    # }
-    # ]
-    # ```
-
+    # OK
+    # messages=[
+    #         {"role": "user", "parts": ["讲个笑话？"]},
+    #         {"role": "model", "parts": ["有只猴子在树上"]},
+    #     ]
+    # GeminiClient.query_with_content("", "GEMI执行记忆管理", messages)
 
     # # OK
-    # print("TEST1 query_with_url -------------")
+    print("TEST query_with_content -------------")
+    GeminiClient.query_with_content("", "你好")
+
+    # # OK
+    # print("TEST query_with_url -------------")
     # response = GeminiClient.query_with_url("https://www.google.com", "这是什么网站？")
     # print(response)
+    # 
     # # OK
-    # print("TEST2 query_with_file -------------")
+    # print("TEST query_with_file -------------")
     # response = GeminiClient.query_with_file('src/utils/rag/docs/3B模型长思考后击败70B.txt', "这篇文章讲什么？")
     # print(response)
+    # 
     # # OK
-    # print("TEST3 summarize_text -------------")
+    # print("TEST summarize_text -------------")
     # response = GeminiClient.summarize_text(
     #     content=FileInputHandler.read_from_file('src/utils/rag/docs/Claude 的 5 层 Prompt 体系.txt'),
     #     language="Chinese", 
