@@ -5,7 +5,7 @@ from models.article import Article
 from models.article_crud import *
 from database.connection import db_session
 from utils.file_input_handler import FileInputHandler
-from utils.llms.llm_tasks import LLMTasks
+from utils.llms.article_service import ArticleTasks
 import logging
 from src.utils.rag.rag_service import RAGService
 from src import VECTOR_DB_ARTICLES
@@ -186,7 +186,7 @@ def summarize_article_content(content: str, article_data: dict = None) -> dict:
         raise ValueError('文章内容为空')
     
     # 使用LLM处理内容
-    summary = LLMTasks.summarize_and_key_topics(content)
+    summary = ArticleTasks.summarize_and_key_topics(content)
     if summary.state == "ERROR" or summary.body.get('title') == "":
         raise ValueError(f'LLM API 调用出错 - {summary.desc}')
     

@@ -7,7 +7,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from database.connection import db_session
 from utils.file_input_handler import FileInputHandler
-from utils.llms.llm_tasks import LLMTasks
+from utils.llms.article_service import ArticleTasks
 from models.article import Base, Article
 from models.article_crud import create_article, get_article_by_id, get_articles, update_article, delete_article
 
@@ -27,7 +27,7 @@ def insert_first_article():
     session.commit()
 
     # Run the summarization task
-    updated_article = LLMTasks.summarize_and_key_topics(session, article)
+    updated_article = ArticleTasks.summarize_and_key_topics(article)
 
     # Check if the summary and key points are updated
     self.assertIsNotNone(updated_article.summary)

@@ -9,7 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from models.article import Article
 from models.article_crud import *
 from utils.llms.gemini_client import GeminiClient
-from utils.llms.llm_tasks import LLMTasks
+from utils.llms.article_service import ArticleTasks
 from utils.file_input_handler import FileInputHandler
 from database.connection import db_session
 from utils.rag.rag_service import RAGService
@@ -65,7 +65,7 @@ def add_article(type: str = "WEB"):
             }), 400
 
         # 使用LLM处理内容
-        response = LLMTasks.summarize_and_key_topics(article_data['content'])
+        response = ArticleTasks.summarize_and_key_topics(article_data['content'])
         # 异常处理
         if response.state == "ERROR" or response.body.get('title') == "":
             error_msg = f'LLM API 调用出错 - {response.desc}'

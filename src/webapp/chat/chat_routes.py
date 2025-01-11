@@ -17,11 +17,15 @@ import os
 import json
 import threading
 from src.utils.redis.redis_service import redis_service
-from src.utils.memory.memory import NotionMemoryService
+from src.utils.memory.memory_service import NotionMemoryService
+from src.utils.llms.llm_common_utils import LLMCommonUtils
 
 logger = logging.getLogger(__name__)
 rag_service = RAGService()
 gemini_client = GeminiClient()  # 创建一个全局实例
+
+# 直接使用NotionMemoryService的单例
+memory_service = NotionMemoryService()
 
 # --------------------------------- 文章管理 ---------------------------------
 # 搜索文章
@@ -100,7 +104,6 @@ def chat():
             response = rag_service.chat_with_articles(conversation_id, article_ids, message)
         # 异步更新LLM记忆
         try:
-            memory_service = NotionMemoryService()
             memory_service.update_memory_async(message, str(response))
         except Exception as e:
             logger.error(f"Failed to start memory update: {str(e)}")

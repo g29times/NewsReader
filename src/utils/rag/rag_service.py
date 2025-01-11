@@ -27,7 +27,7 @@ from llama_index.core.chat_engine import SimpleChatEngine
 import json
 
 from src.models import article_crud
-from src.utils.memory.memory import NotionMemoryService
+from src.utils.memory.memory_service import NotionMemoryService
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
@@ -258,7 +258,7 @@ class RAGService:
         
         final_prompt = self.system_prompt_i + memory_data + self.system_prompt_ii + system_prompt_iii
         # final_prompt =  "You are an assistant"
-        print(final_prompt[:100])
+        logger.info("SYSTEM_PROMPT: " + final_prompt[:100] + "..." + final_prompt[-100:])
         return final_prompt
 
     def get_chat_from_engine(self, chat_store_key: str):

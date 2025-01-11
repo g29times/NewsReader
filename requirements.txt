@@ -16,6 +16,9 @@ aiohttp>=3.9.1
 hypercorn>=0.15.0
 upstash-redis==1.2.0
 
+# document
+notion-client==2.3.0
+
 # api
 google-ai-generativelanguage==0.6.10
 google-api-core==2.23.0
@@ -31,7 +34,7 @@ pymilvus==2.5.0
 milvus-model==0.2.4
 milvus-lite==2.4.9 # not on windows
 
-# advanced AI
+# RAG
 voyageai==0.3.2
 llama-index==0.12.7
 llama-index-readers-database==0.3.0

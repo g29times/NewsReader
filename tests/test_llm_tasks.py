@@ -10,9 +10,9 @@ project_root = os.path.abspath(os.path.join(current_dir, '..'))
 sys.path.append(project_root)
 
 from src.models.article import Base
-from src.utils.llms.llm_tasks import LLMTasks, LLMResponse
+from src.utils.llms.article_service import ArticleTasks, LLMResponse
 
-class TestLLMTasks(unittest.TestCase):
+class TestArticleTasks(unittest.TestCase):
     """测试LLM任务相关功能"""
 
     def setUp(self):
@@ -33,7 +33,7 @@ class TestLLMTasks(unittest.TestCase):
         """
 
         # 调用LLM处理
-        response = LLMTasks.summarize_and_key_topics(test_content)
+        response = ArticleTasks.summarize_and_key_topics(test_content)
 
         # 验证响应格式
         self.assertIsInstance(response, LLMResponse)
@@ -50,7 +50,7 @@ class TestLLMTasks(unittest.TestCase):
 
     def test_empty_content(self):
         """测试空内容处理"""
-        response = LLMTasks.summarize_and_key_topics("")
+        response = ArticleTasks.summarize_and_key_topics("")
         self.assertEqual(response.title, "ERROR")
         self.assertEqual(response.summary, "")
         self.assertEqual(response.key_topics, "")
