@@ -263,6 +263,7 @@ class NotionMemoryService:
         Returns:
             bool: 是否成功
         """
+        logger.info(f"Start Manage memory: {event}")
         try:
             # 根据简短的id查找完整的page_id
             full_page_id = self._get_full_page_id(int(id))
