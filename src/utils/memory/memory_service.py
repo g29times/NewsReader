@@ -207,10 +207,9 @@ class NotionMemoryService:
                 'layer': layer,
                 'last_edited_time': last_edited_time
             }
-            
             memory_list.append(memory_obj)
-        
-        print(NotionMemoryService.page_id_dict)  
+        NotionMemoryService.page_id_dict[0] = '0'
+        logger.info(NotionMemoryService.page_id_dict)  
         # 将所有记忆打包成一个数组
         return f'`<|memory_START|>{json.dumps(memory_list)}<|memory_END|>`'
         
@@ -265,7 +264,6 @@ class NotionMemoryService:
         """
         logger.info(f"Start Manage memory: {event}")
         try:
-            # 根据简短的id查找完整的page_id
             full_page_id = self._get_full_page_id(int(id))
             if action == 'UPSERT':
                 try:
@@ -450,9 +448,14 @@ class NotionMemoryService:
         # 这里实现查找逻辑，可以是从内存、文件或数据库中获取
         print("-----------------------------------")
         print(NotionMemoryService.page_id_dict)
-        # if NotionMemoryService.page_id_dict == {}:
-        #     NotionMemoryService.page_id_dict = {54: '17830c20-67b4-8148-9f6b-dd359c2b6258', 44: '17830c20-67b4-80b5-95ba-f261859760e8', 42: '17830c20-67b4-8125-bc33-fa2e50a16745', 41: '17830c20-67b4-814c-bb7b-f710fd323ee8', 24: '17730c20-67b4-81eb-8c88-f9178f06d5f6', 23: '17730c20-67b4-819c-a6a8-fc6ba596ce05', 16: '17730c20-67b4-8118-b53e-ce7a5e2e8123', 14: '17730c20-67b4-8178-9273-eaabab2bfe00', 8: '17730c20-67b4-8178-9974-d81209e5b2b2', 3: '17630c20-67b4-80c1-8d9f-c2b132575f6a', 2: '17630c20-67b4-80c2-adde-e9c1a0f88ec4', 1: '17630c20-67b4-8081-ac85-f52c2aa3a4b5'}
+        # if NotionMemoryService.page_id_dict == None or NotionMemoryService.page_id_dict == {}:
+        self.get_memories()
+        # NotionMemoryService.page_id_dict = {54: '17830c20-67b4-8148-9f6b-dd359c2b6258', 44: '17830c20-67b4-80b5-95ba-f261859760e8', 42: '17830c20-67b4-8125-bc33-fa2e50a16745', 41: '17830c20-67b4-814c-bb7b-f710fd323ee8', 24: '17730c20-67b4-81eb-8c88-f9178f06d5f6', 23: '17730c20-67b4-819c-a6a8-fc6ba596ce05', 16: '17730c20-67b4-8118-b53e-ce7a5e2e8123', 14: '17730c20-67b4-8178-9273-eaabab2bfe00', 8: '17730c20-67b4-8178-9974-d81209e5b2b2', 3: '17630c20-67b4-80c1-8d9f-c2b132575f6a', 2: '17630c20-67b4-80c2-adde-e9c1a0f88ec4', 1: '17630c20-67b4-8081-ac85-f52c2aa3a4b5'}
+        logger.info(NotionMemoryService.page_id_dict)  
         page_id = NotionMemoryService.page_id_dict.get(short_id, "")
+        if page_id == "":
+            logger.error(f"未能根据简短的id查找完整的page_id，id: {short_id}, page_id: 0")
+            return "0"
         logger.info(f"根据简短的id查找完整的page_id，id: {short_id}, page_id: {page_id}")
         # log 根据简短的page_id查找完整的page_id，short_id: 42, page_id:
         return page_id
@@ -577,6 +580,7 @@ class NotionMemoryService:
                 with open(self._cache_file, 'w', encoding='utf-8') as f:
                     f.truncate(0)  # 清空文件内容
             logger.info("缓存已清理")
+            self.get_memories()
         except Exception as e:
             logger.error(f"清理缓存时出错: {str(e)}")
 
