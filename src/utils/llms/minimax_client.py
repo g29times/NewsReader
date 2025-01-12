@@ -107,10 +107,7 @@ if __name__ == "__main__":
     # 1 原生API封装
     minimax = MinimaxClient()
     history = [{"role": "user", "content": "晚安，GEMI"},{"role": "assistant", "content": "晚安，Neo"}]
-
-    # print(MinimaxClient.chat_completion(LLMCommonUtils._openai_format_msg("早上好，GEMI", history, "GEMI智能助理是Neo的大型语言模型助手。")))
     print(minimax.query_with_history("早上好，GEMI", history, "GEMI智能助理是Neo的大型语言模型助手。"))
-
 
     # 2 调用OpenAI DEMO https://platform.minimaxi.com/document/ChatCompletion%20v2?key=66701d281d57f38758d581d0#1XspWaYA7baUnFix0otJIQkt
     # from openai import OpenAI
@@ -129,15 +126,12 @@ if __name__ == "__main__":
     #     print(chunk)
 
     # 2 调用OpenAI封装
-    # from src.utils.llms.openai_client import OpenAIClient
-    # openai = OpenAIClient()
-    # response = openai.query_with_history("早上好，GEMI", history, "GEMI智能助理是Neo的大型语言模型助手。", 
-    #     "abab6.5t-chat", api_key, "https://api.minimax.chat/v1")
+    minimax.query_openai_with_history("现在几点了，Gemi", history, LLMCommonUtils._get_time_prompt())
     
     # 3 测试 记忆
     # print(LLMCommonUtils._get_memory_prompt())
     # minimax.query_openai_with_history("GEMI执行记忆管理", history, LLMCommonUtils._get_memory_prompt())
     
     # 4 测试 文本总结
-    content = "2024 年在年初被称为“RAG 发展元年”，虽然这并非共识性的说法，但事实证明，全年的进展无愧于这一称号。在LLM 使用的场景中，RAG 自始至终都在扮演着不可或缺的重要角色。然而，自诞生以来关于 RAG 的争论就没有停止过。由上图可以看到，2023 年 RAG 的称呼并不流行，一种看起来就非常临时的说法“外挂记忆体”、“外挂知识库”是普遍的替代称谓，在当时，主要争论还在于究竟应该用临时的“外挂”还是“永久性的”微调，这个争论在 2024 年初已经终结：从成本和实时性角度，RAG 具有压倒性优势，而效果上相差也并不大，即使需要微调介入的场景，RAG  通常也不可或缺。"
-    minimax.query_openai_with_history(question=f"```{content}```", history=[], system_prompt=os.getenv("SUMMARY_PROMPT"))
+    # content = "2024 年在年初被称为“RAG 发展元年”，虽然这并非共识性的说法，但事实证明，全年的进展无愧于这一称号。在LLM 使用的场景中，RAG 自始至终都在扮演着不可或缺的重要角色。然而，自诞生以来关于 RAG 的争论就没有停止过。由上图可以看到，2023 年 RAG 的称呼并不流行，一种看起来就非常临时的说法“外挂记忆体”、“外挂知识库”是普遍的替代称谓，在当时，主要争论还在于究竟应该用临时的“外挂”还是“永久性的”微调，这个争论在 2024 年初已经终结：从成本和实时性角度，RAG 具有压倒性优势，而效果上相差也并不大，即使需要微调介入的场景，RAG  通常也不可或缺。"
+    # minimax.query_openai_with_history(question=f"```{content}```", history=[], system_prompt=os.getenv("SUMMARY_PROMPT"))

@@ -3,7 +3,7 @@ import sys
 import json
 import logging
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 # 添加项目根目录到 Python 路径
@@ -18,13 +18,19 @@ logger = logging.getLogger(__name__)
 class LLMCommonUtils:
     """LLM通用工具类"""
     
+    @classmethod
+    def _get_time(cls):
+        now = datetime.now()# 加上8小时
+        time_plus_8_hours = now + timedelta(hours=8)
+        # 格式化为 ISO 8601 格式
+        return time_plus_8_hours.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+    
     # 获取简单的系统时间提示词
     @classmethod
-    def _get_time_prompt(cls) -> str:
+    def _get_time_prompt(cls) -> str:# 获取当前时间
         system_prompt_i = os.getenv("SYSTEM_PROMPT", "")
         system_prompt_ii = os.getenv("MEMORY_PROMPT_II", "")
-        # 添加当前时间
-        system_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        system_time = cls._get_time()
         system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
         final_prompt = system_prompt_i + system_prompt_ii + system_prompt_iii
         # 记录日志
@@ -40,7 +46,7 @@ class LLMCommonUtils:
             system_prompt_i = os.getenv("MEMORY_PROMPT_FULL", "")
             system_prompt_ii = os.getenv("MEMORY_PROMPT_II", "")
             # 添加当前时间
-            system_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            system_time = cls._get_time()
             system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
             # # 添加记忆
             # try:
@@ -159,4 +165,5 @@ class LLMCommonUtils:
         }
 
 if __name__ == '__main__':
-    LLMCommonUtils._get_memory_prompt()
+    print(LLMCommonUtils._get_time_prompt())
+    # print(LLMCommonUtils._get_memory_prompt())

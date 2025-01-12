@@ -32,7 +32,7 @@ class OpenAIClient:
         self.MODEL = os.getenv('OPENAI_MODEL')
         self.max_tokens = os.getenv("LLM_MAX_TOKENS")
         self.temperature = os.getenv("LLM_TEMPERATURE")
-        print(self.temperature)
+        logger.info("LLM_TEMPERATURE: " + self.temperature)
         self.top_p = os.getenv("LLM_TOP_P")
         self.client = None
 
