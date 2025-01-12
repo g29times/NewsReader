@@ -17,7 +17,7 @@ GENIMI = os.getenv("GEMINI_MODEL") # DOC tests\GEMINI-DOC.md
 # 配置项目级别的日志
 # 使用 RotatingFileHandler 按照大小自动分割日志文件，每个文件最大8MB，保留5个备份
 log_file = 'newsreader.log'
-file_handler = RotatingFileHandler(log_file, maxBytes=8*1024*1024, backupCount=5)
+file_handler = RotatingFileHandler(log_file, maxBytes=8*1024*1024, backupCount=5, encoding='utf-8')
 file_handler.setLevel(level=logging.DEBUG)  # 文件分级别 DEBUG 且显示行号
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)-8s - %(filename)s[line:%(lineno)d] - %(message)s'))
 # 控制台

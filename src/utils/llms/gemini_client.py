@@ -4,16 +4,16 @@ import logging
 import sys
 import time
 import requests
+from dotenv import load_dotenv
 from typing import List, Dict, Any, Optional, Tuple, Union
 import google.generativeai as genai
-from dotenv import load_dotenv
-from src.utils.llms.llm_common_utils import LLMCommonUtils
 
 # 添加项目根目录到 Python 路径 标准方式
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
+from src.utils.llms.llm_common_utils import LLMCommonUtils
 from src.utils.llms.models import LLMResponse
 from src.utils.file_input_handler import FileInputHandler
 
@@ -53,11 +53,11 @@ class GeminiClient:
 
     # 初始化Generative Model
     @classmethod
-    def _initialize_model(cls) -> genai.GenerativeModel:
+    def _initialize_model(cls, system_prompt) -> genai.GenerativeModel:
         return genai.GenerativeModel(
             model_name=cls.MODEL,
             generation_config=cls.GENERATION_CONFIG,
-            system_instruction=LLMCommonUtils._get_system_prompt()
+            system_instruction=system_prompt
         )
 
     # 多轮对话 TODO 未完成 
@@ -78,47 +78,6 @@ class GeminiClient:
     def _get_response(cls, chat_session, question: str) -> Optional[str]:
         response = chat_session.send_message(question)
         return response
-
-    # 提取结构化信息 包含解析后的标题、摘要和关键词
-    @classmethod
-    def _extract_summary(cls, response: str) -> LLMResponse:
-        try:
-            # 使用正则表达式提取信息
-            title = re.search(r'\[TITLE\](.*?)\[/TITLE\]', response, re.DOTALL)
-            summary = re.search(r'\[SUMMARY\](.*?)\[/SUMMARY\]', response, re.DOTALL)
-            key_topics = re.search(r'\[KEY_TOPICS\](.*?)\[/KEY_TOPICS\]', response, re.DOTALL)
-            authors = re.search(r'\[AUTHORS\](.*?)\[/AUTHORS\]', response, re.DOTALL)
-            publication_date = re.search(r'\[PUBLICATION_DATE\](.*?)\[/PUBLICATION_DATE\]', response, re.DOTALL)
-            source = re.search(r'\[SOURCES\](.*?)\[/SOURCES\]', response, re.DOTALL)
-
-            authors = authors.group(1).strip() if authors else ''
-            if authors.startswith('NO'):
-                authors = ''
-            publication_date = publication_date.group(1).strip() if publication_date else ''
-            if publication_date.startswith('NO'):
-                publication_date = ''
-            body = {
-                'title': title.group(1).strip() if title else '',
-                'summary': summary.group(1).strip() if summary else '',
-                'key_topics': key_topics.group(1).strip() if key_topics else '',
-                'authors': authors,
-                'publication_date': publication_date,
-                'source': source.group(1).strip() if source else '',
-            }
-            return LLMResponse(
-                state="SUCCESS",
-                desc="成功解析LLM响应",
-                status_code=200,
-                body=body
-            )
-        except Exception as e:
-            logger.error(f"解析Gemini响应失败: {e}")
-            return LLMResponse(
-                state="ERROR",
-                desc=f"解析响应失败: {str(e)}",
-                status_code=500,
-                body={}
-            )
 
     # 上传并验证文件
     @classmethod
@@ -159,8 +118,11 @@ class GeminiClient:
     # ----------------------------------- 对外方法 -----------------------------------
     # 使用Gemini API生成内容 核心
     @classmethod
-    def _chat(cls, question: str, histories: List[dict] = [], files: Optional[Any] = None) -> Optional[dict]:
+    def _chat(cls, question: str, histories: List[dict] = [], system_prompt: str = "") -> Optional[dict]:
         try:
+            if not question:
+                logger.error("No question provided")
+                return None
             logger.info("MODEL: " + cls.MODEL)
             # 方式1 request 返回详细的json，含模型信息
             # print("--------------------------------------------------------")
@@ -184,7 +146,7 @@ class GeminiClient:
             print("--------------------------- 方式二 -----------------------------")
             # 方式2 SDK 直接 返回字符串
             # 1 初始化模型
-            model = cls._initialize_model()
+            model = cls._initialize_model(system_prompt)
             # 2 启动时加载历史对话上下文
             # 解析历史对话和多文件，放入历史记录  # TODO
             # // for messages  user = message.get("user"), model = message.get("model")
@@ -192,21 +154,32 @@ class GeminiClient:
             #         {"role": "user", "parts": [file, context]},
             #         {"role": "model", "parts": [response]}
             #     ]
-            logger.info("Question: " + question)
-            logger.info("History: " + str(histories))
+            if (len(question) > 200):
+                logger.info("Question: " + question[:100] + " ..." + question[-100:])
+            else:
+                logger.info("Question: " + question)
+            if histories:
+                logger.info("History: " + str(histories))
             chat_session = cls._start_chat_session(model, histories)
             # 3 真正开始本轮对话
             response = cls._get_response(chat_session, question)
             if response and response.text:
                 response = response.text
-            logger.info(f"Gemini Response: {response}")
-            # response.raise_for_status() # 'str' object has no attribute 'raise_for_status'
-            return response
+                if (len(response) > 200):
+                    logger.info("Response: " + response[:100] + " ..." + response[-100:])
+                else:
+                    logger.info("Response: " + response)
+            else:
+                return None
+            return {
+                'message': response,
+                'status_code': 200
+            }
         except Exception as e:
             print("_chat Exception ------------ ")
             error_message = str(e)
             status_code = 400
-            logger.error(f"Failed to call Gemini API: {error_message}, Status Code: {status_code}")
+            logger.error(f"Failed to call Gemini API: {error_message}")
             return {
                 'error': {
                     'message': error_message,
@@ -216,26 +189,22 @@ class GeminiClient:
 
     # 使用内容查询，本方法是对chat方法的多次重试封装 其他方法用该调用本方法
     @classmethod
-    def query_with_history(cls, question: str, histories: List[dict] = None, files: List[str] = None) -> Optional[dict]:
+    def query_with_history(cls, question: str, histories: List[dict] = None, system_prompt: str = None) -> Optional[dict]:
         """查询内容
         Args:
             question: 问题
             histories: 历史记录
-            files: 文件（暂不支持）
+            system_prompt: 系统提示词
         Returns:
             dict: 响应数据
         """
-        logger.info("MODEL: " + cls.MODEL)
-        logger.info("Question: " + question)
-        logger.info("History: " + str(histories))
-        
         for attempt in range(10):
             try:
                 query = question
-                response = cls._chat(query, histories, files)
-                if response:
+                response = cls._chat(query, histories, system_prompt)
+                if response and response.get('status_code') == 200:
                     logger.info("query_with_history SUCCESS ------------ ")
-                    return response
+                    return response.get('message')
                 else:
                     logger.warning("query_with_history ERROR ------------ ")
                     if attempt < 2:
@@ -255,12 +224,12 @@ class GeminiClient:
     # 业务方法：总结文本 含提示词 PROMPT 重要方法
     @classmethod
     def summarize_text(cls, content: str, language: str = "Chinese") -> LLMResponse:
-        question = os.getenv("SUMMARY_PROMPT")
+        prompt = os.getenv("SUMMARY_PROMPT")
         logger.info(f"Answer in {language}")
         try:
             # 成功返回例子 {'candidates': [{'content': {'parts': [{'text': '**Title:** Title: Scaling Test-Time Compute：向量模型上的思维链\n\n**Summarize:** 文章探讨了在向量模型推理阶段增加计算资源'}], 'role': 'model'}, 'finishReason': 'STOP', 'avgLogprobs': -0.21152597132737075}], 'usageMetadata': {'promptTokenCount': 6673, 'candidatesTokenCount': 246, 'totalTokenCount': 6919}, 'modelVersion': 'gemini-2.0-flash'}
             # response = cls.chat(f"{question} : ```{content}```")
-            response = cls.query_with_history(f"{question}```{content}```")
+            response = cls.query_with_history(f"{prompt}```{content}```")
             # 检查是否有错误响应
             if not response or 'error' in response:
                 return LLMResponse(
@@ -283,7 +252,7 @@ class GeminiClient:
             # 解析响应
             # return cls._extract_summary(text_content)
             # 方式二 直接返回字符串
-            return cls._extract_summary(response)
+            return LLMCommonUtils._extract_summary(response)
         except Exception as e:
             error_msg = f"Gemini处理失败: {str(e)}"
             logger.error(error_msg)
@@ -334,7 +303,7 @@ if __name__ == "__main__":
 
     # # OK
     print("TEST query_with_history -------------")
-    GeminiClient.query_with_history("", "你好")
+    GeminiClient.query_with_history("你好")
 
     # # OK
     # print("TEST query_with_url -------------")

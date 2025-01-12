@@ -1,3 +1,4 @@
+# https://github.com/chatanywhere/GPT_API_free
 from math import log
 import os
 import sys
@@ -16,12 +17,6 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 from src.utils.llms.llm_common_utils import LLMCommonUtils
 
-# 添加项目根目录到 Python 路径 标准方式
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-if project_root not in sys.path:
-    sys.path.append(project_root)
-
 # 配置日志
 logger = logging.getLogger(__name__)
 
@@ -29,24 +24,28 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 class OpenAIClient:
-    """OpenAI API客户端"""
-    API_KEY = os.getenv('OPENAI_API_KEY')
-    API_BASE = os.getenv('OPENAI_API_BASE')
-    MODEL = os.getenv('OPENAI_MODEL')
-    client = None
+    
+    def __init__(self):
+        """OpenAI API客户端"""
+        self.API_KEY = os.getenv('OPENAI_API_KEY')
+        self.API_BASE = os.getenv('OPENAI_API_BASE')
+        self.MODEL = os.getenv('OPENAI_MODEL')
+        self.max_tokens = os.getenv("LLM_MAX_TOKENS")
+        self.temperature = os.getenv("LLM_TEMPERATURE")
+        print(self.temperature)
+        self.top_p = os.getenv("LLM_TOP_P")
+        self.client = None
 
-    @classmethod
-    def get_client(cls) -> OpenAI:
+    def get_client(self, api_key: str = None, base_url: str = None) -> OpenAI:
         """获取OpenAI客户端实例"""
-        if cls.client is None:
-            cls.client = OpenAI(
-                api_key=cls.API_KEY,
-                base_url=cls.API_BASE
+        if self.client is None:
+            self.client = OpenAI(
+                api_key=api_key or self.API_KEY,
+                base_url=base_url or self.API_BASE
             )
-        return cls.client
+        return self.client
 
-    @classmethod
-    def gpt_api_stream(cls, messages: List[dict]) -> Optional[str]:
+    def gpt_api_stream(self, messages: List[dict], model: str = None, api_key: str = None, base_url: str = None) -> Optional[str]:
         """GPT API流式调用
         Args:
             messages: 消息列表
@@ -55,89 +54,77 @@ class OpenAIClient:
         """
         try:
             # 创建聊天完成
-            response = cls.get_client().chat.completions.create(
-                model=cls.MODEL,
+            response = self.get_client(api_key, base_url).chat.completions.create(
+                model=model or self.MODEL,
                 messages=messages,
-                stream=True
+                stream=True,
+                max_tokens=int(self.max_tokens),
+                temperature=float(self.temperature),
+                top_p=float(self.top_p),
             )
-            
             # 处理流式响应
             content = ""
             for chunk in response:
+                # print(chunk)
                 if chunk.choices[0].delta.content:
                     content += chunk.choices[0].delta.content
-            
             return content if content else None
-            
         except Exception as e:
             logger.error(f"Error in gpt_api_stream: {str(e)}")
             raise e
 
-    @classmethod
-    def query_with_history(cls, question: str, histories: List[Dict] = None, files: List[str] = None) -> Dict:
+    def query_with_history(self, question: str, histories: List[Dict] = None, system_prompt: str = None, model: str = None, api_key: str = None, base_url: str = None) -> Dict:
         """使用历史记录查询
         Args:
             question: 问题
             histories: 历史记录
-            files: 文件列表
+            system_prompt: 系统提示
         Returns:
             Dict: 响应结果
         """ 
-        logger.info("MODEL: " + cls.MODEL)
-        logger.info("Question: " + question)
-        logger.info("History: " + str(histories))
+        if base_url:
+            logger.info("base_url: " + base_url)
+        else:
+            logger.info("base_url: " + self.API_BASE)
+        if model:
+            logger.info("MODEL: " + model)
+        else:
+            logger.info("MODEL: " + self.MODEL)
+        if histories:
+            logger.info("History: " + str(histories))
+        # logger.info("Question: " + question[:100])
+        if (len(question) > 200):
+            logger.info("Question: " + question[:100] + " ..." + question[-100:])
+        else:
+            logger.info("Question: " + question)
         try:
-            # 准备消息列表
-            messages = cls._prepare_messages(question, histories)
-            
+            # 准备消息列表（OPENAI在这里设置系统提示词）
+            messages = LLMCommonUtils._openai_format_msg(question, histories, system_prompt)
             # 添加重试机制
             for attempt in range(3):
                 try:
-                    content = cls.gpt_api_stream(messages)
-                    
+                    content = self.gpt_api_stream(messages, model, api_key, base_url)
                     if content:
-                        logger.info("OpenAI query successful")
-                        return {
-                            "candidates": [
-                                {
-                                    "content": {
-                                        "parts": [content]
-                                    }
-                                }
-                            ]
-                        }
+                        if (len(content) > 200):
+                            logger.info("Response: " + content[:100] + " ..." + content[-100:])
+                        else:
+                            logger.info("Response: " + content)
+                        return content
                     else:
                         logger.warning(f"Empty response on attempt {attempt + 1}")
                         if attempt < 2:
                             time.sleep(5)  # 等待5秒后重试
                             continue
                         return None
-                        
                 except Exception as e:
                     logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
                     if attempt < 2:
                         time.sleep(5)  # 等待5秒后重试
                         continue
                     return None
-                    
         except Exception as e:
             logger.error(f"Error in query_with_history: {str(e)}")
             return None
-
-    @classmethod
-    def _prepare_messages(cls, question: str, histories: List[Dict]) -> List[Dict]:
-        messages = []
-        
-        # 获取系统提示词
-        messages.append({"role": "system", "content": LLMCommonUtils._get_system_prompt()})
-        
-        # 格式化历史记录
-        messages.extend(LLMCommonUtils.turn_gemini_format_to_openai(histories))
-        
-        # 添加当前问题
-        messages.append({"role": "user", "content": question})
-        
-        return messages
 
 if __name__ == '__main__':
     # hello world ok
@@ -149,14 +136,16 @@ if __name__ == '__main__':
     # print(response)
 
     # ok
-    messages = [
-        {"role": "user", "parts": ["讲个笑话？"]},
-        {"role": "model", "parts": ["有只猴子在树上"]},
-    ]
-    response = OpenAIClient.query_with_history("GEMI执行记忆管理", messages)
-    print(response)
+    # google_messages = [
+    #     {"role": "user", "parts": ["讲个笑话？"]},
+    #     {"role": "model", "parts": ["有只猴子在树上"]},
+    # ]
+    history = [{"role": "user", "content": "晚安，GEMI"},{"role": "assistant", "content": "晚安，Neo"}]
+    opoenai = OpenAIClient()
+    response = opoenai.query_with_history("早上好，GEMI", history, "GEMI智能助理是Neo的大型语言模型助手。")
 
 
+# demo https://github.com/chatanywhere/GPT_API_free
 # from openai import OpenAI
 # import os
 # from dotenv import load_dotenv

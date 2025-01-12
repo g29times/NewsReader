@@ -13,6 +13,7 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 from chromadb.utils import embedding_functions
 from llama_index.core import Settings
 from llama_index.llms.gemini import Gemini
+from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.voyageai import VoyageEmbedding
 from llama_index.embeddings.jinaai import JinaEmbedding
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -27,7 +28,6 @@ from llama_index.core.chat_engine import SimpleChatEngine
 import json
 
 from src.models import article_crud
-from src.utils.memory.memory_service import NotionMemoryService
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
@@ -182,18 +182,8 @@ class RAGService:
             dimensions = 128, # MRL技术
             late_chunking = True # late_chunking 技术
         )
+
         # 模块2 大模型 Initialize LLM
-        self.system_prompt_i = os.getenv("SYSTEM_PROMPT_I", "")
-        self.system_prompt_ii = os.getenv("SYSTEM_PROMPT_II", "")
-        
-        # 初始化Gemini，但不包含system_prompt_iii
-        self.gemini = Gemini(
-            system_prompt=self._get_current_system_prompt(),
-            model="models/" + self.GEMINI_MODEL,
-            api_key=self.google_api_key,
-            temperature=1,
-            max_tokens=16000 # 8192
-        )
 
         # 模块3 向量数据库
         # 向量数据库优化 https://docs.trychroma.com/docs/collections/configure
@@ -239,7 +229,7 @@ class RAGService:
         )
 
         # 全局配置 Global 默认值
-        Settings.llm = self.gemini
+        # Settings.llm = self.gemini
         Settings.embed_model = self.voyage
         # Settings.context_window=8192
         # Settings.text_splitter = SentenceSplitter(chunk_size=1024) # JINA 1024 最佳
@@ -247,37 +237,37 @@ class RAGService:
         Settings.chunk_overlap = 50
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
     
-    def _get_current_system_prompt(self) -> str:
-        """获取包含当前时间的完整系统提示词"""
-        system_time = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.localtime(time.time()))
-        system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
-        
-        # 从记忆服务获取记忆数据
-        self.memory_service = NotionMemoryService()
-        memory_data = self.memory_service.get_memories()
-        
-        final_prompt = self.system_prompt_i + memory_data + self.system_prompt_ii + system_prompt_iii
-        # final_prompt =  "You are an assistant"
-        logger.info("SYSTEM_PROMPT: " + final_prompt[:100] + "..." + final_prompt[-100:])
-        return final_prompt
-
-    def get_chat_from_engine(self, chat_store_key: str):
+    def get_chat_from_engine(self, chat_store_key: str, model: str = ""):
         chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
             chat_store_key=chat_store_key,
         )
+        gemini = Gemini(
+            system_prompt=os.getenv("SYSTEM_PROMPT"),
+            model="models/" + (model or self.GEMINI_MODEL),
+            api_key=self.google_api_key,
+            temperature=1,
+            max_tokens=16000 # FOR GEMINI
+        )
+        openai = OpenAI(    
+            model=model or os.getenv("OPENAI_MODEL"),
+            api_key=os.getenv("OPENAI_API_KEY"),
+            api_base=os.getenv("OPENAI_API_BASE"),
+            temperature=1,
+            max_tokens=4096
+        )
         chat_engine = SimpleChatEngine.from_defaults(
-            system_prompt=self._get_current_system_prompt(), # 每次对话动态变更
+            system_prompt=os.getenv("SYSTEM_PROMPT"),
             memory=chat_memory,
-            # llm=self.gemini
+            llm=gemini
         )
         return chat_engine
 
     # 直接聊天
     # 一级 - 短期记忆（对话窗口）
     # 二级 - 长期记忆（笔记区）
-    def chat(self, conversation_id: str, query: str) -> str:
+    def chat(self, conversation_id: str, query: str, model: str = "") -> str:
         # 方式1 直接调用LLM对话
         # resp = self.gemini.complete(query)
         # logger.info(f"LLM response: {resp}")
@@ -288,7 +278,7 @@ class RAGService:
         logger.info(f"Conversation ID: {conversation_id}")
         # 方式2 使用LlamaIndex框架对话
         chat_store_key = "user1_conv" + conversation_id
-        chat_engine = self.get_chat_from_engine(chat_store_key)
+        chat_engine = self.get_chat_from_engine(chat_store_key, model)
         # chat_engine.chat_repl()
         response = chat_engine.chat(query)
         logger.info(f"LLM response: {response}")

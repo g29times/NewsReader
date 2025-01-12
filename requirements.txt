@@ -20,6 +20,7 @@ upstash-redis==1.2.0
 notion-client==2.3.0
 
 # api
+openai==1.58.1
 google-ai-generativelanguage==0.6.10
 google-api-core==2.23.0
 google-api-python-client==2.154.0
@@ -46,6 +47,6 @@ llama-index-llms-gemini==0.4.2
 llama-index-storage-chat-store-upstash==0.2.0
 
 # nlp
-torch==2.5.1
+# torch==2.5.1
 # transformers==4.46.3
 sentence-transformers==3.3.1
