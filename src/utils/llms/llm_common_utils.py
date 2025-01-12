@@ -18,6 +18,20 @@ logger = logging.getLogger(__name__)
 class LLMCommonUtils:
     """LLM通用工具类"""
     
+    # 获取简单的系统时间提示词
+    @classmethod
+    def _get_time_prompt(cls) -> str:
+        system_prompt_i = os.getenv("SYSTEM_PROMPT", "")
+        system_prompt_ii = os.getenv("MEMORY_PROMPT_II", "")
+        # 添加当前时间
+        system_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
+        final_prompt = system_prompt_i + system_prompt_ii + system_prompt_iii
+        # 记录日志
+        logger.info("SYSTEM_PROMPT: " + final_prompt)
+        return final_prompt
+    
+    # 获取复杂的个性化记忆管理提示词
     @classmethod
     def _get_memory_prompt(cls) -> str:
         """个性化记忆管理提示词"""

@@ -33,6 +33,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
+from src.utils.llms.llm_common_utils import LLMCommonUtils
 from src.database.connection import db_session
 from src.database.milvus_client import Milvus
 from src.models.article import Article
@@ -244,7 +245,7 @@ class RAGService:
             chat_store_key=chat_store_key,
         )
         gemini = Gemini(
-            system_prompt=os.getenv("SYSTEM_PROMPT"),
+            system_prompt=LLMCommonUtils._get_time_prompt(),
             model="models/" + (model or self.GEMINI_MODEL),
             api_key=self.google_api_key,
             temperature=1,
@@ -257,8 +258,9 @@ class RAGService:
             temperature=1,
             max_tokens=4096
         )
+        logger.info(f"model: {model}")
         chat_engine = SimpleChatEngine.from_defaults(
-            system_prompt=os.getenv("SYSTEM_PROMPT"),
+            system_prompt=LLMCommonUtils._get_time_prompt(),
             memory=chat_memory,
             llm=gemini
         )
