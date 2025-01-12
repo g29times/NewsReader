@@ -26,6 +26,7 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
+from src.utils.file_input_handler import FileInputHandler
 from src.utils.text_input_handler import TextInputHandler
 
 # 设置日志
@@ -39,7 +40,7 @@ class EvaluationPair:
     answer: str
     golden_chunk: str
     chunk_id: str
-    metadata: Dict[str, Any]
+    # metadata: Dict[str, Any]
 
 class DatasetGenerator:
     """评估数据集生成器"""
@@ -60,7 +61,7 @@ class DatasetGenerator:
             raise ValueError("Missing Gemini API key")
             
         genai.configure(api_key=gemini_api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel(model_name=os.getenv("GEMINI_MODEL"))
         
         # 加载文档
         self.documents = []
@@ -93,23 +94,29 @@ class DatasetGenerator:
             'methodological': 0,
             'enumerative': 0
         }
-
+        # full_doc_texts = [FileInputHandler.read_from_file(doc.metadata.get('file_path', '')) for doc in self.documents]
+        full_doc_texts = []
         for doc in tqdm(self.documents, desc="Generating dataset"):
             doc_evaluation_pairs = []
             logger.info(f"Processing document: {doc.metadata.get('file_name', '')}")
             # 分割文档，生成语义完整的黄金块
-            chunks = self._split_document(doc)
+            chunks = self._split_document(doc, 500, 50)
 
-            total_pair_target = int(len(chunks)  * sample_percent/100 ) 
-
+            total_pair_target = len(chunks)  * sample_percent/100
             attempts = random.randint(0, len(chunks))
             successful_pairs = 0
+
+            if full_doc_texts:
+                full_doc_text = full_doc_texts[0]
+            else:
+                full_doc_text = FileInputHandler.read_from_file(doc.metadata.get('file_path', ''))
+                full_doc_texts.append(full_doc_text)
             # 比如，预期是5，那么最多尝试10次，因为LLM每次生成的都可能数量不够或过长过短 _is_valid_qa_pair
             while successful_pairs < total_pair_target and attempts < len(chunks) * 2:
                 chunk = chunks[attempts % len(chunks)]
                 try:
                     # LLM为文档块生成问题
-                    qa_pairs = self.generate_question(chunk.text)
+                    qa_pairs = self.generate_question(full_doc_text, chunk)
                     # logger.info(f"LLM Generated {len(qa_pairs)} pairs for chunk: 【{chunk.text}】")
                     effective_pairs = 0
                     for qa_pair in qa_pairs:
@@ -120,13 +127,13 @@ class DatasetGenerator:
                             pair = EvaluationPair(
                                 question=qa_pair['question'],
                                 answer=qa_pair['answer'],
-                                golden_chunk=chunk.text,
-                                chunk_id=chunk.id_,
-                                metadata={
-                                    'source': doc.metadata.get('file_name', ''),
-                                    'chunk_index': chunks.index(chunk), # 有BUG 都是0
-                                    'question_type': q_type
-                                }
+                                golden_chunk=chunk,
+                                chunk_id=chunk.id_
+                                # metadata={
+                                #     'source': doc.metadata.get('file_name', ''),
+                                #     'chunk_index': chunks.index(chunk), # 有BUG 都是0
+                                #     'question_type': q_type
+                                # }
                             )
                             doc_evaluation_pairs.append(pair)
                             all_evaluation_pairs.append(pair)
@@ -148,7 +155,7 @@ class DatasetGenerator:
         return all_evaluation_pairs
     
     # 分割文档，生成语义完整的黄金块
-    def _split_document(self, doc: Document) -> List[NodeWithScore]:
+    def _split_document(self, doc: Document, max_chunk_length: int, chunk_overlap: int) -> List[NodeWithScore]:
         """智能分割文档，生成语义完整的黄金块
         Args:
             doc: 输入文档
@@ -156,17 +163,18 @@ class DatasetGenerator:
             List[NodeWithScore]: 黄金块列表
         """
         import asyncio
-        return asyncio.run(TextInputHandler.split_text(doc.text, 1024))
+        return asyncio.run(TextInputHandler.split_text(doc.text, max_chunk_length, chunk_overlap))
 
     # 为文档块生成问题
-    def generate_question(self, chunk: str) -> Optional[Dict[str, str]]:
+    def generate_question(self, doc: str, chunk: str) -> Optional[Dict[str, str]]:
         """为文档块生成问题
         Args:
+            doc: 文档内容
             chunk: 文档块内容
         Returns:
             Dict[str, str]: 包含问题和答案的字典
         """
-        prompt = f"""请基于以下文本生成一个问答对。问题应该具体且有深度，需要真正理解文本才能回答。
+        prompt = f"""请基于全文，和全文中的一个片段，生成一个问答对。问题应该具体且有深度，需要真正理解文本才能回答。
         同时，答案必须完全可以从文本中找到，不要包含推测的内容。
         
         生成的问题类型应该是以下几种之一：
@@ -176,22 +184,50 @@ class DatasetGenerator:
         4. 方法性问题：询问如何实现某个目标或解决某个问题
         5. 列举性问题：询问多个相关的要点或步骤
 
-        文本内容：
-        {chunk}
+        ## 全文内容开始:<CONTENT_START>
+        {doc}
+        <CONTENT_END>全文内容结束
 
-        请以 JSON 格式返回，包含以下字段：
+        ## 全文中的一个片段内容：开始:<CHUNK_START>
+        {chunk}
+        <CHUNK_END>片段内容结束
+
+        请以 JSON 格式返回，包含以下字段:
         1. question: 生成的问题
         2. answer: 标准答案
-        3. type: 问题类型（factual/comparative/causal/methodological/enumerative）
+        3. type: 问题类型（factual/comparative/causal/methodological/enumerative)
 
         只返回 JSON 对象，不要有任何其他内容（包括注释）。
         """
-        
         try:
-            response = self.model.generate_content(prompt)
-            logger.info(f"LLM Initial Generated question: {response.text}")
+            from src.utils.llms.openai_client import OpenAIClient
+            openai = OpenAIClient()
+            response = openai.query_with_history("## 全文内容开始:<CONTENT_START>" + doc + "<CONTENT_END>全文内容结束## 全文中的一个片段内容：开始:<CHUNK_START>" + chunk + "<CHUNK_END>片段内容结束", 
+            [], """请基于全文，和全文中的一个片段，生成一个问答对。问题应该具体且有深度，需要真正理解文本才能回答。
+        同时，答案必须完全可以从文本中找到，不要包含推测的内容。
+        
+        生成的问题类型应该是以下几种之一：
+        1. 事实性问题：询问具体的事实、数据或定义
+        2. 比较性问题：询问不同概念、方法或技术之间的区别
+        3. 因果性问题：询问原因、影响或结果
+        4. 方法性问题：询问如何实现某个目标或解决某个问题
+        5. 列举性问题：询问多个相关的要点或步骤
+
+        请以 JSON 格式返回，包含以下字段:
+        1. question: 生成的问题
+        2. answer: 标准答案
+        3. type: 问题类型（factual/comparative/causal/methodological/enumerative)
+
+        只返回 JSON 对象，不要有任何其他内容（包括注释）。""", 
+            "abab6.5s-chat", os.getenv("MINIMAX_API_KEY"), "https://api.minimax.chat/v1")
+            print(response)
+            # from src.utils.llms.minimax_client import MinimaxClient
+            # minimax = MinimaxClient()
+            # response = minimax.chat_completion([{"role": "user", "content": prompt}])
+            # response = self.model.generate_content(prompt)
+            logger.info(f"LLM Initial Generated question: {response}")
             # 清理返回的文本
-            text = response.text.strip()
+            text = response.strip()
             # 移除可能的 markdown 代码块标记
             if text.startswith('```json'):
                 text = text[text.find('\n')+1:]
@@ -259,8 +295,8 @@ class DatasetGenerator:
                 'question': pair.question,
                 'answer': pair.answer,
                 'golden_chunk': pair.golden_chunk,
-                'chunk_id': pair.chunk_id,
-                'metadata': pair.metadata
+                'chunk_id': pair.chunk_id
+                # 'metadata': pair.metadata
             }
             for pair in evaluation_pairs
         ]
@@ -283,4 +319,4 @@ if __name__ == "__main__":
     # 输入
     generator = DatasetGenerator("C:/Users/SWIFT/Desktop/temp")
     # 输出
-    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set_010901.json" , sample_percent=5)
+    pairs = generator.generate_dataset("./src/utils/rag/data/evaluation_set_011201.json" , sample_percent=5)

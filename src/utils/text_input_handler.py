@@ -41,7 +41,7 @@ class TextInputHandler:
 
     # 文本分割：默认使用JINA API，失败时自动切换到本地分割
     @staticmethod
-    async def split_text(text: str, max_chunk_length: int = 500) -> List[str]:
+    async def split_text(text: str, max_chunk_length: int = 1000, chunk_overlap: int = 50) -> List[str]:
         """智能分割文本，优先使用JINA API，失败时自动切换到本地分割器
         Args:
             text: 要分割的文本
@@ -64,7 +64,7 @@ class TextInputHandler:
                 doc = Document(text=text, metadata={})
                 parser = SentenceSplitter(
                     chunk_size=max_chunk_length,
-                    chunk_overlap=50,
+                    chunk_overlap=chunk_overlap,
                     separator=" ",
                     paragraph_separator="\n\n",
                 )
@@ -204,8 +204,8 @@ if __name__ == "__main__":
                 sample_text = f.read()
         # processed_text = TextInputHandler.preprocess_text(sample_text)
         # print(processed_text)  # Output: "this is a sample text with special characters"
-        chunks = await TextInputHandler.split_text(sample_text)
-        # print(chunks)
-    # asyncio.run(main())
-    asyncio.run(main("C:/Users/SWIFT/Desktop/temp/accouting.txt"))
+        chunks = await TextInputHandler.split_text(sample_text, 10, 2)
+        print(chunks)
+    asyncio.run(main())
+    # asyncio.run(main("C:/Users/SWIFT/Desktop/temp/accouting.txt"))
 

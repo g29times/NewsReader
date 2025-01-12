@@ -27,7 +27,7 @@ class RAGEvaluator:
 
     def __init__(self):
         """初始化评估器"""
-        self.evaluation_set_path = "./src/utils/rag/data/evaluation_set_010601.json"
+        self.evaluation_set_path = "./src/utils/rag/data/evaluation_set_011201.json"
         self.evaluation_set = self._load_evaluation_set(self.evaluation_set_path)
         self.metrics = {
             'basic_rag': {'pass@5': 0, 'pass@10': 0, 'pass@20': 0},
@@ -41,7 +41,7 @@ class RAGEvaluator:
         self.rag_basic = "rag_basic"
         self.rag_context = "rag_context"
         # 初始化数据集生成器和上下文生成器
-        self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
+        # self.dataset_generator = DatasetGenerator("./src/utils/rag/docs", gemini_api_key=os.getenv("GEMINI_API_KEY"))
         self.context_generator = ContextGenerator()
         # 设置服务
         self.rag_service = RAGService()
@@ -61,6 +61,7 @@ class RAGEvaluator:
         except Exception as e:
             logger.error(f"加载评估集失败: {e}")
             return []
+    
     # 使用文本相似度计算Pass@k
     def _calculate_pass_at_k(self, retrieved_chunks: List[Dict], golden_chunk: str) -> Dict[str, float]:
         """使用文本相似度计算Pass@k
@@ -113,6 +114,7 @@ class RAGEvaluator:
                 logger.info(f"Ground Truth Golden: {golden_chunk[:20].encode('utf-8').decode('utf-8')}...")
         
         return results
+    
     # 评估RAG系统的性能
     def evaluate(self) -> Dict[str, Dict[str, float]]:
         """评估RAG系统的性能
@@ -174,7 +176,7 @@ class RAGEvaluator:
         return metrics
     
     # 将文档添加到向量库（文档来源在init配置）
-    def _add_documents_to_vector_store(self, collection_name: str, with_context: bool = False, schema=None, index_params=None):
+    async def _add_documents_to_vector_store(self, collection_name: str, with_context: bool = False, schema=None, index_params=None):
         """将文档添加到向量库
         Args:
             collection_name: 要添加到的集合名称
@@ -208,7 +210,7 @@ class RAGEvaluator:
                 content = item['golden_chunk']
             documents.append(content)
         # 批量添加到Milvus
-        milvus_instance.upsert_docs(
+        await milvus_instance.upsert_docs(
             collection_name=collection_name,
             docs=documents,
             subject="evaluation_set",  # 统一的subject
@@ -256,15 +258,17 @@ class RAGEvaluator:
         )
         return schema, index_params
 
+import asyncio
+
 if __name__ == "__main__":
     # 初始化评估器
     evaluator = RAGEvaluator()
 
-    # # 1. 初始化数据
-    # # 基础版本（不带上下文）
-    # evaluator._add_documents_to_vector_store("rag_basic", with_context=False)
-    # # # 上下文增强版本
-    # evaluator._add_documents_to_vector_store("rag_context", with_context=True)
+    # 1. 初始化数据
+    # 基础版本（不带上下文）
+    asyncio.run(evaluator._add_documents_to_vector_store("rag_basic", with_context=False))
+    # # 上下文增强版本
+    asyncio.run(evaluator._add_documents_to_vector_store("rag_context", with_context=True))
 
     # 2. 评估
     results = evaluator.evaluate()

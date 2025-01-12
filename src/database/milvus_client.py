@@ -83,12 +83,12 @@ class Milvus:
         if self.has_collection(collection_name=collection_name):
             return# self.client.drop_collection(collection_name=collection_name)
         self.client.create_collection(
-            collection_name=collection_name,
             dimension=dim,
+            collection_name=collection_name,
             schema=schema,
             index_params=index_params # 默认使用cosine similarity
         )
-        # log.info("create_db with dimension", dim)
+        log.info("create_db with dimension", dim)
 
     def has_collection(self, collection_name):
         return self.client.has_collection(collection_name=collection_name)
@@ -203,6 +203,7 @@ class Milvus:
 if __name__ == "__main__":
     milvus = Milvus()
     collection_name = "rag_basic"
+    # milvus.create_collection(collection_name=collection_name, dim=1024, schema=None, index_params=None)
     count_items = milvus.count_items(collection_name)
     print(count_items)
 
