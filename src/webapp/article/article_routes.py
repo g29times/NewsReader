@@ -62,7 +62,7 @@ def add_article(type: str = "WEB"):
         article_data = summarize_article_content(article_data['content'], article_data)
         
         # 5 组合文章数据并入库
-        logger.info(f"LLM SUMMARY: {article_data}")
+        logger.info(f"LLM SUMMARY: SUCCESSED - {article_data['title']}")
         article_data.update({
             'type': type,
             'user_id': 1 # TODO 从全局获取
