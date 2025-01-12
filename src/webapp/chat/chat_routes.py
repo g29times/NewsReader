@@ -17,15 +17,14 @@ import os
 import json
 import threading
 from src.utils.redis.redis_service import redis_service
-from src.utils.memory.memory_service import NotionMemoryService
-from src.utils.llms.llm_common_utils import LLMCommonUtils
+# from src.utils.memory.memory_service import NotionMemoryService
+# # 直接使用NotionMemoryService的单例
+# memory_service = NotionMemoryService()
 
 logger = logging.getLogger(__name__)
 rag_service = RAGService()
 gemini_client = GeminiClient()  # 创建一个全局实例
 
-# 直接使用NotionMemoryService的单例
-memory_service = NotionMemoryService()
 
 # --------------------------------- 文章管理 ---------------------------------
 # 搜索文章
@@ -99,14 +98,14 @@ def chat():
                 'data': None
             }), 400
         if article_ids in [None, []]:
-            response = rag_service.chat(conversation_id, message)
+            response = rag_service.chat(conversation_id, message, os.getenv("GEMINI_MODEL"))
         else:
-            response = rag_service.chat_with_articles(conversation_id, article_ids, message)
-        # 异步更新LLM记忆
-        try:
-            memory_service.update_memory_async(message, str(response))
-        except Exception as e:
-            logger.error(f"Failed to start memory update: {str(e)}")
+            response = rag_service.chat_with_articles(conversation_id, article_ids, message, os.getenv("GEMINI_THINKING_MODEL"))
+        # 异步更新LLM记忆 暂停
+        # try:
+        #     memory_service.update_memory_async(message, str(response))
+        # except Exception as e:
+        #     logger.error(f"Failed to start memory update: {str(e)}")
         # 这里暂时只返回成功响应，不调用LLM
         return jsonify({
             'success': True,
@@ -155,6 +154,7 @@ def chat_with_file():
         error_msg = f'文件处理失败: {str(e)}'
         logger.error(error_msg)
         return jsonify({'success': False, 'message': error_msg})
+
 # 异步文件上传
 def run_async_save(content: str, filename: str):
     """在新线程中运行异步保存任务"""
@@ -176,6 +176,7 @@ def run_async_save(content: str, filename: str):
     thread = threading.Thread(target=_run_in_thread)
     thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
     thread.start()
+
 # 异步文件上传
 async def save_file_as_article(content: str, filename: str):
     """异步保存文件为文章"""
