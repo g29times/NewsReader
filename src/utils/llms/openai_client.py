@@ -45,7 +45,7 @@ class OpenAIClient:
             )
         return self.client
 
-    def gpt_api_stream(self, messages: List[dict], model: str = None, api_key: str = None, base_url: str = None) -> Optional[str]:
+    def chat_complete(self, messages: List[dict], model: str = None, api_key: str = None, base_url: str = None) -> Optional[str]:
         """GPT API流式调用
         Args:
             messages: 消息列表
@@ -70,7 +70,7 @@ class OpenAIClient:
                     content += chunk.choices[0].delta.content
             return content if content else None
         except Exception as e:
-            logger.error(f"Error in gpt_api_stream: {str(e)}")
+            logger.error(f"Error in chat_complete: {str(e)}")
             raise e
 
     def query_with_history(self, question: str, histories: List[Dict] = None, system_prompt: str = None, model: str = None, api_key: str = None, base_url: str = None) -> Dict:
@@ -103,7 +103,7 @@ class OpenAIClient:
             # 添加重试机制
             for attempt in range(3):
                 try:
-                    content = self.gpt_api_stream(messages, model, api_key, base_url)
+                    content = self.chat_complete(messages, model, api_key, base_url)
                     if content:
                         if (len(content) > 200):
                             logger.info("Response: " + content[:100] + " ..." + content[-100:])
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     # # 非流式调用
     # # gpt_api(messages)
     # # 流式调用
-    # response = OpenAIClient.gpt_api_stream(messages)
+    # response = OpenAIClient.chat_complete(messages)
     # print(response)
 
     # ok

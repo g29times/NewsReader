@@ -244,25 +244,26 @@ class RAGService:
             chat_store=self.chat_store,
             chat_store_key=chat_store_key,
         )
+        system_prompt=LLMCommonUtils._get_time_prompt()
         gemini = Gemini(
-            system_prompt=LLMCommonUtils._get_time_prompt(),
+            system_prompt=system_prompt,
             model="models/" + (model or self.GEMINI_MODEL),
             api_key=self.google_api_key,
-            temperature=1,
-            max_tokens=16000 # FOR GEMINI
+            temperature=float(os.getenv("LLM_TEMPERATURE")),
+            max_tokens=8192 # FOR GEMINI
         )
         openai = OpenAI(    
             model=model or os.getenv("OPENAI_MODEL"),
             api_key=os.getenv("OPENAI_API_KEY"),
             api_base=os.getenv("OPENAI_API_BASE"),
-            temperature=1,
-            max_tokens=4096
+            temperature=float(os.getenv("LLM_TEMPERATURE")),
+            max_tokens=4096  # FOR GPT-4o
         )
         logger.info(f"model: {model}")
         chat_engine = SimpleChatEngine.from_defaults(
-            system_prompt=LLMCommonUtils._get_time_prompt(),
+            system_prompt=system_prompt,
             memory=chat_memory,
-            llm=gemini
+            llm=openai
         )
         return chat_engine
 

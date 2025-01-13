@@ -34,11 +34,11 @@ class ArticleTasks:
         Returns:
             LLMResponse 包含处理结果
         """
-        minimax = MinimaxClient()
-        response = minimax.query_openai_with_history(question=f"```{content}```", history=[], system_prompt=os.getenv("SUMMARY_PROMPT"))
-        return LLMCommonUtils._extract_summary(response)
-        # gemini = GeminiClient()
-        # return gemini.summarize_text(content)
+        # minimax = MinimaxClient()
+        # response = minimax.query_openai_with_history(question=f"```{content}```", history=[], system_prompt=os.getenv("SUMMARY_PROMPT"))
+        # return LLMCommonUtils._extract_summary(response)
+        gemini = GeminiClient()
+        return gemini.summarize_text(content)
 
     # 查找文章关系
     @staticmethod
