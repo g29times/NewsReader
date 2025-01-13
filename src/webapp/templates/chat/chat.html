@@ -416,10 +416,16 @@
             title.textContent = article.title || '';
             // 使用showdown转换Markdown为HTML
             const converter = new showdown.Converter();
-            content.innerHTML = article.content ? converter.makeHtml(article.content) : '';
-            summary.innerHTML = article.summary ? converter.makeHtml(article.summary) : '';
-            const topicsHtml = article.topics ? converter.makeHtml(article.topics.map(topic => `- ${topic}`).join('\n')) : '';
-            topics.innerHTML = topicsHtml;
+            try {
+                content.innerHTML = article.content ? converter.makeHtml(article.content) : '';
+                summary.innerHTML = article.summary ? converter.makeHtml(article.summary) : '';
+                const topicsHtml = article.topics ? converter.makeHtml(article.topics.map(topic => `- ${topic}`).join('\n')) : '';
+                topics.innerHTML = topicsHtml;
+            } catch (error) {
+                content.innerHTML = article.content || '';
+                summary.innerHTML = article.summary || '';
+                topics.innerHTML = article.topics ? article.topics.map(topic => `- ${topic}`).join('\n') : '';
+            }
             tags.innerHTML = article.tags || '';
             source.innerHTML = article.source ? `- ${article.source}` : '';
         }
@@ -575,10 +581,10 @@
                     result = await response.json();
                 }
                 else if (selectedArticles.length > 0) { // 普通聊天接口，如果选择了文章，发送文章id
-                    result = await call_chat('/chat/api/chat', conv_id, message, selectedArticles);
+                    result = await call_chat(conv_id, message, selectedArticles);
                 }
                 else { // 普通聊天接口
-                    result = await call_chat('/chat/api/chat', conv_id, message);
+                    result = await call_chat(conv_id, message);
                 }
                 if (result.success) {
                     if (result.data && result.data.response) {
@@ -598,13 +604,13 @@
         }
 
         // sendChatMessage 调用后端chat服务
-        async function call_chat(url, conv_id, message, selectedArticles = []) {
+        async function call_chat(conv_id, message, selectedArticles = []) {
             try {
                 if (conv_id == undefined || conv_id == null || conv_id == '') {
                    throw new Error('请稍后再试');
                 }
                 // 调用chat服务
-                const response = await fetch(url, {
+                const response = await fetch('/chat/api/chat', {
                     method: 'POST',
                     headers: {
                             'Content-Type': 'application/json',
@@ -643,7 +649,11 @@
                 if (role === 'assistant') {
                     // 对助手的回答使用markdown转换
                     const converter = new showdown.Converter();
-                    htmlContent = converter.makeHtml(content);
+                    try {
+                        htmlContent = converter.makeHtml(content); 
+                    } catch (error) {
+                        htmlContent = content;
+                    }
                 } else {
                     // 用户消息只转换换行符
                     htmlContent = content.replace(/\n/g, '<br>');

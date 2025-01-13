@@ -144,7 +144,7 @@ if __name__ == "__main__":
     # print(read_from_url_jina("https://www.jina.ai/"))
 
     # 示例用法
-    message = "看看 这篇文章 https://m.mashhad24.com/html/708/707376.html 和 另一篇 https://m.mashhad24.com/html/708/707377.html 说了什么"
+    message = "看看 这篇文章 https://www.sanwenwang.com/sanwen/vivymkqf.html 和 另一篇 https://m.mashhad24.com/html/708/707377.html 说了什么"
     # 提取URL
     urls = extract_urls(message)
     print(f"URLs extracted: {urls}")
