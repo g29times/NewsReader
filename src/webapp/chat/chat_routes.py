@@ -91,7 +91,7 @@ def chat():
         article_ids = data.get('article_ids', [])
         conversation_id = data.get('conversation_id', '')
         model = data.get('model', '')
-        logger.info(f"收到聊天请求：conversation_id={conversation_id}, message={message}, article_ids={article_ids}")
+        logger.info(f"收到聊天请求：model={model}, conversation_id={conversation_id}, message={message}, article_ids={article_ids}")
         if not conversation_id:
             return jsonify({
                 'success': False,
