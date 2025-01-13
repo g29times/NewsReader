@@ -1,5 +1,4 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for
-from sqlalchemy.sql.functions import user
 from . import article_bp
 from models.article import Article
 from models.article_crud import *
@@ -58,10 +57,18 @@ def add_article(type: str = "WEB"):
                 'data': None
             }), 400
 
-        # 4 使用LLM处理内容 进行文章摘要/概要/概括，url和tags来自前端，content来自JINA，6个来自LLM的返回-summary.body.get
+        # 4 处理勾选的文章，进行内容关联
+        article_ids = request.form.getlist('article_ids')
+        if article_ids:
+            logger.info(f"勾选了文章，进行内容关联：{article_ids}")
+            from src.models import article_crud
+            articles = article_crud.get_article_by_ids(db_session, article_ids)
+            articles_text = "\n".join([f"标题：{article.title}\n内容：{article.content}" for article in articles])
+            article_data['content'] = article_data['content'] + " ** 关联文章： ** " + articles_text
+        # 使用LLM处理内容 进行文章摘要/概要/概括，url和tags来自前端，content来自JINA，6个来自LLM的返回-summary.body.get
         article_data = summarize_article_content(article_data['content'], article_data)
         
-        # 5 组合文章数据并入库
+        # 5 文章数据入库
         logger.info(f"LLM SUMMARY: SUCCESSED - {article_data['title']}")
         article_data.update({
             'type': type,

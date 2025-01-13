@@ -30,7 +30,6 @@ class ArticleTasks:
         使用LLM总结内容并提取关键点
         Args:
             content: 需要处理的文本内容
-            
         Returns:
             LLMResponse 包含处理结果
         """
