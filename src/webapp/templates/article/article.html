@@ -221,6 +221,10 @@
 
             try {
                 const formData = new FormData(form);
+                // add checked article_ids into formData
+                formData.append('article_ids', Array.from(document.querySelectorAll('.article-checkbox:checked'))
+                    .map(checkbox => checkbox.value)
+                    .join(','));
                 const response = await fetch('/article/add_article', {
                     method: 'POST',
                     body: formData
