@@ -17,6 +17,7 @@ import os
 import json
 import threading
 from src.utils.redis.redis_service import redis_service
+from src.utils.embeddings import jina
 # from src.utils.memory.memory_service import NotionMemoryService
 # # 直接使用NotionMemoryService的单例
 # memory_service = NotionMemoryService()
@@ -98,6 +99,11 @@ def chat():
                 'message': 'no conversation_id',
                 'data': None
             }), 400
+        try:
+            # 解析含url的消息
+            message = jina.read_from_jina(message)
+        except Exception as e:
+            logger.error(f"Failed to read from Jina: {str(e)}")
         if article_ids in [None, []]:
             response = rag_service.chat(conversation_id, message, os.getenv(model or "GEMINI_MODEL"))
         else: # 对于长文默认使用更快速的模型

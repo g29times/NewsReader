@@ -4,6 +4,7 @@ import requests
 import logging
 from typing import List
 import aiohttp
+import re
 
 # 添加项目根目录到 Python 路径 标准方式
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -99,7 +100,7 @@ def read_from_url_jina(url: str, mode='read') -> str:
     try:
         response = requests.get(url)
         response.raise_for_status()
-        logger.info(f"JINA Reader SUCCESS: {response.status_code}, First 30 chars: '{response.text[:30]}'")
+        logger.info(f"JINA Reader Fetching {url} SUCCESS: {response.status_code}, Length: {len(response.text)}, First 30 chars: '{response.text[:30]}'")
         
         if mode == 'write':
             with open('src/utils/jina_read_from_url_response_demo.txt', 'w', encoding='utf-8') as f:
@@ -108,9 +109,46 @@ def read_from_url_jina(url: str, mode='read') -> str:
         else:
             return response.text
     except requests.RequestException as e:
-        logger.error(f"JINA Reader Error fetching '{url}': {e}")
+        logger.error(f"JINA Reader Fetching Error'{url}': {e}")
         return None
+
+@logy
+@staticmethod
+def read_from_jina(message):
+    # 提取URL
+    urls = extract_urls(message)
+    print(f"URLs extracted: {urls}")
+    # 插入解析后的内容
+    text_with_content = insert_content(message, urls)
+    return text_with_content
+
+def extract_urls(text):
+  """
+  从文本中提取 URL 的函数。
+  Returns:
+    一个包含提取到的 URL 的列表。
+  """
+  url_pattern = re.compile(r'https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)')
+  urls = url_pattern.findall(text)
+  return urls
+
+def insert_content(text, urls):
+    for url in urls:
+        content = read_from_url_jina(url)
+        # 直接在 URL 后面插入内容
+        text = text.replace(url, f"{url} '''{content}'''")
+    return text
 
 # main
 if __name__ == "__main__":
-    print(read_from_url_jina("https://www.jina.ai/"))
+    # print(read_from_url_jina("https://www.jina.ai/"))
+
+    # 示例用法
+    message = "看看 这篇文章 https://m.mashhad24.com/html/708/707376.html 和 另一篇 https://m.mashhad24.com/html/708/707377.html 说了什么"
+    # 提取URL
+    urls = extract_urls(message)
+    print(f"URLs extracted: {urls}")
+
+    # 插入解析后的内容
+    text_with_content = insert_content(message, urls)
+    print(text_with_content)
