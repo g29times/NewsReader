@@ -563,7 +563,7 @@
                 console.log('Conversation ID:', conv_id);
                 // 调用chat服务
                 let result;
-                if (file) { // 如果有文件，使用文件上传接口
+                if (file) { // 如果有文件，使用文件聊天接口
                     const formData = new FormData();
                     formData.append('file', file);
                     formData.append('question', message);
@@ -574,10 +574,10 @@
                     });
                     result = await response.json();
                 }
-                else if (selectedArticles.length > 0) { // 如果选择了文章，使用文章对话接口
+                else if (selectedArticles.length > 0) { // 普通聊天接口，如果选择了文章，发送文章id
                     result = await call_chat('/chat/api/chat', conv_id, message, selectedArticles);
                 }
-                else { // 普通对话接口
+                else { // 普通聊天接口
                     result = await call_chat('/chat/api/chat', conv_id, message);
                 }
                 if (result.success) {
@@ -612,7 +612,8 @@
                     body: JSON.stringify({
                             message: message,
                             article_ids: selectedArticles,
-                            conversation_id: conv_id
+                            conversation_id: conv_id,
+                            model: "GEMINI_TINKING_MODEL" // TODO 可选
                     })
                 });
                 if (!response.ok) {

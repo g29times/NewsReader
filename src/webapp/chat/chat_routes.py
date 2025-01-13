@@ -82,7 +82,7 @@ def chat_page():
     articles = get_all_articles(db_session)
     return render_template('chat/chat.html', articles=articles)
 
-# 聊天
+# 普通聊天接口
 @chat_bp.route('/api/chat', methods=['POST'])
 def chat():
     try:
@@ -90,6 +90,7 @@ def chat():
         message = data.get('message', '')
         article_ids = data.get('article_ids', [])
         conversation_id = data.get('conversation_id', '')
+        model = data.get('model', '')
         logger.info(f"收到聊天请求：conversation_id={conversation_id}, message={message}, article_ids={article_ids}")
         if not conversation_id:
             return jsonify({
@@ -98,9 +99,9 @@ def chat():
                 'data': None
             }), 400
         if article_ids in [None, []]:
-            response = rag_service.chat(conversation_id, message, os.getenv("GEMINI_MODEL"))
-        else:
-            response = rag_service.chat_with_articles(conversation_id, article_ids, message, os.getenv("GEMINI_THINKING_MODEL"))
+            response = rag_service.chat(conversation_id, message, os.getenv(model or "GEMINI_MODEL"))
+        else: # 对于长文默认使用更快速的模型
+            response = rag_service.chat_with_articles(conversation_id, article_ids, message, os.getenv("GEMINI_MODEL"))
         # 异步更新LLM记忆 暂停
         # try:
         #     memory_service.update_memory_async(message, str(response))
@@ -125,7 +126,7 @@ def chat():
             'data': None
         }), 500
 
-# 聊天文件上传
+# 文件聊天接口
 @chat_bp.route('/api/chat/with_file', methods=['POST'])
 def chat_with_file():
     try:

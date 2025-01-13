@@ -238,33 +238,40 @@ class RAGService:
         Settings.chunk_overlap = 50
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
     
-    def get_chat_from_engine(self, chat_store_key: str, model: str = ""):
+    def get_chat_engine(self, chat_store_key: str, model: str = ""):
         chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
             chat_store_key=chat_store_key,
         )
         system_prompt=LLMCommonUtils._get_time_prompt()
-        gemini = Gemini(
-            system_prompt=system_prompt,
-            model="models/" + (model or self.GEMINI_MODEL),
-            api_key=self.google_api_key,
-            temperature=float(os.getenv("LLM_TEMPERATURE")),
-            max_tokens=8192 # FOR GEMINI
-        )
-        openai = OpenAI(    
-            model=model or os.getenv("OPENAI_MODEL"),
-            api_key=os.getenv("OPENAI_API_KEY"),
-            api_base=os.getenv("OPENAI_API_BASE"),
-            temperature=float(os.getenv("LLM_TEMPERATURE")),
-            max_tokens=4096  # FOR GPT-4o
-        )
         logger.info(f"model: {model}")
-        chat_engine = SimpleChatEngine.from_defaults(
-            system_prompt=system_prompt,
-            memory=chat_memory,
-            llm=openai
-        )
+        if "gemini" in model.lower():
+            gemini = Gemini(
+                system_prompt=system_prompt,
+                model="models/" + (model or self.GEMINI_MODEL),
+                api_key=self.google_api_key,
+                temperature=float(os.getenv("LLM_TEMPERATURE")),
+                max_tokens=8192 # FOR GEMINI
+            )
+            chat_engine = SimpleChatEngine.from_defaults(
+                system_prompt=system_prompt,
+                memory=chat_memory,
+                llm=gemini
+            )
+        else:
+            openai = OpenAI(    
+                model=os.getenv("OPENAI_MODEL"),
+                api_key=os.getenv("OPENAI_API_KEY"),
+                api_base=os.getenv("OPENAI_API_BASE"),
+                temperature=float(os.getenv("LLM_TEMPERATURE")),
+                max_tokens=4096  # FOR GPT-4o
+            )
+            chat_engine = SimpleChatEngine.from_defaults(
+                system_prompt=system_prompt,
+                memory=chat_memory,
+                llm=openai
+            )
         return chat_engine
 
     # 直接聊天
@@ -281,7 +288,7 @@ class RAGService:
         logger.info(f"Conversation ID: {conversation_id}")
         # 方式2 使用LlamaIndex框架对话
         chat_store_key = "user1_conv" + conversation_id
-        chat_engine = self.get_chat_from_engine(chat_store_key, model)
+        chat_engine = self.get_chat_engine(chat_store_key, model)
         # chat_engine.chat_repl()
         response = chat_engine.chat(query)
         logger.info(f"LLM response: {response}")
@@ -686,7 +693,7 @@ class RAGService:
     def edit_chat_msg(self, redis_key: str, message_index: int, new_content: str, role: str) -> bool:
         try:
             chat_store_key = redis_key
-            chat_engine = self.get_chat_from_engine(chat_store_key)
+            chat_engine = self.get_chat_engine(chat_store_key)
             chat_history = chat_engine.chat_history
             chat_history[message_index] = ChatMessage(content=new_content, role=role)
             self.save_chat(chat_store_key, chat_history)
@@ -700,7 +707,7 @@ class RAGService:
         try:
             # 取自 engine history
             chat_store_key = redis_key
-            chat_engine = self.get_chat_from_engine(chat_store_key)
+            chat_engine = self.get_chat_engine(chat_store_key)
             chat_history = chat_engine.chat_history
             if len(chat_history) > message_index:
                 chat_history.pop(message_index)
