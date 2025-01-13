@@ -88,6 +88,14 @@
                 <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
                 <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
                 <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
+                <div class="choice-radio">
+                    <input type="radio" id="choice1" name="choices" value="OPENAI_MODEL" checked>
+                    <label for="choice1">GPT-4o</label>
+                </div>
+                <div class="choice-radio">
+                    <input type="radio" id="choice2" name="choices" value="GEMINI_MODEL">
+                    <label for="choice2">GEMINI2</label>
+                </div>
             </div>
         </div>
 
@@ -570,6 +578,7 @@
                 console.log('Conversation ID:', conv_id);
                 // 调用chat服务
                 let result;
+                const modelChoice = document.querySelector('.choice-radio input[name="choices"]:checked').value;
                 if (file) { // 如果有文件，使用文件聊天接口
                     const formData = new FormData();
                     formData.append('file', file);
@@ -582,10 +591,10 @@
                     result = await response.json();
                 }
                 else if (selectedArticles.length > 0) { // 普通聊天接口，如果选择了文章，发送文章id
-                    result = await call_chat(conv_id, message, selectedArticles);
+                    result = await call_chat(conv_id, message, modelChoice, selectedArticles);
                 }
                 else { // 普通聊天接口
-                    result = await call_chat(conv_id, message);
+                    result = await call_chat(conv_id, message, modelChoice);
                 }
                 if (result.success) {
                     if (result.data && result.data.response) {
@@ -605,7 +614,7 @@
         }
 
         // sendChatMessage 调用后端chat服务
-        async function call_chat(conv_id, message, selectedArticles = []) {
+        async function call_chat(conv_id, message, modelChoice, selectedArticles = []) {
             try {
                 if (conv_id == undefined || conv_id == null || conv_id == '') {
                    throw new Error('请稍后再试');
@@ -617,10 +626,10 @@
                             'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                            message: message,
-                            article_ids: selectedArticles,
-                            conversation_id: conv_id,
-                            model: "GEMINI_MODEL" // TODO 可选
+                        conversation_id: conv_id,
+                        message: message,
+                        model: modelChoice, // "GEMINI_MODEL"
+                        article_ids: selectedArticles,
                     })
                 });
                 if (!response.ok) {
