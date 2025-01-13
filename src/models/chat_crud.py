@@ -83,6 +83,7 @@ def delete_chat(db: Session, user_id: int, conversation_id: str) -> bool:
     chat = get_chat(db, user_id, conversation_id)
     if not chat:
         return False
-    chat.is_active = False
+    # chat.is_active = False
+    db.delete(chat)
     db.commit()
     return True

@@ -21,7 +21,7 @@ class LLMCommonUtils:
     @classmethod
     def _get_time(cls):
         now = datetime.now()# 加上8小时
-        time_plus_8_hours = now + timedelta(hours=8)
+        time_plus_8_hours = now # + timedelta(hours=8)
         # 格式化为 ISO 8601 格式
         return time_plus_8_hours.strftime('%Y-%m-%dT%H:%M:%S.000Z')
     

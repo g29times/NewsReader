@@ -60,8 +60,15 @@
    https://mp.weixin.qq.com/s/vGjgrod3A0cAjGUrLv52Sg
 
 # 2 Daily Progress
+## 1.14 支持多模型选择 | 聊URL | 文件导入多文关联
 
-## 2025.1.7
+## 1.12 13 集成 MINIMAX GEMINI出问题
+
+## 1.10 11 记忆管理提示词
+
+## 1.8 9 个性化
+
+## 2025.1.7 Notion 笔记 个性化
 ### 1. 成功集成了Notion API作为笔记存储系统：
 - 实现了note_routes.py中的create_note函数，完整支持Notion的API调用
 - 支持笔记的基本属性：标题、内容、来源、类型等
@@ -92,7 +99,6 @@
 - 利用Notion的API实现更多高级功能
 
 ## 2025.1.6 大文件 开会
-
 
 ## 2025.1.5 提示词和对话功能优化
 ### 1. 调试提示词越狱

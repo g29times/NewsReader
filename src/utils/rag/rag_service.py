@@ -290,9 +290,11 @@ class RAGService:
         chat_store_key = "user1_conv" + conversation_id
         chat_engine = self.get_chat_engine(chat_store_key, model)
         # chat_engine.chat_repl()
+        logger.info(f"Query length: {len(query)}")
         response = chat_engine.chat(query)
-        logger.info(f"LLM response: {response}")
-        # LLM response 格式：纯字符串
+        logger.info(f"LLM response: {response}") # LLM response 格式：纯字符串
+        logger.info(f"Response length: {len(str(response))}")
+
         # LlamaIndex 会自动保存持久化（本地json或redis）
         # self.save_chat(chat_store_key, chat_engine.chat_history)
         # self.chat_store.persist(persist_path="chat_store.json")
