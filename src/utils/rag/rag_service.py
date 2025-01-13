@@ -300,7 +300,7 @@ class RAGService:
     
     def chat_with_file(self, conversation_id: str, file_content: str, question: str, model: str = "") -> str:
         # 1. 构建上下文
-        context = f"参考文件（可能与问题有关或无关，自行辨别）：\n{file_content}\n\n我的问题：'''{question}'''"
+        context = f"参考内容（可能与问题有关或无关，自行辨别）：\n{file_content}\n\n我的问题：'''{question}'''"
         # 2. 使用现有的chat方法
         return self.chat(conversation_id, context, model)
 
