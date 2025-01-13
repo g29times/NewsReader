@@ -266,7 +266,7 @@
         function uploadFile() {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.accept = '.txt,.pdf,.doc,.docx';
+            fileInput.accept = '.txt,.pdf,.doc,.xlsx,.ppt,.jpg,.jpeg,.png,.gif';
             fileInput.onchange = async function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -449,7 +449,8 @@
                     expandArticlesPanel();
                 }
             } catch (error) {
-                showToast(error.message, 'error');
+                console.error('Fetch error:', error);
+                showToast('查看文章失败', 'error');
             }
         }
 
@@ -630,7 +631,6 @@
                 return result;
             } catch (error) {
                 console.error('Chat error:', error);
-                showToast('服务调用失败' + error.message, 'error');
                 throw error;  // 继续抛出错误，让上层函数处理
             }
         }
@@ -852,6 +852,7 @@
                         }
                     } catch (error) {
                         console.error('保存失败:', error);
+                        showToast('保存失败', 'error');
                     } finally {
                         isSaving = false;  // 结束保存
                     }
@@ -986,7 +987,7 @@
                     throw error;  // 继续抛出错误，中断聊天请求
                 }
             }
-            // 已有ID 更新对话 刷新当前对话时间
+            // 已有ID 更新对话 用于每次对话后刷新对话时间
             else {
                 try { // update_conversation update_chat
                     const response = await fetch(`/chat/api/conversation/${currentConversationId}`, {
@@ -1000,7 +1001,7 @@
                     });
                     return currentConversationId;
                 } catch (error) {
-                    // 不处理
+                    // 暂不处理
                     return currentConversationId;
                 } finally {
                     // 刷新对话列表
@@ -1134,7 +1135,7 @@
         // -------------------------------- 笔记管理 --------------------------------
         // TODO 多笔记汇入合并 线上 chatid 没带过来APP类型记为NewsReader 用户界面系统提示词。项目？分组、标签， 接入搜素， 支持url， 新建/追加笔记 大笔记失败， chatid conv_id精简， 底部滚动条，Perplexiti AI集成 获取新闻，google 搜索集成，学术搜索集成，改密码，拉勾
 
-        // 记笔记后端方法调用
+        // 调用后端方法 记笔记
         async function createNote(noteData) {
             try {
                 // 发送请求创建笔记
@@ -1156,7 +1157,8 @@
                     }
                 }
             } catch (error) {
-
+                console.error('创建笔记失败:', error);
+                showToast('创建笔记失败', 'error');
             }
         }
 
@@ -1185,7 +1187,6 @@
                 // 获取当前对话的内容
                 const chatMessages = document.querySelectorAll('.message');
                 if (!chatMessages.length) {
-                    showToast('当前对话为空，无法创建笔记', 'warning');
                     return;
                 }
 
