@@ -31,7 +31,7 @@ class LLMCommonUtils:
         system_prompt_i = os.getenv("SYSTEM_PROMPT", "")
         system_prompt_ii = os.getenv("MEMORY_PROMPT_II", "")
         system_time = cls._get_time()
-        system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
+        system_prompt_iii = f"`<|system_time|>{system_time}<|system_time|>`"
         final_prompt = system_prompt_i + system_prompt_ii + system_prompt_iii
         # 记录日志
         logger.info("SYSTEM_PROMPT: " + final_prompt)
@@ -47,7 +47,7 @@ class LLMCommonUtils:
             system_prompt_ii = os.getenv("MEMORY_PROMPT_II", "")
             # 添加当前时间
             system_time = cls._get_time()
-            system_prompt_iii = f"`<|current_time|>{system_time}<|current_time|>`"
+            system_prompt_iii = f"`<|system_time|>{system_time}<|system_time|>`"
             # # 添加记忆
             # try:
             #     from src.utils.memory.memory_service import NotionMemoryService
