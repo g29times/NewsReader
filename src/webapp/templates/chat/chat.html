@@ -886,7 +886,7 @@
 
         // 当前选中的对话ID
         let currentConversationId = null;
-        let currentChatTitle = null;
+        let currentChatTitle = '';
         
         // 调用后端加载对话列表 DONE
         async function loadConversationList() {
@@ -1175,7 +1175,7 @@
                 const selectedText = window.getSelection().toString();
                 if (selectedText) {
                     const noteData = {
-                        title: `笔记 - ${new Date().toLocaleString()}`,
+                        title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
                         content: selectedText,
                         source: 'NewsReader',
                         types: ['NOTE'],
