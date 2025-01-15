@@ -1178,8 +1178,15 @@
                         title: `笔记 - ${new Date().toLocaleString()}`,
                         content: selectedText,
                         source: 'NewsReader',
-                        types: ['NOTE']
+                        types: ['NOTE'],
+                        chats: currentConversationId ? [currentConversationId] : []
                     };
+
+                    // 如果有选中的文章，添加到笔记中
+                    const selectedArticles = getSelectedArticles();
+                    if (selectedArticles.length > 0) {
+                        noteData.articles = selectedArticles;
+                    }
                     // 发送请求创建笔记
                     await createNote(noteData);
                 }
@@ -1196,14 +1203,12 @@
                 if (!chatMessages.length) {
                     return;
                 }
-
                 // 收集对话内容
                 let content = '';
                 chatMessages.forEach(msg => {
                     const text = msg.querySelector('.message-content').textContent;
                     content += `${text}`;
                 });
-
                 // 准备笔记数据
                 const noteData = {
                     title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
@@ -1212,13 +1217,11 @@
                     types: ['NOTE'],
                     chats: currentConversationId ? [currentConversationId] : []
                 };
-
                 // 如果有选中的文章，添加到笔记中
                 const selectedArticles = getSelectedArticles();
                 if (selectedArticles.length > 0) {
                     noteData.articles = selectedArticles;
                 }
-
                 await createNote(noteData);
             } catch (error) {
                 showToast('创建笔记失败: ' + error.message, 'error');
@@ -1234,8 +1237,14 @@
                     title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
                     content: content,
                     source: 'NewsReader',
-                    types: ['NOTE']
+                    types: ['NOTE'],
+                    chats: currentConversationId ? [currentConversationId] : []
                 };
+                // 如果有选中的文章，添加到笔记中
+                const selectedArticles = getSelectedArticles();
+                if (selectedArticles.length > 0) {
+                    noteData.articles = selectedArticles;
+                }
                 await createNote(noteData);
             } catch (error) {
                 showToast('创建笔记失败: ' + error.message, 'error');
