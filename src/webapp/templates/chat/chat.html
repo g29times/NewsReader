@@ -1175,7 +1175,7 @@
                 const selectedText = window.getSelection().toString();
                 if (selectedText) {
                     const noteData = {
-                        title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
+                        title: `${currentChatTitle}`,
                         content: selectedText,
                         source: 'NewsReader',
                         types: ['NOTE'],
@@ -1211,7 +1211,7 @@
                 });
                 // 准备笔记数据
                 const noteData = {
-                    title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
+                    title: `${currentChatTitle}`,
                     content: content,
                     source: 'NewsReader',
                     types: ['NOTE'],
@@ -1234,7 +1234,7 @@
                 const messageDiv = button.closest('.message');
                 const content = messageDiv.querySelector('.message-content').textContent;
                 const noteData = {
-                    title: `${currentChatTitle} - ${new Date().toLocaleString()}`,
+                    title: `${currentChatTitle}`,
                     content: content,
                     source: 'NewsReader',
                     types: ['NOTE'],
