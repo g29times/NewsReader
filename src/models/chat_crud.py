@@ -8,7 +8,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from src import logy
-from src.models.chat import Base, Chat
+from src.models.chat import Chat
 from src.database.connection import db_session
 from typing import List, Optional
 from datetime import datetime

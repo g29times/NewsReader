@@ -187,7 +187,7 @@ class GeminiClient:
                 }
             }
 
-    # 使用内容查询，本方法是对chat方法的多次重试封装 其他方法用该调用本方法
+    # 使用内容查询，本方法是对chat方法的多次重试封装 其他方法该调用本方法
     @classmethod
     def query_with_history(cls, question: str, histories: List[dict] = None, system_prompt: str = None) -> Optional[dict]:
         """查询内容

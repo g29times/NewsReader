@@ -28,7 +28,7 @@ gemini_client = GeminiClient()  # 创建一个全局实例
 
 
 # --------------------------------- 文章管理 ---------------------------------
-# 搜索文章
+# 搜索文章 # TODO 整合到 article_routes
 @chat_bp.route('/api/articles/search', methods=['GET'])
 def articles_search():
     query = request.args.get('query', '').strip()
@@ -49,7 +49,7 @@ def articles_search():
         }
     })
 
-# 获取文章详情
+# 获取文章详情 # TODO 整合到 article_routes
 @chat_bp.route('/api/articles/<int:article_id>', methods=['GET'])
 def get_article_details(article_id):
     article = get_article_by_id(db_session, article_id)
@@ -80,6 +80,7 @@ def get_article_details(article_id):
 # 聊天页面
 @chat_bp.route('/')
 def chat_page():
+    user_id = '1'
     articles = get_all_articles(db_session)
     return render_template('chat/chat.html', articles=articles)
 
@@ -87,6 +88,7 @@ def chat_page():
 @chat_bp.route('/api/chat', methods=['POST'])
 def chat():
     try:
+        user_id = '1'
         data = request.get_json()
         message = data.get('message', '')
         article_ids = data.get('article_ids', [])
@@ -136,6 +138,7 @@ def chat():
 @chat_bp.route('/api/chat/with_file', methods=['POST'])
 def chat_with_file():
     try:
+        user_id = '1'
         if 'file' not in request.files:
             return jsonify({'success': False, 'message': '未找到上传的文件'})
         file = request.files['file']
@@ -146,8 +149,8 @@ def chat_with_file():
         content = FileInputHandler.read_from_file(file)
         if not content:
             return jsonify({'success': False, 'message': '文件内容为空或无法读取'})
-        # 使用文件内容回答问题
-        response = rag_service.chat_with_file(conversation_id, content, question) # gemini_client.query_with_content(content, question)
+        # 使用文件内容回答问题 # gemini_client.query_with_content(content, question)
+        response = rag_service.chat_with_file(conversation_id, content, question)
         if not response:
             return jsonify({'success': False, 'message': '对话失败'})
         # 在后台线程中异步保存文件
@@ -184,7 +187,7 @@ def run_async_save(content: str, filename: str):
     thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
     thread.start()
 
-# 异步文件上传
+# 异步保存文件
 async def save_file_as_article(content: str, filename: str):
     """异步保存文件为文章"""
     try:
@@ -229,9 +232,9 @@ async def save_file_as_article(content: str, filename: str):
 @chat_bp.route('/api/msg/delete', methods=['POST'])
 def delete_chat_msg():
     try:
+        user_id = '1'
         data = request.get_json()
         conversation_id = data.get('conversation_id')
-        user_id = '1'
         if not conversation_id:
             return jsonify({'success': False, 'message': '缺少必要参数'}), 400
         message_index = data.get('message_index')
@@ -410,5 +413,3 @@ def delete_conversation(conversation_id):
             'success': False,
             'message': str(e)
         }), 500
-
-# --------------------------------- 笔记管理 ---------------------------------

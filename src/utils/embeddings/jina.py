@@ -135,8 +135,8 @@ def extract_urls(text):
 def insert_content(text, urls):
     for url in urls:
         content = read_from_url_jina(url)
-        # 直接在 URL 后面插入内容
-        text = text.replace(url, f"{url} '''{content}'''")
+        # 在 URL 后面接 URL 中的内容
+        text = text.replace(url, f"{url}\n<blockquote>{content}</blockquote>")
     return text
 
 # main

@@ -42,7 +42,7 @@ from src import VECTOR_DB_ARTICLES, VECTOR_DB_CHATS, VECTOR_DB_NOTES
 import src.utils.embeddings.voyager as voyager
 import src.utils.embeddings.jina as jina
 from src.utils.text_input_handler import TextInputHandler
-from models.chat import Base, Chat
+from models.chat import Chat
 from models.chat_crud import *
 
 logger = logging.getLogger(__name__)
@@ -277,7 +277,7 @@ class RAGService:
     # 直接聊天
     # 一级 - 短期记忆（对话窗口）
     # 二级 - 长期记忆（笔记区）
-    def chat(self, conversation_id: str, query: str, model: str = "") -> str:
+    def chat(self, conversation_id: str, question: str, model: str = "") -> str:
         # 方式1 直接调用LLM对话
         # resp = self.gemini.complete(query)
         # logger.info(f"LLM response: {resp}")
@@ -290,8 +290,8 @@ class RAGService:
         chat_store_key = "user1_conv" + conversation_id
         chat_engine = self.get_chat_engine(chat_store_key, model)
         # chat_engine.chat_repl()
-        logger.info(f"Query length: {len(query)}")
-        response = chat_engine.chat(query)
+        logger.info(f"Query length: {len(question)}")
+        response = chat_engine.chat(question)
         logger.info(f"LLM response: {response}") # LLM response 格式：纯字符串
         logger.info(f"Response length: {len(str(response))}")
 
@@ -300,27 +300,29 @@ class RAGService:
         # self.chat_store.persist(persist_path="chat_store.json")
         return response
     
+    # 带附件（上下文）聊天 各种URL 文件等 图片另说
     def chat_with_file(self, conversation_id: str, file_content: str, question: str, model: str = "") -> str:
         # 1. 构建上下文
-        context = f"参考内容（可能与问题有关或无关，自行辨别）：\n{file_content}\n\n我的问题：'''{question}'''"
+        context = f"参考内容：\n<blockquote>{file_content}</blockquote>\n\n我的问题：\n{question}"
         # 2. 使用现有的chat方法
         return self.chat(conversation_id, context, model)
 
-    def chat_with_articles(self, conversation_id: str, article_ids: List[int], query: str, model: str = "") -> str:
+    # 对话知识库（数据库里的文章）
+    def chat_with_articles(self, conversation_id: str, article_ids: List[int], question: str, model: str = "") -> str:
         # 1. 构建上下文
         articles = article_crud.get_article_by_ids(db_session, article_ids)
         if articles:
-            articles_text = "\n".join([f"'''标题：{article.title}\n内容：{article.content}'''" for article in articles])
-            return self.chat_with_file(conversation_id, articles_text, query, model)
+            articles_text = "\n".join([f"```标题：{article.title}\n内容：{article.content}```" for article in articles])
+            return self.chat_with_file(conversation_id, articles_text, question, model)
         else:
-            return self.chat_with_file(conversation_id, "暂无相关资料。", query, model)
+            return self.chat_with_file(conversation_id, "暂无相关资料。", question, model)
 
     # 对话知识库（资料） TODO 待改造
-    def chat_with_articles_old(self, conversation_id: str, article_ids: List[int], query: str) -> str:
+    def chat_with_articles_old(self, conversation_id: str, article_ids: List[int], question: str) -> str:
         """Chat with selected articles
         Args:
             article_ids: List of article IDs
-            query: User query
+            question: User question
         Returns:
             Response from LLM
         """
@@ -373,7 +375,7 @@ class RAGService:
             #     streaming=True
             #     # llm=self.llm, # default in Settings
             # )
-            # response = query_engine.query(query)
+            # response = query_engine.query(question)
             # logger.info(f"LLM response: {response}")
 
             # Chat 模式
@@ -459,7 +461,7 @@ class RAGService:
             #     context_prompt=context_prompt
             # )
             # https://docs.llamaindex.ai/en/stable/examples/cookbooks/contextual_retrieval/#set-similarity_top_k
-            response = chat_engine.chat(query)
+            response = chat_engine.chat(question)
             logger.info(f"LLM response: {response}")
             # 持久化
             self.chat_store.persist(persist_path="chat_store.json")
@@ -477,6 +479,34 @@ class RAGService:
             logger.error(f"Error in chat_with_articles: {e}")
             return f"处理请求时发生错误: {str(e)}"
     
+    # RAG测评用
+    def retrieve(self, collection_name, query: str, top_k: int = 20) -> List[Dict]:
+        """统一的检索接口，用于评估
+        Args:
+            query: 查询文本
+            top_k: 返回结果数量
+        Returns:
+            List[Dict]: 检索结果列表，包含chunk_id和score
+        """
+        try:
+            results = self.vector_db.search(collection_name, query, limit=top_k)
+            # 格式化结果
+            formatted_results = []
+            if results and results[0]:
+                results = results[0]
+                for i in range(len(results)):
+                    formatted_results.append({
+                        'id': results[i].get('id'),
+                        'score': results[i].get('distance'),
+                        'content': results[i].get('entity').get('text')
+                    })
+            return formatted_results
+        except Exception as e:
+            logger.error(f"Error in retrieve: {e}")
+            return []
+
+    # ------------------------------ 文件管理 ------------------------------
+
     def _articles_to_documents(self, articles: List[Article]) -> List[Document]:
         """Convert articles to LlamaIndex documents
         """
@@ -583,33 +613,7 @@ class RAGService:
         except Exception as e:
             logger.error(f"Error cleaning up collection: {e}")
     
-    # RAG测评用
-    def retrieve(self, collection_name, query: str, top_k: int = 20) -> List[Dict]:
-        """统一的检索接口，用于评估
-        Args:
-            query: 查询文本
-            top_k: 返回结果数量
-        Returns:
-            List[Dict]: 检索结果列表，包含chunk_id和score
-        """
-        try:
-            results = self.vector_db.search(collection_name, query, limit=top_k)
-            # 格式化结果
-            formatted_results = []
-            if results and results[0]:
-                results = results[0]
-                for i in range(len(results)):
-                    formatted_results.append({
-                        'id': results[i].get('id'),
-                        'score': results[i].get('distance'),
-                        'content': results[i].get('entity').get('text')
-                    })
-            return formatted_results
-        except Exception as e:
-            logger.error(f"Error in retrieve: {e}")
-            return []
-
-    # ------------------------------ 聊天记录管理 ------------------------------
+    # ------------------------------ 聊天管理 ------------------------------
     # redis key设计：user1_conversation1
     # 加载用户的某次对话 id = user1_conversation1 DONE
     def load_conversation_from_redis(self, conversation_id: str):
@@ -723,6 +727,8 @@ class RAGService:
             return False
         return True
     
+
+
     async def main(self):
         
         # Add messages
@@ -757,7 +763,6 @@ class RAGService:
         # 查看重新回答结果
         retrieved_messages = await self.chat_store.async_get_messages("conversation1")
         print(retrieved_messages)
-
 
 # main
 if __name__ == "__main__":

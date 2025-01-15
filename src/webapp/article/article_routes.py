@@ -16,6 +16,7 @@ rag_service = RAGService()
 @article_bp.route('/')
 def article():
     """获取所有文章列表"""
+    user_id = '1'
     try:
         articles = get_all_articles(db_session)
         return render_template('article/article.html', articles=articles)
@@ -26,6 +27,7 @@ def article():
 @article_bp.route('/add_article', methods=['POST'])
 def add_article(type: str = "WEB"):
     """添加新文章"""
+    user_id = '1'
     try:
         # 1 获取表单数据
         article_data = {
@@ -75,12 +77,10 @@ def add_article(type: str = "WEB"):
         logger.info(f"LLM SUMMARY: SUCCESSED - {article_data['title']}")
         article_data.update({
             'type': type,
-            'user_id': 1 # TODO 从全局获取
+            'user_id': user_id
         })
         # 文章入库
-        new_article = Article(**article_data)
-        db_session.add(new_article)
-        db_session.commit()
+        article_crud.create_article(db_session, article_data)
         logger.info(f"成功添加文章到数据库: {new_article.title}")
 
         # 6 次添加文章后，将文章转存向量数据库
@@ -108,6 +108,7 @@ def add_article(type: str = "WEB"):
 @article_bp.route('/delete_article/<int:article_id>', methods=['POST'])
 def delete_article_route(article_id):
     """删除文章"""
+    user_id = '1'
     try:
         article = get_article_by_id(db_session, article_id)
         if not article:
@@ -118,7 +119,7 @@ def delete_article_route(article_id):
             }), 404
 
         delete_article(db_session, article_id)
-        # 删除文章后，也删除向量数据库中该文章的信息
+        # 删除文章后，也删除向量数据库中该文章的信息 # TODO 经常失败
         rag_service.delete_articles_from_vector_store([article], collection_name=VECTOR_DB_ARTICLES)
         return jsonify({
             'success': True,
@@ -136,6 +137,7 @@ def delete_article_route(article_id):
 @article_bp.route('/update_article/<int:article_id>', methods=['POST'])
 def update_article_route(article_id):
     """更新文章标签"""
+    user_id = '1'
     try:
         update_data = {'tags': request.form.get('tags', '')}
         article = update_article(db_session, article_id, update_data)
@@ -170,6 +172,7 @@ def update_article_route(article_id):
 @article_bp.route('/search')
 def search_articles_route():
     """搜索文章"""
+    user_id = '1'
     try:
         query = request.args.get('query', '')
         articles = search_articles(db_session, query)
@@ -189,6 +192,7 @@ def summarize_article_content(content: str, article_data: dict = None) -> dict:
     Returns:
         处理后的文章数据字典
     """
+    user_id = '1'
     if article_data is None:
         article_data = {}
     
@@ -217,6 +221,7 @@ def summarize_article_content(content: str, article_data: dict = None) -> dict:
 
 def add_articles_to_vector_store(article: Article):
     """将文章添加到向量数据库"""
+    user_id = '1'
     try:
         articles = [article]
         # 在后台处理向量数据库操作
