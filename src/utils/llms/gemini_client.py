@@ -30,6 +30,7 @@ class GeminiClient:
     """
     API_KEY = os.getenv("GEMINI_API_KEY")
     MODEL = os.getenv("GEMINI_MODEL")
+    BEST_MODEL = os.getenv("GEMINI_BEST_MODEL")
     THINKING_MODEL = os.getenv("GEMINI_THINKING_MODEL")
     BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
     
