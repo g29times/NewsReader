@@ -91,28 +91,41 @@ from ragas.metrics import (
     faithfulness,
 )
 
-import pandas as pd
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import numpy as np
-
+# 参数组
+topk_values = [5, 20]
+chunk_sizes = [500, 1000]
+# 3个一组 16K, 32K, 64K, | 128K, 256K, 512K, | 1M, 2M 5M, | 10M, 20M, 50M
+file_sizes = ['16K', '1M', '2M']
+# 指标metrics
+# @see ragas.metrics & ragas.evaluation
+# default : answer_relevancy-答案相关性, context_precision-上下文精确度, context_recall-上下文召回率, faithfulness-可信度
+# https://mp.weixin.qq.com/s/y61bX6iAwKdhpcupi1UBKQ，这些default指标不需要人工标注数据集或参考答案。
+# 三元组：问题 - answer_relevancy - 答案 - faithfulness - 上下文 - context_precision/context_recall/F1 - 问题
+# 上下文相关性-Context Relevance 参数已取消，新增factual_correctness参数，可配F1，Precision，Recall
+# 可信度 是指确保答案是基于给定的上下文生成的 避免幻觉
+# 答案相关性 衡量的是生成答案和查询之间的相关性
+# 上下文召回  衡量检索到的上下文和标注答案之间的一致性水平
+# 上下文精度  衡量检索到的包含真实事实的所有相关上下文是否排名靠前
+metrics = ['answer_relevancy', 'context_precision', 'answer_context_f1']
+# metrics = ['context_recall', 'faithfulness', 'factual_correctness']
+# {'context_recall': 1.0000, 'faithfulness': 0.9000, 'factual_correctness': 0.8680}
 
 def generate_dummy_data(real_data=None):
     """生成虚拟数据，并用真实数据替换指定组合"""
     data = []
-    file_sizes = [100000, 500000, 1000000] # 100k, 500k, 1M
-    chunk_sizes = [100, 500, 1000]
+    # file_sizes = ['100k', '500k', '1M', '10M']
+    # chunk_sizes = [100, 500, 1000]
     with_contexts = [True, False]
-    topk_values = [5, 10, 20]
+    # topk_values = [10, 50, 100]
 
     for file_size in file_sizes:
         for with_context in with_contexts:
             for chunk_size in chunk_sizes:
                 for topk in topk_values:
-                    # 模拟RAG系统评估逻辑
-                    answer_relevancy_score = np.random.uniform(0.6, 1.0)
-                    context_precision_score = np.random.uniform(0.5, 1.0)
-                    faithfulness_score = np.random.uniform(0.7, 1.0)
+                    # 默认分值 随机生成
+                    answer_relevancy_score = np.random.uniform(0.3, 0.5)
+                    context_precision_score = np.random.uniform(0.3, 0.5)
+                    factual_correctness_f1_score = np.random.uniform(0.3, 0.5)
                     
                     data.append({
                         'file_size': file_size,
@@ -121,18 +134,37 @@ def generate_dummy_data(real_data=None):
                         'topk': topk,
                         'answer_relevancy': answer_relevancy_score,
                         'context_precision': context_precision_score,
-                        'faithfulness': faithfulness_score,
+                        'answer_context_f1': factual_correctness_f1_score
                     })
-    return pd.DataFrame(data)
+
+    df = pd.DataFrame(data)
+    # 填充真实分值
+    if real_data:
+        for config, scores in real_data.items():
+            # print("real_data: ", config,scores)
+            mask = (
+                (df['file_size'] == config[0]) &
+                (df['chunk_size'] == config[1]) &
+                (df['with_context'] == config[2]) &
+                (df['topk'] == config[3])
+            )
+            # print("mask:",mask)
+            if mask.any():
+              # print("find it")
+              df.loc[mask, 'answer_relevancy'] = scores['answer_relevancy']
+              df.loc[mask, 'context_precision'] = scores['context_precision']
+              df.loc[mask, 'answer_context_f1'] = scores['answer_context_f1']
+    return df
 
 
 def create_dashboard(df):
     """创建可视化仪表盘"""
     unique_file_sizes = df['file_size'].unique()
     unique_contexts = df['with_context'].unique()
-    metrics = ['answer_relevancy', 'context_precision', 'faithfulness']
-    chunk_sizes = [100, 500, 1000]
-    topk_values = [5, 10, 20]
+    # 固定坐标
+    # metrics = ['answer_relevancy', 'context_precision', 'faithfulness']
+    # chunk_sizes = [100, 500, 1000]
+    # topk_values = [10, 50, 100]
 
     num_rows = len(unique_file_sizes) * len(unique_contexts)
     num_cols = len(metrics)
@@ -174,7 +206,7 @@ def create_dashboard(df):
 
             row_index += 1
 
-    # 添加一个共享的 colorbar
+    # 添加一个共享的 colorbar（最右边那个）
     fig.add_trace(go.Heatmap(
         z=[[0, 1]],
         colorscale='Viridis',
@@ -189,8 +221,32 @@ def create_dashboard(df):
     fig.show()
 
 
-
 if __name__ == '__main__':
     # 示例用法
-    df = generate_dummy_data()
+    real_data = {
+        # {'answer_relevancy': 0.9077, 'context_precision': 0.9500, 'factual_correctness': 0.6410}
+        # (file_size, chunk_size, with_context, topk_value)
+        (
+            '16K', 500, False, 5
+         ): {
+            "answer_relevancy": 0.9077,
+            "context_precision": 0.9500,
+            "answer_context_f1": 0.6410
+        },
+        (
+            '1M', 1000, True, 20
+         ): {
+            "answer_relevancy": 0.8,
+            "context_precision": 0.85,
+            "answer_context_f1": 0.9
+        },
+        (
+           '2M', 500, False, 5
+        ): {
+            "answer_relevancy": 0.6,
+            "context_precision": 0.75,
+            "answer_context_f1": 0.85
+        }
+    }
+    df = generate_dummy_data(real_data)
     create_dashboard(df)

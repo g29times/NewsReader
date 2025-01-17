@@ -52,14 +52,16 @@ class MinimaxClient:
         self.API_BASE = os.getenv('MINIMAX_API_BASE')
         self.MODEL = os.getenv('MINIMAX_MODEL')
 
-    def query_openai_with_history(self, question: str, history: List[dict], system_prompt: str = ""):
+    def query_openai_with_history(self, question: str, histories: List[dict], system_prompt: str = ""):
+        """错误的histories格式将导致 Empty response"""
         openai = OpenAIClient()
-        return openai.query_with_history(question, history, system_prompt, 
+        return openai.query_with_history(question, histories, system_prompt, 
             self.MODEL, self.API_KEY, self.API_BASE)
 
-    def query_with_history(self, question: str, history: List[dict], system_prompt: str = ""):
+    def query_with_history(self, question: str, histories: List[dict], system_prompt: str = ""):
+        """错误的histories格式将导致 Empty response"""
         return self.chat_completion(
-            LLMCommonUtils._openai_format_msg(question, history, system_prompt),
+            LLMCommonUtils._openai_format_msg(question, histories, system_prompt),
             max_tokens=int(self.max_tokens),
             temperature=float(self.temperature)
         )

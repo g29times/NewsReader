@@ -1,0 +1,62 @@
+[
+  {
+    "question": "韩国在2013年的出口总额是多少，占全球出口总额的百分比是多少？",
+    "answer": "2013年韩国向全球输出价值5596亿美元的产品，占全球出口总额（约18.1万亿美元）的3.1%。",
+    "golden_chunk": "韩国\n媒体传播概况\n我们向世界传播您的故事，2013年韩国向全球输出价值5596亿美元的产品，占全球出口总额（约18.1万亿美元）的3.1%。",
+    "chunk_id": "1"
+  },
+  {
+    "question": "《朝鲜日报》的社论倾向是什么？",
+    "answer": "《朝鲜日报》的社论倾向是独立而保守的。",
+    "golden_chunk": "11\n\nA.《朝鲜日报》\n7\n \n《朝鲜日报》是韩国主要报纸之一。《朝鲜日报》及其子公司——数字朝鲜经营着 Chosun.com \n新闻网站，还出版网络英文、中文和日文版报纸。Chosun.com 被互联网调查公司 Rankey.com \n列为韩国排名第一的新闻网站。\n作为韩国发行量最大的日报，《朝鲜日报》在韩国影响力也最大。与其他主流日报一样，这份报\n纸是一个庞大的媒体综合体，不仅发行本国语言的主报纸，还出版新闻周刊、月刊、女性月刊、\n儿童日报和体育日报。\n其社论倾向是独立而保守的，因此代表韩国传统保守的主流统治阶层的声音。作为韩国影响力最大、最具声望的报纸，《朝鲜\n日报》吸引了大量顶尖的新闻人才，甄选出著名的知识分子作为投稿人。它在竞争激烈的报业市场上占据优势地位。\n[ 7 ]   参见维基百科 (http:/ /en.wikipedia.org/wiki/The_Chosun_Ilbo), (http:/ /www.pressreference.com/Sa-Sw/\nSouth-Korea.html#ixzz3GI89f7PR)",
+    "chunk_id": "11"
+  },
+  {
+    "question": "根据韩国发行量审计局的数据，2012年7月至2013年6月期间，《田园生活》杂志的月发行量是多少？",
+    "answer": "70,642",
+    "golden_chunk": "14\n\n韩国综合类杂志排名（按月发行量计算）\n11\n名称 发行量 收费发行量 类别\n1 《食与人》 \n( 음식과 사람 ) 350,000 - 餐饮 Monthly\n2 《积极思考》 \n( 좋은 생각 ) 260,336 198,722 福利、诗文 Monthly\n3 《InSan Korean Medical》\n ( 인산의학 ) 103,338 - 韩医 Monthly\n4 Noblesse 76,204 978 时尚 Monthly\n5 《田园生活》\n( 전원생활 ) 70,642 68,224\n文化、健康、家\n装\nMonthly\n(2012. 7 ~ 2013. 6)\n[ 11 ] 来源：韩国发行量审计局 (http:/ /www.kabc.or.kr/)",
+    "chunk_id": "14"
+  },
+  {
+    "question": "根据韩国言论财团的数据，2013年韩国人最信赖哪种新闻媒体？",
+    "answer": "根据韩国言论财团的数据，2013年韩国人最信赖的新闻媒体是电视。",
+    "golden_chunk": "18\n\n5\n电视 14\n韩国广播媒体市场生机勃勃，有利可图。与很多其他国家一样，电视是大多数韩国人的主要新闻媒体。根据韩国言\n论财团，假定人们同时从电视、互联网、报纸、广播和杂志来收集信息，人们通常更信赖电视。\n[ 14 ] 参见维基百科 (http:/ /en.wikipedia.org/wiki/Television_in_South_Korea), (http:/ /en.wikipedia.org/wiki/\nMedia_of_South_Korea#Radio), (http:/ /en.wikipedia.org/wiki/Munhwa_Broadcasting_Corporation), (http:/ /\nen.wikipedia.org/wiki/Seoul_Broadcasting_System)\n2008 2010 2011 2012 2013\n电视 60.7 75.4 72.1 72.0 73.4\n互联网 20.0 13.1 13.8 15.9 17.9\n报纸 16.0 10.8 11.8 10.6 7.2\n广播 2.7 0.6 2.0 1.4 1.2\n杂志 0.4 0.1 0.2 0.2 0.4\n( 单位 : %)\n韩国有很多全国性电视网络，其中三个最大的电视网络是 KBS、MBC 和 SBS。随着 1956 年 5 月 12 日商业电视台 \nHLKZ-TV 开播后，韩国成为亚洲第三个开始电视广播的国家。",
+    "chunk_id": "18"
+  },
+  {
+    "question": "韩国广播公司（KBS）成立于哪一年？",
+    "answer": "1927 年",
+    "golden_chunk": "19\n\nA. KBS\n韩国广播公司 (KBS) 是韩国国家广播公司。该公司创立于 1927 年，经营广播、电视和网络业务，是韩国最大的电视网络之一。\n在地面电视方面，有 KBS 1TV、KBS 2TV、KBS UHD；在有线电视和卫星电视方面，有 KBS Prime、KBS Drama、KBS N \nSports、KBS Joy、KBS Kids、KBS W。\nB. MBC\n文化广播公司 (Munhwa Broadcasting Corporation/MBC) 是韩国四大全国性电视广播网络之一，也是韩国所有商业广播网\n络中历史最悠久的。Munhwa 在韩语中是“文化”的意思。\nC. SBS\n首尔广播公司 (SBS) 是一个韩国电视广播网络。它是韩国唯一的私营商业广播公司，拥有广大的地区网络成员。2000 年 3 月，\n该公司从 Seoul Broadcasting System (서울방송시스템 ) 合法更名为 SBS。",
+    "chunk_id": "19"
+  },
+  {
+    "question": "目前韩国有多少长住外国人，其中有多少是中国人？",
+    "answer": "目前韩国有 150 万长住外国人，其中 85 万为中国人。",
+    "golden_chunk": "20\n\n目前，韩国有 150 万长住外国人，其中 85 万为中国人。此外，在韩国流行音乐和“韩潮”的影响下，中国人是经\n常前往韩国的游客。以下是韩国面向中国人的具有影响力的中文媒体：\n中文媒体\n6\n1. 在网站上提供中文服务的韩国新闻通讯社。\n1 《朝鲜日报》 http://cnnews.chosun.com/?servicemap\n2 《中央日报》 http://chinese.joins.com/gb/index.html\n3 《东亚日报》 http://chinese.donga.com/gb/index.html\n4 《每日经济新闻》 http://china.mk.co.kr/china/\n5 韩联社 http://chinese.yonhapnews.co.kr/\n6 《亚洲经济》 http://china.ajunews.com/",
+    "chunk_id": "20"
+  },
+  {
+    "question": "根据提供的片段内容，韩国有哪些面向中国人的具有影响力的中文媒体？",
+    "answer": "根据提供的片段内容，韩国面向中国人的具有影响力的中文媒体包括：1. 韩国新闻通讯社提供的中文服务，2. 韩国影视娱乐电视频道，3. 从中国进口的中文杂志，具体杂志包括读者、星尚、中国经济周刊、瞭望、青年文摘、故事会、学汉语和环球。",
+    "golden_chunk": "21\n\n2. 韩国影视娱乐电视频道\n3. 从中国进口的中文杂志\n1 读者 \n2 星尚\n3 中国经济周刊\n4 瞭望\n5 青年文摘\n6 故事会\n7 学汉语\n8 环球\n1 Hyundai Media http://ching.hyundaimedia.com/\n2 CJ E&M\nhttp://ch.interest.me/zhtv/zhtv/\nInfo#footer_navi_menu_0\nChing\n中华 TV",
+    "chunk_id": "21"
+  },
+  {
+    "question": "在2014年1月1日至2014年6月1日期间，韩国市场中哪个搜索引擎的市场份额最高？",
+    "answer": "Naver的市场份额最高，为80.74%。",
+    "golden_chunk": "23\n\n尽管谷歌目前占有全球搜索市场 83% 的份额， 但韩国的市场领导者是 Naver。 要是问韩国人他们使用什么搜索引擎，\n最有可能的答案就是 Naver。\n16\n搜索引擎\n1\n韩国最受欢迎的搜索引擎\n17\n（调查时间：2014.01.01~ 2014.06.01)\n名称 网址 市场份额\n1 Naver www.naver.com 80.74 %\n2 Daum www.daum.net 15.42 %\n3 谷歌 www.google.co.kr 2.09 %\n4 Zum www.zum.com 0.92 %\n5 其他 0.44 %\n6 必应 www.bing.com 0.19 %\n7 雅虎 www.yahoo.com 0.10 %\n8 Nate www.nate.com 0.09 %\n9 雅虎韩国 kr.search.yahoo.com 0.01 %\n[ 16 ]  参见 (http:/ /www.link-assistant.com/blog/google-vs-naver-why-cant-google-dominate-search-in-korea/#ixzz3G5SuMxxP)\n[ 17 ]  来源：internettrend.co.kr",
+    "chunk_id": "23"
+  },
+  {
+    "question": "韩国公关行业的真正变化始于哪个时期，并且这一时期有哪些重要事件发生？",
+    "answer": "韩国公关行业的真正变化始于88年奥运会时代，这一时期韩国开始全球化，跨国公司进入韩国市场，博雅公关（Burson-Marsteller）正式开办。此外，上世纪90年代初至90年代末，韩国采取了国际化政策，韩国企业开始成功打入国外市场，1997年韩国在全球所有经济体中排名第11位，并加入了经合组织。",
+    "golden_chunk": "35\n\n韩国公关方面的真正变化始于 88 年奥运会时代韩国的全球化以及有营销、广告与\n公关需求的跨国公司的进入。博雅公关 (Burson-Marsteller) 实际上就是在 88 年\n奥运会之后正式开办的，这一时期，外国公司也开始将韩国视为他们全球扩张的\n一部分。\n当外国公司希望进入韩国之际， 上世纪 90 年代初至 90 年代末， 韩国也采取了 “国\n际化”政策。正是在这一时期，韩国企业开始成功打入国外市场。1997 年，韩国\n在全球所有经济体中排名第 11 位，并加入了经合组织。\n在国际货币基金组织的敦促下，韩国政府及企业不得不重新评估他们的战略、治理及过去公私合作的情况。正是在这一时期，\n韩国企业评估了他们走过的老路，并开始依靠顾问提供意见和建议。过去可能有效的“韩国式道路”已变得无关紧要，需要作\n出更大的调整和依靠第三方顾问。并不令人惊讶的是，就是在这一时期，公关公司蓬勃发展起来，数量有所增加。",
+    "chunk_id": "35"
+  },
+  {
+    "question": "根据霍姆斯报告，2014年韩国本土公关公司Prain Global的全球排名是多少？",
+    "answer": "Prain Global在2014年全球250家公关公司排名中位列第76位。",
+    "golden_chunk": "41\n\n以下是韩国公关公司的全球排名表。根据霍姆斯报告 (The Holmes Report)，对于韩国本土公关公司，Prain \nGlobal 排名第 76 位，PR One 排名第 95 位，KPR & Association 排名第 149 位。\n韩国主要公关公司\n3\n2014 年全球 250 家公关公司排名\n（韩国本土公关公司）\n排名 名称 2013 年费用收入\n76 Prain Global 19,892,451 美元\n95 PR One 15,911,644 美元\n149 KPR & Association 8,668,970 美元",
+    "chunk_id": "41"
+  }
+]

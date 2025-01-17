@@ -2,19 +2,19 @@
   {
     "question": "韩国在2013年的出口总额是多少，占全球出口总额的百分比是多少？",
     "answer": "2013年韩国向全球输出价值5596亿美元的产品，占全球出口总额（约18.1万亿美元）的3.1%。",
-    "golden_chunk": "韩国\n媒体传播概况\n我们向世界传播您的故事",
+    "golden_chunk": "韩国\n媒体传播概况\n我们向世界传播您的故事，2013年韩国向全球输出价值5596亿美元的产品，占全球出口总额（约18.1万亿美元）的3.1%。",
     "chunk_id": "1"
   },
   {
     "question": "韩国在2013年的名义GDP世界排名是多少位？",
     "answer": "韩国在2013年的名义GDP世界排名第13位。",
-    "golden_chunk": "2\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩国是世界上最富裕的国家之一，是经济合作与发展组织 (OECD) 成员，也是 G-20 经济体之一。韩国是一个发达国家，\n拥有成熟的市场和高收入经济。韩国拥有市场经济地位，按名义 GDP 计算，在世界上排名第 13 位，是世界第七大出口国，\n2013 年向全球输出价值 5596 亿美元的产品， 占全球出口总额 （约 18.1 万亿美元） 的 3.1%。 人口过剩 （截至 2014 年 5 月，\n韩国人口为 51,218,424），加之自然资源的相对匮乏，阻碍了人口的持续增长以及庞大的国内消费市场的形成。韩国通过\n实施出口导向型经济战略，来刺激经济。\n电子、通讯、汽车生产、化工、造船和钢铁是韩国的核心工业。以下是 2013 年韩国的主要出口产品：电子设备（占出口\n总额的 24.2%）、车辆（除列车和有轨电车以外）（13%）、机械（10.6%）、矿物燃料（包括石油在内）（9.7%）、光\n学设备、技术装置和医疗器械（6.4%）、船只及其他浮式结构件（6.4%）等。韩国是以出口为主导的工业化经济体。",
+    "golden_chunk": "2\n\n韩国是世界上最富裕的国家之一，是经济合作与发展组织 (OECD) 成员，也是 G-20 经济体之一。韩国是一个发达国家，\n拥有成熟的市场和高收入经济。韩国拥有市场经济地位，按名义 GDP 计算，在世界上排名第 13 位，是世界第七大出口国，\n2013 年向全球输出价值 5596 亿美元的产品， 占全球出口总额 （约 18.1 万亿美元） 的 3.1%。 人口过剩 （截至 2014 年 5 月，\n韩国人口为 51,218,424），加之自然资源的相对匮乏，阻碍了人口的持续增长以及庞大的国内消费市场的形成。韩国通过\n实施出口导向型经济战略，来刺激经济。\n电子、通讯、汽车生产、化工、造船和钢铁是韩国的核心工业。以下是 2013 年韩国的主要出口产品：电子设备（占出口\n总额的 24.2%）、车辆（除列车和有轨电车以外）（13%）、机械（10.6%）、矿物燃料（包括石油在内）（9.7%）、光\n学设备、技术装置和医疗器械（6.4%）、船只及其他浮式结构件（6.4%）等。韩国是以出口为主导的工业化经济体。",
     "chunk_id": "2"
   },
   {
     "question": "韩国在2013年的全球出口总额中占比多少？",
     "answer": "2013年韩国向全球输出价值5596亿美元的产品，占全球出口总额（约18.1万亿美元）的3.1%。",
-    "golden_chunk": "3\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n目录\n序言 ................................................................................  2\n概况 ................................................................................  4\n传统媒体 ......................................................................... 5 \n新 闻 通 讯 社 .................................................................................................  6 \n报纸（日报） ....................................................................................................   8\n杂 志 ................................................................................................................. 13\n广 播 ................................................................................................................. 17\n电 视 ................................................................................................................. 18\n中 文 媒 体 ......................................................................................................... 20\n网络媒体 ............ ......................................................... 22 \n搜 索 引 擎 ......................................................................................................... 23 \n博 客 ................................................................................................................. 26\n新媒体 (SNS)............................................................... 27 \n多 媒 体 ............................................................................................................. 28  \n移 动 媒 体 ......................................................................................................... 29\n韩国公关 / 传播业 ...................................................... 33\n特 色 ................................................................................................................. 34  \n趋 势 ................................................................................................................. 37\n韩国主要公关公司 ..........................................................................................41",
+    "golden_chunk": "2013年韩国向全球输出价值5596亿美元的产品，占全球出口总额（约18.1万亿美元）的3.1%。",
     "chunk_id": "3"
   },
   {
@@ -26,7 +26,7 @@
   {
     "question": "韩国的新闻通讯社有哪些？",
     "answer": "韩国的新闻通讯社包括韩国联合通讯社（韩联社）和Newsis。",
-    "golden_chunk": "5\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n传统媒体\n1 新闻通讯社\n2 报纸（日报）\n3 杂志\n4 广播\n5 电视\n6 中文媒体",
+    "golden_chunk": "韩国的新闻通讯社包括韩国联合通讯社（韩联社）和Newsis。.\n传统媒体\n1 新闻通讯社\n2 报纸（日报）\n3 杂志\n4 广播\n5 电视\n6 中文媒体",
     "chunk_id": "5"
   },
   {
@@ -38,91 +38,91 @@
   {
     "question": "Newsis 是如何与国际新闻机构合作的？",
     "answer": "Newsis 从 2002 年开始与路透社和法新社（2003 年）、美联社（2005 年）以及新华社（2006 年）等展开合作。",
-    "golden_chunk": "7\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nB. Newsis\n4\n- 新闻通讯社和网络新闻服务\nhttp:/ /newsiswire.co.kr/\nNewsis 是韩国最大的私营新闻通讯社。1995 年成立的新闻集团是 Newsis 的开端，\n2001 年更名为 Newsis，从 2002 年开始与路透社和法新社（2003 年）、美联社（2005\n年）以及新华社（2006 年）等展开合作。目前与主要日报公司及搜索引擎的合作包括 \nNAVER、DAUM、Nate，全天候为受众提供实时新闻内容。2007 年，他们建立了 Newsiswire.com，作为子公司致力提供网\n络新闻服务。\n有 150 名记者在 Newsis 首尔总部工作。\n[4]  参见 newsis.com",
+    "golden_chunk": "7\n\nB. Newsis\n4\n- 新闻通讯社和网络新闻服务\nhttp:/ /newsiswire.co.kr/\nNewsis 是韩国最大的私营新闻通讯社。1995 年成立的新闻集团是 Newsis 的开端，\n2001 年更名为 Newsis，从 2002 年开始与路透社和法新社（2003 年）、美联社（2005\n年）以及新华社（2006 年）等展开合作。目前与主要日报公司及搜索引擎的合作包括 \nNAVER、DAUM、Nate，全天候为受众提供实时新闻内容。2007 年，他们建立了 Newsiswire.com，作为子公司致力提供网\n络新闻服务。\n有 150 名记者在 Newsis 首尔总部工作。\n[4]  参见 newsis.com",
     "chunk_id": "7"
   },
   {
     "question": "《朝鲜日报》在韩国报业市场中的影响力如何？",
     "answer": "《朝鲜日报》在韩国报业市场中的影响力最大。",
-    "golden_chunk": "8\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n2\n报纸（日报）\n5\n《朝鲜日报》、《东亚日报》和《中央日报》共同主导报业市场，共占 55% 的市场份额。《朝鲜日报》在韩国人中\n的影响力最大。《韩民族日报》被认为属于左翼报纸。它在提出关于韩国财团之行为的问题时往往观点孤立。\n对于突发新闻，政府辖下的韩联社非常有用。韩联社网站也发布有声新闻及图片。韩联社是朝鲜最新发展报道的重\n要消息来源。\n主要英文报纸是 《韩国先驱报》 。 《朝鲜日报》 、 《东亚日报》 、 《韩国时报》 、 《Hangyore Sinmun》 和 《中央日报》 （与 《国\n际先驱论坛报》有关系）等其他报纸都有英文版，韩联社也一样。《首尔时报》是韩国面向外国人的网络英文报纸，\n《数字朝鲜日报》是《朝鲜日报》的网络英文版。其他英文网站包括《东亚日报》和《中央日报》的网站。\n报纸读者群很庞大， 韩国有 150 多种全国性和地方性日报。 韩国十大全国性大众日报 （大多为早报） 总部均位于首尔。",
+    "golden_chunk": "8\n\n2\n报纸（日报）\n5\n《朝鲜日报》、《东亚日报》和《中央日报》共同主导报业市场，共占 55% 的市场份额。《朝鲜日报》在韩国人中\n的影响力最大。《韩民族日报》被认为属于左翼报纸。它在提出关于韩国财团之行为的问题时往往观点孤立。\n对于突发新闻，政府辖下的韩联社非常有用。韩联社网站也发布有声新闻及图片。韩联社是朝鲜最新发展报道的重\n要消息来源。\n主要英文报纸是 《韩国先驱报》 。 《朝鲜日报》 、 《东亚日报》 、 《韩国时报》 、 《Hangyore Sinmun》 和 《中央日报》 （与 《国\n际先驱论坛报》有关系）等其他报纸都有英文版，韩联社也一样。《首尔时报》是韩国面向外国人的网络英文报纸，\n《数字朝鲜日报》是《朝鲜日报》的网络英文版。其他英文网站包括《东亚日报》和《中央日报》的网站。\n报纸读者群很庞大， 韩国有 150 多种全国性和地方性日报。 韩国十大全国性大众日报 （大多为早报） 总部均位于首尔。",
     "chunk_id": "8"
   },
   {
     "question": "根据韩国言论财团的调查，2013年有多少比例的受访者表示他们看报？",
     "answer": "2013年仅有33.8%的受访者表示他们看报。",
-    "golden_chunk": "9\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n订阅率 读者率\n1996 69.3\n1998 64.5\n2000 59.8\n2002 52.9 82.1\n2004 48.3 76.0\n2006 40.0 68.8\n2008 36.8 58.5\n2010 29.0 52.6\n2011 24.8 44.6\n2012 24.7 40.9\n2013 20.4 33.8\n韩国报纸订阅率 ( 单位 : %)\n根据韩国言论财团所做的一项调查， 2012 年， 尽管销售增长 4.6%， 但韩国报业仍出现亏损。 调查还显示， 读者数量出现明显下降。\n虽然在韩国言论财团 2002 年的调查中， 有 82% 的受访者表示他们看报， 但在 2013 年的调查中， 仅有 33.8% 的人表示他们看报。\n韩国言论财团预计，随着读者进一步转向免费网络新闻，这一下降趋势还将继续。与平面媒体收入下跌同样严重的是，意识形\n态的两极分化。韩国报纸的划分方式与政治格局相同。",
+    "golden_chunk": "9\n\n订阅率 读者率\n1996 69.3\n1998 64.5\n2000 59.8\n2002 52.9 82.1\n2004 48.3 76.0\n2006 40.0 68.8\n2008 36.8 58.5\n2010 29.0 52.6\n2011 24.8 44.6\n2012 24.7 40.9\n2013 20.4 33.8\n韩国报纸订阅率 ( 单位 : %)\n根据韩国言论财团所做的一项调查， 2012 年， 尽管销售增长 4.6%， 但韩国报业仍出现亏损。 调查还显示， 读者数量出现明显下降。\n虽然在韩国言论财团 2002 年的调查中， 有 82% 的受访者表示他们看报， 但在 2013 年的调查中， 仅有 33.8% 的人表示他们看报。\n韩国言论财团预计，随着读者进一步转向免费网络新闻，这一下降趋势还将继续。与平面媒体收入下跌同样严重的是，意识形\n态的两极分化。韩国报纸的划分方式与政治格局相同。",
     "chunk_id": "9"
   },
   {
     "question": "2013年韩国报纸发行量排行榜中，哪份报纸的发行量最高？",
     "answer": "《朝鲜日报》的发行量最高，为1,757,006。",
-    "golden_chunk": "10\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n以下是通过发行量审计局开展的调研\n所得出的 2013 年韩国报纸发行量排行榜\n名称 发行量 收费发行量\n1 《朝鲜日报》 1,757,006 40,121\n2 《中央日报》 1,263,681 811,083\n3 《东亚日报》 907,090 707,346\n4 《每日经济新闻》 770,504 553,007\n5 《韩国经济日报》 507,986 340,389",
+    "golden_chunk": "10\n\n以下是通过发行量审计局开展的调研\n所得出的 2013 年韩国报纸发行量排行榜\n名称 发行量 收费发行量\n1 《朝鲜日报》 1,757,006 40,121\n2 《中央日报》 1,263,681 811,083\n3 《东亚日报》 907,090 707,346\n4 《每日经济新闻》 770,504 553,007\n5 《韩国经济日报》 507,986 340,389",
     "chunk_id": "10"
   },
   {
     "question": "《朝鲜日报》的社论倾向是什么？",
     "answer": "《朝鲜日报》的社论倾向是独立而保守的。",
-    "golden_chunk": "11\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nA.《朝鲜日报》\n7\n \n《朝鲜日报》是韩国主要报纸之一。《朝鲜日报》及其子公司——数字朝鲜经营着 Chosun.com \n新闻网站，还出版网络英文、中文和日文版报纸。Chosun.com 被互联网调查公司 Rankey.com \n列为韩国排名第一的新闻网站。\n作为韩国发行量最大的日报，《朝鲜日报》在韩国影响力也最大。与其他主流日报一样，这份报\n纸是一个庞大的媒体综合体，不仅发行本国语言的主报纸，还出版新闻周刊、月刊、女性月刊、\n儿童日报和体育日报。\n其社论倾向是独立而保守的，因此代表韩国传统保守的主流统治阶层的声音。作为韩国影响力最大、最具声望的报纸，《朝鲜\n日报》吸引了大量顶尖的新闻人才，甄选出著名的知识分子作为投稿人。它在竞争激烈的报业市场上占据优势地位。\n[ 7 ]   参见维基百科 (http:/ /en.wikipedia.org/wiki/The_Chosun_Ilbo), (http:/ /www.pressreference.com/Sa-Sw/\nSouth-Korea.html#ixzz3GI89f7PR)",
+    "golden_chunk": "11\n\nA.《朝鲜日报》\n7\n \n《朝鲜日报》是韩国主要报纸之一。《朝鲜日报》及其子公司——数字朝鲜经营着 Chosun.com \n新闻网站，还出版网络英文、中文和日文版报纸。Chosun.com 被互联网调查公司 Rankey.com \n列为韩国排名第一的新闻网站。\n作为韩国发行量最大的日报，《朝鲜日报》在韩国影响力也最大。与其他主流日报一样，这份报\n纸是一个庞大的媒体综合体，不仅发行本国语言的主报纸，还出版新闻周刊、月刊、女性月刊、\n儿童日报和体育日报。\n其社论倾向是独立而保守的，因此代表韩国传统保守的主流统治阶层的声音。作为韩国影响力最大、最具声望的报纸，《朝鲜\n日报》吸引了大量顶尖的新闻人才，甄选出著名的知识分子作为投稿人。它在竞争激烈的报业市场上占据优势地位。\n[ 7 ]   参见维基百科 (http:/ /en.wikipedia.org/wiki/The_Chosun_Ilbo), (http:/ /www.pressreference.com/Sa-Sw/\nSouth-Korea.html#ixzz3GI89f7PR)",
     "chunk_id": "11"
   },
   {
     "question": "《中央日报》与哪家国际新闻企业联合出版英文版报纸？",
     "answer": "《中央日报》与《国际纽约时报》联合出版英文版报纸《韩国中央日报》(Korea JoongAng Daily)。",
-    "golden_chunk": "12\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n[ 8 ] 参见 (http:/ /www.pressreference.com)\n[ 9 ] 参见维基百科 (http:/ /en.wikipedia.org/wiki/The_Dong-a_Ilbo)\nB.《中央日报》\n8 \n《中央日报》是韩国三大报纸之一。该报还与《国际纽约时报》联合出版英文版报纸《韩国\n中央日报》(Korea JoongAng Daily)。\n韩国发行量第二的日报—— 《中央日报》 过去由韩国领先的跨国商业集团——三星集团所有。\n除一份大众月刊和女性月刊以外， 它还出版韩文版 《新闻周刊》 杂志。 作为自由市场的坚定支持者， 它吸引了大量财经新闻读者。\nC.《东亚日报》\n9\n《东亚日报》从 1920 年开始成为韩国的又一份主流报纸，每日发行，以意见领袖作为其主\n要读者。\n《东亚日报》是东亚传媒集团的母公司。该集团由 11 个下属公司组成，包括 Sports Dong-A、Dong-A Science、DUNet 和 \ndongA.com 以及于 2011 年 12 月 1 日成立的综合服务有线电视广播公司 Channel A。它每天 24 小时涵盖包括新闻、电视剧、\n娱乐、体育、教育和电影在内的各个领域。",
+    "golden_chunk": "12\n\n[ 8 ] 参见 (http:/ /www.pressreference.com)\n[ 9 ] 参见维基百科 (http:/ /en.wikipedia.org/wiki/The_Dong-a_Ilbo)\nB.《中央日报》\n8 \n《中央日报》是韩国三大报纸之一。该报还与《国际纽约时报》联合出版英文版报纸《韩国\n中央日报》(Korea JoongAng Daily)。\n韩国发行量第二的日报—— 《中央日报》 过去由韩国领先的跨国商业集团——三星集团所有。\n除一份大众月刊和女性月刊以外， 它还出版韩文版 《新闻周刊》 杂志。 作为自由市场的坚定支持者， 它吸引了大量财经新闻读者。\nC.《东亚日报》\n9\n《东亚日报》从 1920 年开始成为韩国的又一份主流报纸，每日发行，以意见领袖作为其主\n要读者。\n《东亚日报》是东亚传媒集团的母公司。该集团由 11 个下属公司组成，包括 Sports Dong-A、Dong-A Science、DUNet 和 \ndongA.com 以及于 2011 年 12 月 1 日成立的综合服务有线电视广播公司 Channel A。它每天 24 小时涵盖包括新闻、电视剧、\n娱乐、体育、教育和电影在内的各个领域。",
     "chunk_id": "12"
   },
   {
     "question": "2012年，韩国书籍消费量创下历史新低，每户平均支出降至多少韩元？",
     "answer": "2012年，韩国书籍消费量创下历史新低，每户平均支出降至2万韩元以下。",
-    "golden_chunk": "13\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n[10 ] 参见 publishingperspectives.com\n3\n杂志\n10\n韩国统计局 2013 年发布一份报告显示，2012 年，韩国书籍消费量（精装书、平装书和杂志的销售）创下历史新低，\n每户平均支出降至 2 万韩元（约合 18.44 美元）以下。2012 年，新书销售下降 20%。自该局 2001 年开始追踪电\n子商务活动以来，网上书籍购买量首次出现下跌。\n据韩国出版文化协会的数据显示，2012 年新书出版量为 39,767 册，总发行量为 8697 万册，自 2000 年以来年度\n新书发行量首次跌破 1 亿册。\n由于智能手机的普及，杂志作为信息来源的价值正在减退。尤其是年轻一代正以越来越快的速度“远离杂志”。面\n对这种变化，很多杂志出版机构推出了他们自己的电子杂志。",
+    "golden_chunk": "13\n\n[10 ] 参见 publishingperspectives.com\n3\n杂志\n10\n韩国统计局 2013 年发布一份报告显示，2012 年，韩国书籍消费量（精装书、平装书和杂志的销售）创下历史新低，\n每户平均支出降至 2 万韩元（约合 18.44 美元）以下。2012 年，新书销售下降 20%。自该局 2001 年开始追踪电\n子商务活动以来，网上书籍购买量首次出现下跌。\n据韩国出版文化协会的数据显示，2012 年新书出版量为 39,767 册，总发行量为 8697 万册，自 2000 年以来年度\n新书发行量首次跌破 1 亿册。\n由于智能手机的普及，杂志作为信息来源的价值正在减退。尤其是年轻一代正以越来越快的速度“远离杂志”。面\n对这种变化，很多杂志出版机构推出了他们自己的电子杂志。",
     "chunk_id": "13"
   },
   {
     "question": "根据韩国发行量审计局的数据，2012年7月至2013年6月期间，《田园生活》杂志的月发行量是多少？",
     "answer": "70,642",
-    "golden_chunk": "14\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩国综合类杂志排名（按月发行量计算）\n11\n名称 发行量 收费发行量 类别\n1 《食与人》 \n( 음식과 사람 ) 350,000 - 餐饮 Monthly\n2 《积极思考》 \n( 좋은 생각 ) 260,336 198,722 福利、诗文 Monthly\n3 《InSan Korean Medical》\n ( 인산의학 ) 103,338 - 韩医 Monthly\n4 Noblesse 76,204 978 时尚 Monthly\n5 《田园生活》\n( 전원생활 ) 70,642 68,224\n文化、健康、家\n装\nMonthly\n(2012. 7 ~ 2013. 6)\n[ 11 ] 来源：韩国发行量审计局 (http:/ /www.kabc.or.kr/)",
+    "golden_chunk": "14\n\n韩国综合类杂志排名（按月发行量计算）\n11\n名称 发行量 收费发行量 类别\n1 《食与人》 \n( 음식과 사람 ) 350,000 - 餐饮 Monthly\n2 《积极思考》 \n( 좋은 생각 ) 260,336 198,722 福利、诗文 Monthly\n3 《InSan Korean Medical》\n ( 인산의학 ) 103,338 - 韩医 Monthly\n4 Noblesse 76,204 978 时尚 Monthly\n5 《田园生活》\n( 전원생활 ) 70,642 68,224\n文化、健康、家\n装\nMonthly\n(2012. 7 ~ 2013. 6)\n[ 11 ] 来源：韩国发行量审计局 (http:/ /www.kabc.or.kr/)",
     "chunk_id": "14"
   },
   {
     "question": "根据韩国发行量审计局的数据，2012年韩国发行量最大的新闻和经济类杂志是哪三本？",
     "answer": "《月刊朝鲜》、《月刊中央》和《新东亚》",
-    "golden_chunk": "15\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩国有影响力的新闻和经济类杂志\n12 (月 刊)\n[ 12 ] 来源：韩国发行量审计局 (http:/ /www.kabc.or.kr/)\n名称 发行量 收费发行量 类别\n1 47,333 25,669 新闻杂志\n2 38,442 30,575 新闻杂志\n3 30,475 19,391 新闻杂志\n《月刊朝鲜》\n( 월간조선 )\n《月刊中央》  \n( 월간중앙 )\n《新东亚》\n( 신동아 )",
+    "golden_chunk": "15\n\n韩国有影响力的新闻和经济类杂志\n12 (月 刊)\n[ 12 ] 来源：韩国发行量审计局 (http:/ /www.kabc.or.kr/)\n名称 发行量 收费发行量 类别\n1 47,333 25,669 新闻杂志\n2 38,442 30,575 新闻杂志\n3 30,475 19,391 新闻杂志\n《月刊朝鲜》\n( 월간조선 )\n《月刊中央》  \n( 월간중앙 )\n《新东亚》\n( 신동아 )",
     "chunk_id": "15"
   },
   {
     "question": "在韩国，哪些新闻和经济类杂志的发行量和收费发行量排在前五位？",
     "answer": "《时事 IN》的发行量为71,026，收费发行量为54,422；《马京经济》的发行量为68,753，收费发行量为45,640；《时事杂志》的发行量为49,820，收费发行量为32,778；《韩民族 21》的发行量为48,121，收费发行量为37,348；《Hankyung Business》的发行量为37,489，收费发行量为27,039。",
-    "golden_chunk": "16\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩国有影响力的新闻和经济类杂志 (周 刊)\n名称 发行量 收费发行量 类别\n1 71,026 54,422 新闻杂志\n2 68,753 45,640 财经\n3                49,820 32,778 新闻杂志\n4 48,121 37,348 新闻杂志\n5 37,489 27,039 财经\n《时事 IN》\n( 시사인 )\n《马京经济》\n( 매경 이코노미 )\n《时事杂志》\n( 시사저널 )\n《韩民族 21》 \n( 한겨레 21)\n《Hankyung Business》\n( 한경 비즈니스 )",
+    "golden_chunk": "16\n\n韩国有影响力的新闻和经济类杂志 (周 刊)\n名称 发行量 收费发行量 类别\n1 71,026 54,422 新闻杂志\n2 68,753 45,640 财经\n3                49,820 32,778 新闻杂志\n4 48,121 37,348 新闻杂志\n5 37,489 27,039 财经\n《时事 IN》\n( 시사인 )\n《马京经济》\n( 매경 이코노미 )\n《时事杂志》\n( 시사저널 )\n《韩民族 21》 \n( 한겨레 21)\n《Hankyung Business》\n( 한경 비즈니스 )",
     "chunk_id": "16"
   },
   {
     "question": "韩国广播公司中，哪一个是由KBS运营的对外广播电台？",
     "answer": "韩国国际广播电台 (Radio Korea International) 是由 KBS 所运营的对外广播电台。",
-    "golden_chunk": "17\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩国广播公司众多，其中有很多在电视市场上也有不俗的表现。例如，KBS 经营着 6 个广播网络，MBC 经营着 \nMBC Radio 和音乐广播 MBC FM，SBS 经营着 SBS-FM。和平广播公司 (PBC)、基督教广播公司 (CBS)、佛教广\n播公司 (BBS) 和远东广播公司 (FEBC) 是宗教广播网络。韩国国际广播电台 (Radio Korea International) 是由 KBS \n所运营的对外广播电台。英语广播电台 eFM 的播送频率为 101.3 MHZ，播送时间为早上 6 点至午夜。\n13 \n目前，韩国有一些代表性的广播电台：KBS 第 1 广播、KBS 第 2 广播、MBC FM4U、MBC Standard FM、SBS \nPower FM、SBS Love AM、EBS FM。\n[ 13 ] 参见 (http:/ /asianz.org.nz/)\n广播\n4",
+    "golden_chunk": "17\n\n韩国广播公司众多，其中有很多在电视市场上也有不俗的表现。例如，KBS 经营着 6 个广播网络，MBC 经营着 \nMBC Radio 和音乐广播 MBC FM，SBS 经营着 SBS-FM。和平广播公司 (PBC)、基督教广播公司 (CBS)、佛教广\n播公司 (BBS) 和远东广播公司 (FEBC) 是宗教广播网络。韩国国际广播电台 (Radio Korea International) 是由 KBS \n所运营的对外广播电台。英语广播电台 eFM 的播送频率为 101.3 MHZ，播送时间为早上 6 点至午夜。\n13 \n目前，韩国有一些代表性的广播电台：KBS 第 1 广播、KBS 第 2 广播、MBC FM4U、MBC Standard FM、SBS \nPower FM、SBS Love AM、EBS FM。\n[ 13 ] 参见 (http:/ /asianz.org.nz/)\n广播\n4",
     "chunk_id": "17"
   },
   {
     "question": "根据韩国言论财团的数据，2013年韩国人最信赖哪种新闻媒体？",
     "answer": "根据韩国言论财团的数据，2013年韩国人最信赖的新闻媒体是电视。",
-    "golden_chunk": "18\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n5\n电视 14\n韩国广播媒体市场生机勃勃，有利可图。与很多其他国家一样，电视是大多数韩国人的主要新闻媒体。根据韩国言\n论财团，假定人们同时从电视、互联网、报纸、广播和杂志来收集信息，人们通常更信赖电视。\n[ 14 ] 参见维基百科 (http:/ /en.wikipedia.org/wiki/Television_in_South_Korea), (http:/ /en.wikipedia.org/wiki/\nMedia_of_South_Korea#Radio), (http:/ /en.wikipedia.org/wiki/Munhwa_Broadcasting_Corporation), (http:/ /\nen.wikipedia.org/wiki/Seoul_Broadcasting_System)\n2008 2010 2011 2012 2013\n电视 60.7 75.4 72.1 72.0 73.4\n互联网 20.0 13.1 13.8 15.9 17.9\n报纸 16.0 10.8 11.8 10.6 7.2\n广播 2.7 0.6 2.0 1.4 1.2\n杂志 0.4 0.1 0.2 0.2 0.4\n( 单位 : %)\n韩国有很多全国性电视网络，其中三个最大的电视网络是 KBS、MBC 和 SBS。随着 1956 年 5 月 12 日商业电视台 \nHLKZ-TV 开播后，韩国成为亚洲第三个开始电视广播的国家。",
+    "golden_chunk": "18\n\n5\n电视 14\n韩国广播媒体市场生机勃勃，有利可图。与很多其他国家一样，电视是大多数韩国人的主要新闻媒体。根据韩国言\n论财团，假定人们同时从电视、互联网、报纸、广播和杂志来收集信息，人们通常更信赖电视。\n[ 14 ] 参见维基百科 (http:/ /en.wikipedia.org/wiki/Television_in_South_Korea), (http:/ /en.wikipedia.org/wiki/\nMedia_of_South_Korea#Radio), (http:/ /en.wikipedia.org/wiki/Munhwa_Broadcasting_Corporation), (http:/ /\nen.wikipedia.org/wiki/Seoul_Broadcasting_System)\n2008 2010 2011 2012 2013\n电视 60.7 75.4 72.1 72.0 73.4\n互联网 20.0 13.1 13.8 15.9 17.9\n报纸 16.0 10.8 11.8 10.6 7.2\n广播 2.7 0.6 2.0 1.4 1.2\n杂志 0.4 0.1 0.2 0.2 0.4\n( 单位 : %)\n韩国有很多全国性电视网络，其中三个最大的电视网络是 KBS、MBC 和 SBS。随着 1956 年 5 月 12 日商业电视台 \nHLKZ-TV 开播后，韩国成为亚洲第三个开始电视广播的国家。",
     "chunk_id": "18"
   },
   {
     "question": "韩国广播公司（KBS）成立于哪一年？",
     "answer": "1927 年",
-    "golden_chunk": "19\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nA. KBS\n韩国广播公司 (KBS) 是韩国国家广播公司。该公司创立于 1927 年，经营广播、电视和网络业务，是韩国最大的电视网络之一。\n在地面电视方面，有 KBS 1TV、KBS 2TV、KBS UHD；在有线电视和卫星电视方面，有 KBS Prime、KBS Drama、KBS N \nSports、KBS Joy、KBS Kids、KBS W。\nB. MBC\n文化广播公司 (Munhwa Broadcasting Corporation/MBC) 是韩国四大全国性电视广播网络之一，也是韩国所有商业广播网\n络中历史最悠久的。Munhwa 在韩语中是“文化”的意思。\nC. SBS\n首尔广播公司 (SBS) 是一个韩国电视广播网络。它是韩国唯一的私营商业广播公司，拥有广大的地区网络成员。2000 年 3 月，\n该公司从 Seoul Broadcasting System (서울방송시스템 ) 合法更名为 SBS。",
+    "golden_chunk": "19\n\nA. KBS\n韩国广播公司 (KBS) 是韩国国家广播公司。该公司创立于 1927 年，经营广播、电视和网络业务，是韩国最大的电视网络之一。\n在地面电视方面，有 KBS 1TV、KBS 2TV、KBS UHD；在有线电视和卫星电视方面，有 KBS Prime、KBS Drama、KBS N \nSports、KBS Joy、KBS Kids、KBS W。\nB. MBC\n文化广播公司 (Munhwa Broadcasting Corporation/MBC) 是韩国四大全国性电视广播网络之一，也是韩国所有商业广播网\n络中历史最悠久的。Munhwa 在韩语中是“文化”的意思。\nC. SBS\n首尔广播公司 (SBS) 是一个韩国电视广播网络。它是韩国唯一的私营商业广播公司，拥有广大的地区网络成员。2000 年 3 月，\n该公司从 Seoul Broadcasting System (서울방송시스템 ) 合法更名为 SBS。",
     "chunk_id": "19"
   },
   {
     "question": "目前韩国有多少长住外国人，其中有多少是中国人？",
     "answer": "目前韩国有 150 万长住外国人，其中 85 万为中国人。",
-    "golden_chunk": "20\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n目前，韩国有 150 万长住外国人，其中 85 万为中国人。此外，在韩国流行音乐和“韩潮”的影响下，中国人是经\n常前往韩国的游客。以下是韩国面向中国人的具有影响力的中文媒体：\n中文媒体\n6\n1. 在网站上提供中文服务的韩国新闻通讯社。\n1 《朝鲜日报》 http://cnnews.chosun.com/?servicemap\n2 《中央日报》 http://chinese.joins.com/gb/index.html\n3 《东亚日报》 http://chinese.donga.com/gb/index.html\n4 《每日经济新闻》 http://china.mk.co.kr/china/\n5 韩联社 http://chinese.yonhapnews.co.kr/\n6 《亚洲经济》 http://china.ajunews.com/",
+    "golden_chunk": "20\n\n目前，韩国有 150 万长住外国人，其中 85 万为中国人。此外，在韩国流行音乐和“韩潮”的影响下，中国人是经\n常前往韩国的游客。以下是韩国面向中国人的具有影响力的中文媒体：\n中文媒体\n6\n1. 在网站上提供中文服务的韩国新闻通讯社。\n1 《朝鲜日报》 http://cnnews.chosun.com/?servicemap\n2 《中央日报》 http://chinese.joins.com/gb/index.html\n3 《东亚日报》 http://chinese.donga.com/gb/index.html\n4 《每日经济新闻》 http://china.mk.co.kr/china/\n5 韩联社 http://chinese.yonhapnews.co.kr/\n6 《亚洲经济》 http://china.ajunews.com/",
     "chunk_id": "20"
   },
   {
     "question": "根据提供的片段内容，韩国有哪些面向中国人的具有影响力的中文媒体？",
     "answer": "根据提供的片段内容，韩国面向中国人的具有影响力的中文媒体包括：1. 韩国新闻通讯社提供的中文服务，2. 韩国影视娱乐电视频道，3. 从中国进口的中文杂志，具体杂志包括读者、星尚、中国经济周刊、瞭望、青年文摘、故事会、学汉语和环球。",
-    "golden_chunk": "21\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n2. 韩国影视娱乐电视频道\n3. 从中国进口的中文杂志\n1 读者 \n2 星尚\n3 中国经济周刊\n4 瞭望\n5 青年文摘\n6 故事会\n7 学汉语\n8 环球\n1 Hyundai Media http://ching.hyundaimedia.com/\n2 CJ E&M\nhttp://ch.interest.me/zhtv/zhtv/\nInfo#footer_navi_menu_0\nChing\n中华 TV",
+    "golden_chunk": "21\n\n2. 韩国影视娱乐电视频道\n3. 从中国进口的中文杂志\n1 读者 \n2 星尚\n3 中国经济周刊\n4 瞭望\n5 青年文摘\n6 故事会\n7 学汉语\n8 环球\n1 Hyundai Media http://ching.hyundaimedia.com/\n2 CJ E&M\nhttp://ch.interest.me/zhtv/zhtv/\nInfo#footer_navi_menu_0\nChing\n中华 TV",
     "chunk_id": "21"
   },
   {
@@ -134,7 +134,7 @@
   {
     "question": "在2014年1月1日至2014年6月1日期间，韩国市场中哪个搜索引擎的市场份额最高？",
     "answer": "Naver的市场份额最高，为80.74%。",
-    "golden_chunk": "23\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n尽管谷歌目前占有全球搜索市场 83% 的份额， 但韩国的市场领导者是 Naver。 要是问韩国人他们使用什么搜索引擎，\n最有可能的答案就是 Naver。\n16\n搜索引擎\n1\n韩国最受欢迎的搜索引擎\n17\n（调查时间：2014.01.01~ 2014.06.01)\n名称 网址 市场份额\n1 Naver www.naver.com 80.74 %\n2 Daum www.daum.net 15.42 %\n3 谷歌 www.google.co.kr 2.09 %\n4 Zum www.zum.com 0.92 %\n5 其他 0.44 %\n6 必应 www.bing.com 0.19 %\n7 雅虎 www.yahoo.com 0.10 %\n8 Nate www.nate.com 0.09 %\n9 雅虎韩国 kr.search.yahoo.com 0.01 %\n[ 16 ]  参见 (http:/ /www.link-assistant.com/blog/google-vs-naver-why-cant-google-dominate-search-in-korea/#ixzz3G5SuMxxP)\n[ 17 ]  来源：internettrend.co.kr",
+    "golden_chunk": "23\n\n尽管谷歌目前占有全球搜索市场 83% 的份额， 但韩国的市场领导者是 Naver。 要是问韩国人他们使用什么搜索引擎，\n最有可能的答案就是 Naver。\n16\n搜索引擎\n1\n韩国最受欢迎的搜索引擎\n17\n（调查时间：2014.01.01~ 2014.06.01)\n名称 网址 市场份额\n1 Naver www.naver.com 80.74 %\n2 Daum www.daum.net 15.42 %\n3 谷歌 www.google.co.kr 2.09 %\n4 Zum www.zum.com 0.92 %\n5 其他 0.44 %\n6 必应 www.bing.com 0.19 %\n7 雅虎 www.yahoo.com 0.10 %\n8 Nate www.nate.com 0.09 %\n9 雅虎韩国 kr.search.yahoo.com 0.01 %\n[ 16 ]  参见 (http:/ /www.link-assistant.com/blog/google-vs-naver-why-cant-google-dominate-search-in-korea/#ixzz3G5SuMxxP)\n[ 17 ]  来源：internettrend.co.kr",
     "chunk_id": "23"
   },
   {
@@ -146,109 +146,109 @@
   {
     "question": "Daum Communications 与哪家公司合并成立了 Daum Kakao？",
     "answer": "Daum Communications 与 Kakao Inc. (KakaoTalk) 合并成立了 Daum Kakao。",
-    "golden_chunk": "25\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nB. Daum\nDaum 是排在 Naver 之后的韩国第二大人气门户网站。Daum 为网络用户提供很多互联网服务，\n包括热门的免费网络电子邮件、消息服务、论坛、购物和新闻。\nDaum 受到欢迎，根源于它所提供的各种服务，也是由于它是韩国第一个大型网络门户网站。它在\n兼并最受欢迎的电子邮件服务 daum.net 或 hanmail.net 后，开始大受欢迎。兼并后，Daum 推\n出了论坛服务 Daum Café，从而奠定了它在市场上的坚实地位。“cafe”一词，甚至“internet \ncafe”（不同于在西方用法中本来所指的含义），现在在韩语中被用作“互联网论坛”的代名词。\n该公司还开发和发布免费媒体播放器 PotPlayer。除免费媒体播放器 (Daum tvPot) 以外，Daum Communications Corp. \n还提供各种服务，如云服务 (Daum Cloud)、Daum Dictionary（适用于移动设备）、Daum Comics 和地图服务 (Daum \nMaps)。\n2004 年，Daum Communications 与 Kakao Inc. (KakaoTalk) 合并成立 Daum Kakao。",
+    "golden_chunk": "25\n\nB. Daum\nDaum 是排在 Naver 之后的韩国第二大人气门户网站。Daum 为网络用户提供很多互联网服务，\n包括热门的免费网络电子邮件、消息服务、论坛、购物和新闻。\nDaum 受到欢迎，根源于它所提供的各种服务，也是由于它是韩国第一个大型网络门户网站。它在\n兼并最受欢迎的电子邮件服务 daum.net 或 hanmail.net 后，开始大受欢迎。兼并后，Daum 推\n出了论坛服务 Daum Café，从而奠定了它在市场上的坚实地位。“cafe”一词，甚至“internet \ncafe”（不同于在西方用法中本来所指的含义），现在在韩语中被用作“互联网论坛”的代名词。\n该公司还开发和发布免费媒体播放器 PotPlayer。除免费媒体播放器 (Daum tvPot) 以外，Daum Communications Corp. \n还提供各种服务，如云服务 (Daum Cloud)、Daum Dictionary（适用于移动设备）、Daum Comics 和地图服务 (Daum \nMaps)。\n2004 年，Daum Communications 与 Kakao Inc. (KakaoTalk) 合并成立 Daum Kakao。",
     "chunk_id": "25"
   },
   {
     "question": "在韩国，哪些博客平台被认为是具有影响力的？",
     "answer": "在韩国，具有影响力的博客平台包括 Naver 博客、Egloos、Blogin、Daum 博客、雅虎韩国博客、Tistory 和 Textcube.com。",
-    "golden_chunk": "26\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n有趣的是，韩国最受欢迎的社交媒体论坛是博客，韩国有 Tistory 等顶级博客网站。虽然美国企业往往认为博客并\n非向大批人群传播信息的高效高速途径，但在韩国，博客是一种网络流量高于较传统的社交媒体网站的普遍现象。\n韩国近来人气爆棚的另一个网站是 KakaoStory， 这是一款可与一群关注者分享照片的移动应用， 与 Instagram 类似。\n贴文话题范围从对哲学猜想的个人思考到简单的日常生活故事。韩国一些人气博客网站包括 Naver 博客、Egloos、\nBlogin、Daum 博客、雅虎韩国博客、Tistory 和 Textcube.com。\n博客\n20\n2\n以下是韩国有影响力的博客平台列表。\n名称 网站\n1 Naver 博客 blog.naver.com\n2 Egloos www.egloos.com\n3 Blogin blogin.com\n4 Daum 博客 blog.daum.net\n5 Tistory www.tistory.com\n[ 20 ] 参见 (http:/ /www.languagetrainers.com/blog/2013/12/04/a-guide-to-social-media-in-south-korea-facebook-\ntwitter-and-other-sites/)",
+    "golden_chunk": "26\n\n有趣的是，韩国最受欢迎的社交媒体论坛是博客，韩国有 Tistory 等顶级博客网站。虽然美国企业往往认为博客并\n非向大批人群传播信息的高效高速途径，但在韩国，博客是一种网络流量高于较传统的社交媒体网站的普遍现象。\n韩国近来人气爆棚的另一个网站是 KakaoStory， 这是一款可与一群关注者分享照片的移动应用， 与 Instagram 类似。\n贴文话题范围从对哲学猜想的个人思考到简单的日常生活故事。韩国一些人气博客网站包括 Naver 博客、Egloos、\nBlogin、Daum 博客、雅虎韩国博客、Tistory 和 Textcube.com。\n博客\n20\n2\n以下是韩国有影响力的博客平台列表。\n名称 网站\n1 Naver 博客 blog.naver.com\n2 Egloos www.egloos.com\n3 Blogin blogin.com\n4 Daum 博客 blog.daum.net\n5 Tistory www.tistory.com\n[ 20 ] 参见 (http:/ /www.languagetrainers.com/blog/2013/12/04/a-guide-to-social-media-in-south-korea-facebook-\ntwitter-and-other-sites/)",
     "chunk_id": "26"
   },
   {
     "question": "根据2014年DMC Media的调查，Facebook在韩国市场社交媒体市场份额排名中占据第几位？",
     "answer": "Facebook在韩国市场社交媒体市场份额排名中占据第一位。",
-    "golden_chunk": "27\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n新媒体 (SNS)\n21\n政府数据显示，到 2014 年 6 月底，在韩国手机用户中，智能手机普及率为\n70.14%， 这意味着， 每十个手机用户中， 智能手机用户的数量首次达到七个。\n韩国智能手机的普及提高了社交媒体、多媒体和移动媒体等新媒体的使用。\n韩国人的社交媒体支出不断增加，焦点依然是 Facebook。根据 KPR Social \nCommunication Research Lab 于 2013 年 2 月所做的调查，87.1% 的受\n访企业和公共机构表示他们拥有 Facebook 账号，超过任何其他社交媒体\n平台。\n以下是 DMC Media 于 2014 年 6 月所开展的韩国市场社交媒体市场份额排\n名调查结果。\n[ 21 ] 参见  http:/ /blogs.wsj.com/korearealtime/2014/07/28/koreas-smartphone-population-tops-milestone/, http:/ /\nwww.emarketer.com/Article/South-Korea-Facebook-Companies-Social-Network-of-Choice/1009779#sthash.\nlTE951Kq.dpuf\n1 Facebook 77.4 %\n2 博客（Naver、Daum 等） 29.8%\n3 Kakao story 29.5 %\n4 Band 22 %\n5 Youtube 15.8 %\n6 Twitter 8.9 %\n7 Instagram 8 %\n8 Pinterest 2.2 %\n9 LinkedIn 2 %\n10 Google + 2%\n韩国市场社交媒体市场份额排名（可多选）",
+    "golden_chunk": "27\n\n新媒体 (SNS)\n21\n政府数据显示，到 2014 年 6 月底，在韩国手机用户中，智能手机普及率为\n70.14%， 这意味着， 每十个手机用户中， 智能手机用户的数量首次达到七个。\n韩国智能手机的普及提高了社交媒体、多媒体和移动媒体等新媒体的使用。\n韩国人的社交媒体支出不断增加，焦点依然是 Facebook。根据 KPR Social \nCommunication Research Lab 于 2013 年 2 月所做的调查，87.1% 的受\n访企业和公共机构表示他们拥有 Facebook 账号，超过任何其他社交媒体\n平台。\n以下是 DMC Media 于 2014 年 6 月所开展的韩国市场社交媒体市场份额排\n名调查结果。\n[ 21 ] 参见  http:/ /blogs.wsj.com/korearealtime/2014/07/28/koreas-smartphone-population-tops-milestone/, http:/ /\nwww.emarketer.com/Article/South-Korea-Facebook-Companies-Social-Network-of-Choice/1009779#sthash.\nlTE951Kq.dpuf\n1 Facebook 77.4 %\n2 博客（Naver、Daum 等） 29.8%\n3 Kakao story 29.5 %\n4 Band 22 %\n5 Youtube 15.8 %\n6 Twitter 8.9 %\n7 Instagram 8 %\n8 Pinterest 2.2 %\n9 LinkedIn 2 %\n10 Google + 2%\n韩国市场社交媒体市场份额排名（可多选）",
     "chunk_id": "27"
   },
   {
     "question": "根据2014年10月Korean Click的调查，YouTube在韩国多媒体网站市场份额中排名第一，其市场份额是多少？",
     "answer": "79.91%",
-    "golden_chunk": "28\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n以下是韩国多媒体网站的市场份额排名。这项调查由 Korean Click 于 2014 年 10 月开展。\n多媒体\n1\n排名 名称 网址 份额\n1 http://www.youtube.com 79.91%\n2 http://www.pandora.tv/ 3.09%\n3 http://www.gomtv.com 2.54%\nPandora TV\nYoutube\nGOM TV\n实际上，在韩国，对 YouTube 的偏好从 2008 年以来一直在增加。与 2008 年时 2% 的市场份额相比，这可以被认\n为是爆炸式的增长。 据说是韩国国内四大巨头的 Pandora TV、 GOM TV、 Mgoon、 Tving 也被 YouTube 甩在了身后。",
+    "golden_chunk": "28\n\n以下是韩国多媒体网站的市场份额排名。这项调查由 Korean Click 于 2014 年 10 月开展。\n多媒体\n1\n排名 名称 网址 份额\n1 http://www.youtube.com 79.91%\n2 http://www.pandora.tv/ 3.09%\n3 http://www.gomtv.com 2.54%\nPandora TV\nYoutube\nGOM TV\n实际上，在韩国，对 YouTube 的偏好从 2008 年以来一直在增加。与 2008 年时 2% 的市场份额相比，这可以被认\n为是爆炸式的增长。 据说是韩国国内四大巨头的 Pandora TV、 GOM TV、 Mgoon、 Tving 也被 YouTube 甩在了身后。",
     "chunk_id": "28"
   },
   {
     "question": "在韩国，哪个移动信使应用的市场份额最高？",
     "answer": "Kakao Talk 的市场份额最高，占 95%。",
-    "golden_chunk": "29\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩国于 2013 年夏最先推出大热的 LTE-A 网络。在韩国，几乎所有智能手机用户都是 KakaoTalk 的用户，与中国的\n微信类似。Kakao Corp 于四年前推出这项大受欢迎的消息服务，为韩国带来了一场“移动大爆炸”。现在，它是\n智能手机用户的主要通信方式。\n移动媒体\n2\n排名 名称 份额\n1 Kakao Talk 95%\n2 Line 12%\n3 Facebook Messenger 6%\n4 WhatsApp 3%\n移动信使应用市场份额（可多选）\n22 \n[ 22 ]  2014 年第一季度由 bizspring 开展",
+    "golden_chunk": "29\n\n韩国于 2013 年夏最先推出大热的 LTE-A 网络。在韩国，几乎所有智能手机用户都是 KakaoTalk 的用户，与中国的\n微信类似。Kakao Corp 于四年前推出这项大受欢迎的消息服务，为韩国带来了一场“移动大爆炸”。现在，它是\n智能手机用户的主要通信方式。\n移动媒体\n2\n排名 名称 份额\n1 Kakao Talk 95%\n2 Line 12%\n3 Facebook Messenger 6%\n4 WhatsApp 3%\n移动信使应用市场份额（可多选）\n22 \n[ 22 ]  2014 年第一季度由 bizspring 开展",
     "chunk_id": "29"
   },
   {
     "question": "KakaoTalk目前拥有多少用户，并且在韩国智能手机用户中的采用率是多少？",
     "answer": "KakaoTalk目前拥有1.52亿用户，被韩国93%的智能手机用户所采用。",
-    "golden_chunk": "30\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n[ 23 ]  参见维基百科 (http:/ /en.wikipedia.org/wiki/KakaoTalk), 《金融时报亚洲版》www.ft.com\nA. Kakaotalk\n23\nKakaoTalk 是一款面向智能手机的免费移动即时消息应用， 具有免费文本和免费电话功能。 KakaoTalk 目前拥有 1.52 亿用户，\n提供 15 种语言选择。该应用也被韩国 93% 的智能手机用户所采用。\n2011 年，Kakao 开始尝试走出韩国，进入日本市场，与雅虎日本合作，向拥有 2.4 亿用户的日本优势移动信使服务商 Line \n发起挑战。它试图将触角伸向东南亚——印尼、菲律宾、马来西亚和越南，这些市场还没有一家有绝对优势的即时信息应用。\n由 NHN 所有的 Line 在台湾、新加坡和泰国影响力强大，而中国大陆和香港市场则由拥有 2 亿用户的腾讯微信一统天下。",
+    "golden_chunk": "30\n\n[ 23 ]  参见维基百科 (http:/ /en.wikipedia.org/wiki/KakaoTalk), 《金融时报亚洲版》www.ft.com\nA. Kakaotalk\n23\nKakaoTalk 是一款面向智能手机的免费移动即时消息应用， 具有免费文本和免费电话功能。 KakaoTalk 目前拥有 1.52 亿用户，\n提供 15 种语言选择。该应用也被韩国 93% 的智能手机用户所采用。\n2011 年，Kakao 开始尝试走出韩国，进入日本市场，与雅虎日本合作，向拥有 2.4 亿用户的日本优势移动信使服务商 Line \n发起挑战。它试图将触角伸向东南亚——印尼、菲律宾、马来西亚和越南，这些市场还没有一家有绝对优势的即时信息应用。\n由 NHN 所有的 Line 在台湾、新加坡和泰国影响力强大，而中国大陆和香港市场则由拥有 2 亿用户的腾讯微信一统天下。",
     "chunk_id": "30"
   },
   {
     "question": "根据文本，韩国在2013年的名义GDP排名是多少位？",
     "answer": "韩国按名义GDP计算，在世界上排名第13位。",
-    "golden_chunk": "31\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.",
+    "golden_chunk": "31\n",
     "chunk_id": "31"
   },
   {
     "question": "根据提供的片段内容，韩国的哪些新闻机构提供了移动新闻应用？",
     "answer": "《朝鲜日报》、Edaily News、亚洲经济新闻、Ziny. NEWS、《釜山日报》、Chosun Biz、JTBC News、《朝鲜体育报》和韩联社。",
-    "golden_chunk": "32\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n移动新闻应用\n《朝鲜日报》 Edaily News 亚洲经济新闻 Ziny. NEWS NEWS is ()\n《釜山日报》 Chosun Biz JTBC News 《朝鲜体育报》 韩联社",
+    "golden_chunk": "32\n\n移动新闻应用\n《朝鲜日报》 Edaily News 亚洲经济新闻 Ziny. NEWS NEWS is ()\n《釜山日报》 Chosun Biz JTBC News 《朝鲜体育报》 韩联社",
     "chunk_id": "32"
   },
   {
     "question": "朝鲜战争之后，公共关系的概念在韩国最初是用于什么目的？",
     "answer": "朝鲜战争之后，新成立的民主政府在韩国引入了公共关系的概念，当时主要用于危机管理和政府公关。",
-    "golden_chunk": "33\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n1 特色\n2 趋势 \n3 韩国主要公关公司\n韩国公关 / 传播业\n朝鲜战争之后，新成立的民主政府在韩国引入了公共关系的概念。当时主要用于危机管理和政府公关。1980 年代，当外国实\n体开始到韩国开办企业，公关的面貌开始发生变化。随着韩国与世界其他地区的联系日益增加，公关在大企业和广大公众中发\n挥了重要作用。\n25\n[ 25 ] 参见 : http:/ /southkoreanpr.blogspot.hk/2011/08/south-korean-economy-public-relations.html",
+    "golden_chunk": "33\n\n1 特色\n2 趋势 \n3 韩国主要公关公司\n韩国公关 / 传播业\n朝鲜战争之后，新成立的民主政府在韩国引入了公共关系的概念。当时主要用于危机管理和政府公关。1980 年代，当外国实\n体开始到韩国开办企业，公关的面貌开始发生变化。随着韩国与世界其他地区的联系日益增加，公关在大企业和广大公众中发\n挥了重要作用。\n25\n[ 25 ] 参见 : http:/ /southkoreanpr.blogspot.hk/2011/08/south-korean-economy-public-relations.html",
     "chunk_id": "33"
   },
   {
     "question": "韩流文化现象是如何影响韩国在全球的声名的？",
     "answer": "韩流文化现象通过韩国音乐（如鸟叔和《江南 Style》以及韩国流行音乐偶像）、化妆品品牌、韩国料理及服装等元素，在东亚和东南亚一带令韩国声名大噪，并已蔓延到全世界。",
-    "golden_chunk": "34\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩流令韩国声名大噪，尤其是在东亚和东南亚一带。以韩\n国音乐 （想想鸟叔和 《江南 Style》 以及韩国流行音乐偶像） 、\n化妆品品牌、韩国料理及服装打头阵，这种文化现象现已\n蔓延到全世界。谁曾想到在不到 50 年的时间里会发生这\n样的变化？针对这一话题，特别是政府与商界如何共同打\n下技术进步、教育与城市化的基础，有许多争论和分析。\n虽然并未否定公私合作对韩国全球化的影响，但对于公关\n之作用的评价十分有趣。韩国如何利用公关，以及在应用\n过程中，公关对韩国及韩国财团的影响有多大？更重要的\n是，公关将对韩国的未来发挥什么样的作用？\n特色\n26\n1\n[ 26 ] 参见 Margaret Key 的《Public relations in Korea a review of cultureal and historical ingluences》\n (http:/ /www.ipra.org/itl/08/2013/public-relations-in-korea-a-review-of-cultural-and-historical-inﬂuences)",
+    "golden_chunk": "34\n\n韩流令韩国声名大噪，尤其是在东亚和东南亚一带。以韩\n国音乐 （想想鸟叔和 《江南 Style》 以及韩国流行音乐偶像） 、\n化妆品品牌、韩国料理及服装打头阵，这种文化现象现已\n蔓延到全世界。谁曾想到在不到 50 年的时间里会发生这\n样的变化？针对这一话题，特别是政府与商界如何共同打\n下技术进步、教育与城市化的基础，有许多争论和分析。\n虽然并未否定公私合作对韩国全球化的影响，但对于公关\n之作用的评价十分有趣。韩国如何利用公关，以及在应用\n过程中，公关对韩国及韩国财团的影响有多大？更重要的\n是，公关将对韩国的未来发挥什么样的作用？\n特色\n26\n1\n[ 26 ] 参见 Margaret Key 的《Public relations in Korea a review of cultureal and historical ingluences》\n (http:/ /www.ipra.org/itl/08/2013/public-relations-in-korea-a-review-of-cultural-and-historical-inﬂuences)",
     "chunk_id": "34"
   },
   {
     "question": "韩国公关行业的真正变化始于哪个时期，并且这一时期有哪些重要事件发生？",
     "answer": "韩国公关行业的真正变化始于88年奥运会时代，这一时期韩国开始全球化，跨国公司进入韩国市场，博雅公关（Burson-Marsteller）正式开办。此外，上世纪90年代初至90年代末，韩国采取了国际化政策，韩国企业开始成功打入国外市场，1997年韩国在全球所有经济体中排名第11位，并加入了经合组织。",
-    "golden_chunk": "35\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n韩国公关方面的真正变化始于 88 年奥运会时代韩国的全球化以及有营销、广告与\n公关需求的跨国公司的进入。博雅公关 (Burson-Marsteller) 实际上就是在 88 年\n奥运会之后正式开办的，这一时期，外国公司也开始将韩国视为他们全球扩张的\n一部分。\n当外国公司希望进入韩国之际， 上世纪 90 年代初至 90 年代末， 韩国也采取了 “国\n际化”政策。正是在这一时期，韩国企业开始成功打入国外市场。1997 年，韩国\n在全球所有经济体中排名第 11 位，并加入了经合组织。\n在国际货币基金组织的敦促下，韩国政府及企业不得不重新评估他们的战略、治理及过去公私合作的情况。正是在这一时期，\n韩国企业评估了他们走过的老路，并开始依靠顾问提供意见和建议。过去可能有效的“韩国式道路”已变得无关紧要，需要作\n出更大的调整和依靠第三方顾问。并不令人惊讶的是，就是在这一时期，公关公司蓬勃发展起来，数量有所增加。",
+    "golden_chunk": "35\n\n韩国公关方面的真正变化始于 88 年奥运会时代韩国的全球化以及有营销、广告与\n公关需求的跨国公司的进入。博雅公关 (Burson-Marsteller) 实际上就是在 88 年\n奥运会之后正式开办的，这一时期，外国公司也开始将韩国视为他们全球扩张的\n一部分。\n当外国公司希望进入韩国之际， 上世纪 90 年代初至 90 年代末， 韩国也采取了 “国\n际化”政策。正是在这一时期，韩国企业开始成功打入国外市场。1997 年，韩国\n在全球所有经济体中排名第 11 位，并加入了经合组织。\n在国际货币基金组织的敦促下，韩国政府及企业不得不重新评估他们的战略、治理及过去公私合作的情况。正是在这一时期，\n韩国企业评估了他们走过的老路，并开始依靠顾问提供意见和建议。过去可能有效的“韩国式道路”已变得无关紧要，需要作\n出更大的调整和依靠第三方顾问。并不令人惊讶的是，就是在这一时期，公关公司蓬勃发展起来，数量有所增加。",
     "chunk_id": "35"
   },
   {
     "question": "韩国公关行业的发展趋势有哪些？",
     "answer": "韩国公关行业的发展趋势包括：步伐快，被动与主动，孤立于外部焦点；政府与商界共同将韩国从一个贫穷的经济体建设成世界上最强大、工业化程度最高的国家之一；随着国境的开放，韩国受到国际标准的影响，需要发展相关实务，制定规章条例，以在全球舞台上占有一席之地；韩国跨国公司将目光投向全球市场，进行扩张，发现必须明确战略重点和品牌价值。",
-    "golden_chunk": "36\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n√ 对于韩国跨国公司而言公关的未来 \n韩国公关沿着与韩国的发展相同的轨迹以多种方式演变发展：步伐快，被动与主动，孤立于外部焦点。纵观韩国历史，政府与\n商界共同将韩国从一个贫穷的经济体建设成世界上最强大、工业化程度最高的国家之一。\n然而，随着国境的开放，韩国也受到国际标准的影响，并艰难地了解到韩国需要发展相关实务，制定规章条例，才能在全球舞\n台上占有一席之地。当政府遵从专家和外部顾问的意见和建议之际，韩国跨国公司将目光投向了全球市场，进行扩张，在此过\n程中他们发现必须明确战略重点和品牌价值。如今，韩国是最耀眼的经济文化力量之一，每天都有新的里程碑出现：韩国选出\n首位女总统、智能手机用户全球化、亚洲重要旅游目的地等等。",
+    "golden_chunk": "36\n\n√ 对于韩国跨国公司而言公关的未来 \n韩国公关沿着与韩国的发展相同的轨迹以多种方式演变发展：步伐快，被动与主动，孤立于外部焦点。纵观韩国历史，政府与\n商界共同将韩国从一个贫穷的经济体建设成世界上最强大、工业化程度最高的国家之一。\n然而，随着国境的开放，韩国也受到国际标准的影响，并艰难地了解到韩国需要发展相关实务，制定规章条例，才能在全球舞\n台上占有一席之地。当政府遵从专家和外部顾问的意见和建议之际，韩国跨国公司将目光投向了全球市场，进行扩张，在此过\n程中他们发现必须明确战略重点和品牌价值。如今，韩国是最耀眼的经济文化力量之一，每天都有新的里程碑出现：韩国选出\n首位女总统、智能手机用户全球化、亚洲重要旅游目的地等等。",
     "chunk_id": "36"
   },
   {
     "question": "2014年全球传播趋势中，哪一项趋势强调了公关策略需要引起消费者的自发共鸣？",
     "answer": "根据2014年全球传播趋势，'好的公关'必须通过能引起消费者自发共鸣的公关策略来解决问题。",
-    "golden_chunk": "37\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n基本上，“好的公关”必须通过能引起消费者自发共鸣的公关策略来解决问题。根据这一理论，22014 年公关人都\n会同意的几大全球传播趋势如下。\n27\n√ 更深入的向移动发展\n√ 微观目标锁定：是时候开始真正地了解你的客户\n√ 社交媒体对传播的影响\n√ 品牌新闻学\n√ 形象就是一切\n√ 以证据为基础\n韩国公关 / 传播业明显表现出以下两大趋势。\n趋势\n2\n[ 27 ] 参见 : (http:/ /www.ripleypr.com/blog/b2b-public-relations-and-marketing-trends-for-2015/), \n(http:/ /www.wpp.com/wpp/marketing/publicrelations/10-global-communication-trends-2014/)",
+    "golden_chunk": "37\n\n基本上，“好的公关”必须通过能引起消费者自发共鸣的公关策略来解决问题。根据这一理论，22014 年公关人都\n会同意的几大全球传播趋势如下。\n27\n√ 更深入的向移动发展\n√ 微观目标锁定：是时候开始真正地了解你的客户\n√ 社交媒体对传播的影响\n√ 品牌新闻学\n√ 形象就是一切\n√ 以证据为基础\n韩国公关 / 传播业明显表现出以下两大趋势。\n趋势\n2\n[ 27 ] 参见 : (http:/ /www.ripleypr.com/blog/b2b-public-relations-and-marketing-trends-for-2015/), \n(http:/ /www.wpp.com/wpp/marketing/publicrelations/10-global-communication-trends-2014/)",
     "chunk_id": "37"
   },
   {
     "question": "根据市场调研公司 E-Marketer Inc. 的估计，2013年韩国本土企业在移动广告上的支出占网络广告总支出的百分比是多少？",
     "answer": "20.1%",
-    "golden_chunk": "38\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nA. 移动广告\n28\n在用户需求强劲及移动支付增长的背景下，韩国的移动广告快速扩张，如今的数据显示，\n规模很快将超过互联网广告市场。\n据市场调研公司 E-Marketer Inc. 估计，今年，本土企业所花费的移动广告费用占他们网络\n广告总支出的 38.4%。报告称，明年这一数字可能将增至 54.4%，超过互联网广告所占的\n比重。报告还补充说，2013 年，移动广告所占比重只有 20.1%。\n在每 10 人中就有 8 人使用智能手机的韩国，随着人们趋向于通过手机而非 Web 来进行媒\n体消费或获取信息，移动广告快速增长。在市场强劲增长的同时，移动广告的影响也日益\n增长。据媒体代表 MezzoMedia 称，假如电视广告的效力为 100，则移动广告的效力为\n65。此外，尼尔森公司 (Nielsen Company) 2014 年 6 月发布的一份关于手机、电脑和电\n视的日常使用情况的报告显示，韩国人平均花在手机（203 分钟）上的时间超过了电脑（86\n分钟）和电视（180 分钟）。\n由于这种趋势 ，媒体出版机构正将目光转向新的信息显示方式 。",
+    "golden_chunk": "38\n\nA. 移动广告\n28\n在用户需求强劲及移动支付增长的背景下，韩国的移动广告快速扩张，如今的数据显示，\n规模很快将超过互联网广告市场。\n据市场调研公司 E-Marketer Inc. 估计，今年，本土企业所花费的移动广告费用占他们网络\n广告总支出的 38.4%。报告称，明年这一数字可能将增至 54.4%，超过互联网广告所占的\n比重。报告还补充说，2013 年，移动广告所占比重只有 20.1%。\n在每 10 人中就有 8 人使用智能手机的韩国，随着人们趋向于通过手机而非 Web 来进行媒\n体消费或获取信息，移动广告快速增长。在市场强劲增长的同时，移动广告的影响也日益\n增长。据媒体代表 MezzoMedia 称，假如电视广告的效力为 100，则移动广告的效力为\n65。此外，尼尔森公司 (Nielsen Company) 2014 年 6 月发布的一份关于手机、电脑和电\n视的日常使用情况的报告显示，韩国人平均花在手机（203 分钟）上的时间超过了电脑（86\n分钟）和电视（180 分钟）。\n由于这种趋势 ，媒体出版机构正将目光转向新的信息显示方式 。",
     "chunk_id": "38"
   },
   {
     "question": "根据提供的数据，2018年韩国移动互联网在数字广告支出中所占的份额预计是多少？",
     "answer": "2018年，韩国移动互联网在数字广告支出中所占的份额预计将增至73.2%。",
-    "golden_chunk": "39\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n2012-2018 年韩国移动互联网在数字广告支出中所占份额\n29\nShare\n2012 10.3%\n2013 20.1%\n2014 38.4%\n2015 54.4%\n2016 63.1%\n2017 68.8%\n2018 73.2%\n以上时间表显示了 2012 年和 2013 年韩国移动互联网在数字广告支出中所占的份额以及到 2018 年的预测情况。2018 年，这\n一份额预计将从 2012 年的 10.3% 增至 73.2%。\n[ 29 ]  Source: Statista 2014 (http:/ /www.statista.com/statistics/312330/mobile-share-digital-ad-spend-south-korea/)",
+    "golden_chunk": "39\n\n2012-2018 年韩国移动互联网在数字广告支出中所占份额\n29\nShare\n2012 10.3%\n2013 20.1%\n2014 38.4%\n2015 54.4%\n2016 63.1%\n2017 68.8%\n2018 73.2%\n以上时间表显示了 2012 年和 2013 年韩国移动互联网在数字广告支出中所占的份额以及到 2018 年的预测情况。2018 年，这\n一份额预计将从 2012 年的 10.3% 增至 73.2%。\n[ 29 ]  Source: Statista 2014 (http:/ /www.statista.com/statistics/312330/mobile-share-digital-ad-spend-south-korea/)",
     "chunk_id": "39"
   },
   {
     "question": "根据丹麦市场营销学者 Stefan Wehmeier 的观点，公关公司未来在哪些领域将变得更加重要？",
     "answer": "咨询、问题管理、公关策略制定、整合传播领域。",
-    "golden_chunk": "40\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nB. 公关公司的领先地位\n30\n据丹麦市场营销学者 Stefan Wehmeier 预计， 媒体公关或市场营销公关的任务将日益减少， 但咨询、 问题管理、 公关策略制定、\n整合传播领域将变得更加重要。\n我们必须注意到，公关公司预计将更多地起到主动帮助者的作用，而不只是中间人或中介。例如，如果某一公关公司负责一项\n政府宣传项目，应当从起草阶段到开展整个咨询工作，都与他们进行接触，而不只是帮助他们进行公共 / 期刊传播。\n为了促成变化或接触，公关公司应当能站在客户的立场上，想客户所想。\n公关公司可以同样的心态，制作公益广告，开展民意调查，打造公司价值和议程，以便他们能独立表达他们的公关洞见和策略。\n由于政府组织或企业试图依靠公关公司的能力，直接提出要求和作出判断，因此他们可能希望立即看到结果。这意味着，公关\n公司必须是所要求的问题领域的领先企业。\n[ 30 ]  参见教授 Lee Chul-Han 的《PR 의 新트렌드는 PR 기업의 도전과 응전 기회》 (http:/ /www.kprca.or.kr/\nwebzine/aboutpr_view.asp?seq=130&cpage=1)",
+    "golden_chunk": "40\n\nB. 公关公司的领先地位\n30\n据丹麦市场营销学者 Stefan Wehmeier 预计， 媒体公关或市场营销公关的任务将日益减少， 但咨询、 问题管理、 公关策略制定、\n整合传播领域将变得更加重要。\n我们必须注意到，公关公司预计将更多地起到主动帮助者的作用，而不只是中间人或中介。例如，如果某一公关公司负责一项\n政府宣传项目，应当从起草阶段到开展整个咨询工作，都与他们进行接触，而不只是帮助他们进行公共 / 期刊传播。\n为了促成变化或接触，公关公司应当能站在客户的立场上，想客户所想。\n公关公司可以同样的心态，制作公益广告，开展民意调查，打造公司价值和议程，以便他们能独立表达他们的公关洞见和策略。\n由于政府组织或企业试图依靠公关公司的能力，直接提出要求和作出判断，因此他们可能希望立即看到结果。这意味着，公关\n公司必须是所要求的问题领域的领先企业。\n[ 30 ]  参见教授 Lee Chul-Han 的《PR 의 新트렌드는 PR 기업의 도전과 응전 기회》 (http:/ /www.kprca.or.kr/\nwebzine/aboutpr_view.asp?seq=130&cpage=1)",
     "chunk_id": "40"
   },
   {
     "question": "根据霍姆斯报告，2014年韩国本土公关公司Prain Global的全球排名是多少？",
     "answer": "Prain Global在2014年全球250家公关公司排名中位列第76位。",
-    "golden_chunk": "41\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\n以下是韩国公关公司的全球排名表。根据霍姆斯报告 (The Holmes Report)，对于韩国本土公关公司，Prain \nGlobal 排名第 76 位，PR One 排名第 95 位，KPR & Association 排名第 149 位。\n韩国主要公关公司\n3\n2014 年全球 250 家公关公司排名\n（韩国本土公关公司）\n排名 名称 2013 年费用收入\n76 Prain Global 19,892,451 美元\n95 PR One 15,911,644 美元\n149 KPR & Association 8,668,970 美元",
+    "golden_chunk": "41\n\n以下是韩国公关公司的全球排名表。根据霍姆斯报告 (The Holmes Report)，对于韩国本土公关公司，Prain \nGlobal 排名第 76 位，PR One 排名第 95 位，KPR & Association 排名第 149 位。\n韩国主要公关公司\n3\n2014 年全球 250 家公关公司排名\n（韩国本土公关公司）\n排名 名称 2013 年费用收入\n76 Prain Global 19,892,451 美元\n95 PR One 15,911,644 美元\n149 KPR & Association 8,668,970 美元",
     "chunk_id": "41"
   },
   {
     "question": "Prain Global是由谁在什么时间创办的？",
     "answer": "Prain Global是由Jason Yeo于2000年创办的。",
-    "golden_chunk": "42\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nA. 国本土公关公司\na) Prain Global\n31\n \nPrain 由 Jason Yeo 于 2000 年创办，当时只有两名员工。在不到 10 年的时间里，Prain 就发展成为韩国\n领先的全方位服务公关公司，拥有 120 多名员工，按营收、各级客户主管的数量、服务范围以及国内外客\n户的数量计算，是韩国最大的独立公关公司。\nb) PR One\n自公关在韩国诞生以来，PR One 在过去 20 年里总共向 1,300 家客户进行了推广，在各个领域积累了丰富\n的经验。\nc) KPR & Association\nKPR 由现任董事长 Kay H. Imm 于 1989 年创建。由于他们的基础曾是韩国首批公关咨询公司之一，KPR \n据说是业界先锋。\n[ 31 ]  参见 Prain Global (prain.com)",
+    "golden_chunk": "42\n\nA. 国本土公关公司\na) Prain Global\n31\n \nPrain 由 Jason Yeo 于 2000 年创办，当时只有两名员工。在不到 10 年的时间里，Prain 就发展成为韩国\n领先的全方位服务公关公司，拥有 120 多名员工，按营收、各级客户主管的数量、服务范围以及国内外客\n户的数量计算，是韩国最大的独立公关公司。\nb) PR One\n自公关在韩国诞生以来，PR One 在过去 20 年里总共向 1,300 家客户进行了推广，在各个领域积累了丰富\n的经验。\nc) KPR & Association\nKPR 由现任董事长 Kay H. Imm 于 1989 年创建。由于他们的基础曾是韩国首批公关咨询公司之一，KPR \n据说是业界先锋。\n[ 31 ]  参见 Prain Global (prain.com)",
     "chunk_id": "42"
   },
   {
@@ -260,7 +260,7 @@
   {
     "question": "Korea Newswire 是如何与全球新闻媒体建立合作关系的？",
     "answer": "Korea Newswire 与美国商业资讯 (Business Wire)、Marketwire 及 Globe Newswire 合作，向韩国媒体和互联网门户网站发布外国公司的新闻稿，同时向包括美联社、雅虎、谷歌新闻、《纽约时报》、道琼斯、《华尔街日报》、彭博社、Lexis-Nexis 和 Factiva 在内的 80,000 家全球新闻媒体发布韩国企业的新闻稿。",
-    "golden_chunk": "44\nCopyright © 2014 PR Newswire Association LLC. All Rights Reserved.\nC. 韩国主要通讯社\nKorea Newswire\n32\nhttp:/ /www.newswire.co.kr/\nKorea Newswire 是第一家向韩国媒体和互联网门户网站发布新闻稿的网络通讯服务公司。它由韩国记\n者 Dongho Shin 与韩国市场营销专家 Mijae Ko 于 2004 年 7 月创办，总部位于首尔。\n到 2012 年 10 月，有 3,000 家韩国企业、政府机构和组织使用 Korea Newswire 的服务来向韩国主要\n报纸和广播台发布新闻稿。约有 11,000 名韩国记者是 Korea Newswire 新闻稿服务的成员。\nKorea Newswire 是连接韩国企业与全球 162 个国家的发布渠道。Korea Newswire 与美国商业资讯 (Business Wire)、\nMarketwire 及 Globe Newswire 合作，向韩国媒体和互联网门户网站发布外国公司的新闻稿，同时向包括美联社、雅虎、谷\n歌新闻、《纽约时报》、道琼斯、《华尔街日报》、彭博社、Lexis-Nexis 和 Factiva 在内的 80,000 家全球新闻媒体发布韩国\n企业的新闻稿。\n[ 32 ] 参见维基百科 (http:/ /en.wikipedia.org/wiki/Korea_Newswire), (http:/ /www.koreanewswire.co.kr/?md=A09&sd=3)",
+    "golden_chunk": "44\n\nC. 韩国主要通讯社\nKorea Newswire\n32\nhttp:/ /www.newswire.co.kr/\nKorea Newswire 是第一家向韩国媒体和互联网门户网站发布新闻稿的网络通讯服务公司。它由韩国记\n者 Dongho Shin 与韩国市场营销专家 Mijae Ko 于 2004 年 7 月创办，总部位于首尔。\n到 2012 年 10 月，有 3,000 家韩国企业、政府机构和组织使用 Korea Newswire 的服务来向韩国主要\n报纸和广播台发布新闻稿。约有 11,000 名韩国记者是 Korea Newswire 新闻稿服务的成员。\nKorea Newswire 是连接韩国企业与全球 162 个国家的发布渠道。Korea Newswire 与美国商业资讯 (Business Wire)、\nMarketwire 及 Globe Newswire 合作，向韩国媒体和互联网门户网站发布外国公司的新闻稿，同时向包括美联社、雅虎、谷\n歌新闻、《纽约时报》、道琼斯、《华尔街日报》、彭博社、Lexis-Nexis 和 Factiva 在内的 80,000 家全球新闻媒体发布韩国\n企业的新闻稿。\n[ 32 ] 参见维基百科 (http:/ /en.wikipedia.org/wiki/Korea_Newswire), (http:/ /www.koreanewswire.co.kr/?md=A09&sd=3)",
     "chunk_id": "44"
   },
   {
