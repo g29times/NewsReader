@@ -12,16 +12,17 @@ class RAG:
         self.doc_embeddings = None
         self.docs = None
 
+    # Load documents and compute their embeddings
     def load_documents(self, documents):
         """Load documents and compute their embeddings."""
         self.docs = documents
         self.doc_embeddings = self.embeddings.embed_documents(documents)
 
+    # 通过本地实现相似度对比算法，对问题和docs进行比对，召回相似的文档
     def get_most_relevant_docs(self, query):
         """Find the most relevant document for a given query."""
         if not self.docs or not self.doc_embeddings:
             raise ValueError("Documents and their embeddings are not loaded.")
-
         query_embedding = self.embeddings.embed_query(query)
         similarities = [
             np.dot(query_embedding, doc_emb)
@@ -31,6 +32,7 @@ class RAG:
         most_relevant_doc_index = np.argmax(similarities)
         return [self.docs[most_relevant_doc_index]]
 
+    # 将问题和参考文档传给 大模型 去回答
     def generate_answer(self, query, relevant_doc):
         """Generate an answer for a given query based on the most relevant document."""
         prompt = f"question: {query}\n\nDocuments: {relevant_doc}"
@@ -40,8 +42,6 @@ class RAG:
         ]
         ai_msg = self.llm.invoke(messages)
         return ai_msg.content
-
-
 
 # Load Documents
 sample_docs = [
@@ -69,7 +69,6 @@ print(f"Query: {query}")
 print(f"Relevant Document: {relevant_doc}")
 print(f"Answer: {answer}")
 
-
 # Collect Evaluation Data
 sample_queries = [
     "Who introduced the theory of relativity?",
@@ -78,7 +77,6 @@ sample_queries = [
     "Who won two Nobel Prizes for research on radioactivity?",
     "What is the theory of evolution by natural selection?"
 ]
-
 expected_responses = [
     "Albert Einstein proposed the theory of relativity, which transformed our understanding of time, space, and gravity.",
     "Ada Lovelace is regarded as the first computer programmer for her work on Charles Babbage's early mechanical computer, the Analytical Engine.",
@@ -86,12 +84,9 @@ expected_responses = [
     "Marie Curie was a physicist and chemist who conducted pioneering research on radioactivity and won two Nobel Prizes.",
     "Charles Darwin introduced the theory of evolution by natural selection in his book 'On the Origin of Species'."
 ]
-
-
 dataset = []
-
+# 
 for query,reference in zip(sample_queries,expected_responses):
-
     relevant_docs = rag.get_most_relevant_docs(query)
     response = rag.generate_answer(query, relevant_docs)
     dataset.append(
