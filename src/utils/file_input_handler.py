@@ -168,7 +168,7 @@ class FileInputHandler:
     
     @staticmethod
     def jina_read_from_url(url: str, mode='read') -> str:
-        return jina.read_from_url_jina(url, mode)
+        return jina.jina_reader(url, mode)
 
 
 # Example usage

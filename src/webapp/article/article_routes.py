@@ -83,7 +83,7 @@ def add_article(type: str = "WEB"):
         article_crud.create_article(db_session, article_data)
         logger.info(f"成功添加文章到数据库: {new_article.title}")
 
-        # 6 次添加文章后，将文章转存向量数据库
+        # 6 存向量数据库
         add_articles_to_vector_store(new_article)
         return jsonify({
             'success': True,
