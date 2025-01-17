@@ -92,10 +92,10 @@ from ragas.metrics import (
 )
 
 # 参数组
-topk_values = [5, 20]
+topk_values = [5, 20] # 可以增加 减少
 chunk_sizes = [500, 1000]
 # 3个一组 16K, 32K, 64K, | 128K, 256K, 512K, | 1M, 2M 5M, | 10M, 20M, 50M
-file_sizes = ['16K', '1M', '2M']
+file_sizes = ['16K', '1M']
 # 指标metrics
 # @see ragas.metrics & ragas.evaluation
 # default : answer_relevancy-答案相关性, context_precision-上下文精确度, context_recall-上下文召回率, faithfulness-可信度
@@ -106,9 +106,8 @@ file_sizes = ['16K', '1M', '2M']
 # 答案相关性 衡量的是生成答案和查询之间的相关性
 # 上下文召回  衡量检索到的上下文和标注答案之间的一致性水平
 # 上下文精度  衡量检索到的包含真实事实的所有相关上下文是否排名靠前
-metrics = ['answer_relevancy', 'context_precision', 'answer_context_f1']
-# metrics = ['context_recall', 'faithfulness', 'factual_correctness']
-# {'context_recall': 1.0000, 'faithfulness': 0.9000, 'factual_correctness': 0.8680}
+# answer_context_f1 = factual_correctness
+metrics = ['answer_relevancy', 'context_precision', 'answer_context_f1'] 
 
 def generate_dummy_data(real_data=None):
     """生成虚拟数据，并用真实数据替换指定组合"""
@@ -123,9 +122,9 @@ def generate_dummy_data(real_data=None):
             for chunk_size in chunk_sizes:
                 for topk in topk_values:
                     # 默认分值 随机生成
-                    answer_relevancy_score = np.random.uniform(0.3, 0.5)
-                    context_precision_score = np.random.uniform(0.3, 0.5)
-                    factual_correctness_f1_score = np.random.uniform(0.3, 0.5)
+                    answer_relevancy_score = np.random.uniform(0.1, 0.5)
+                    context_precision_score = np.random.uniform(0.1, 0.5)
+                    factual_correctness_f1_score = np.random.uniform(0.1, 0.5)
                     
                     data.append({
                         'file_size': file_size,
@@ -175,19 +174,36 @@ def create_dashboard(df):
         for context in unique_contexts
         for metric in metrics
     ])
+    
+    # Calculate global min and max score
+    global_min = df[metrics].min().min()
+    global_max = df[metrics].max().max()
+
+    custom_colorscale = [ # Viridis | Hot | 'RdPu' (Red-Purple) | 'Magenta'
+        '#4B0082',  # 紫色
+        '#0000FF',  # 蓝色
+        '#00FFFF',  # 青色
+        '#008000',  # 绿色
+        '#FFFF00',  # 黄色
+        '#FFA500',  # 橙色
+        '#FF0000'   # 红色
+    ]
 
     row_index = 1
+    # 循环处理每个子图
     for file_size in unique_file_sizes:
         for context in unique_contexts:
             df_subset = df[(df['file_size'] == file_size) & (df['with_context'] == context)]
             for col_index, metric in enumerate(metrics):
-               # 现在，我们直接使用 'topk' 作为 index, 'chunk_size' 作为 columns
-                heatmap_data = df_subset.pivot_table(index='topk', columns='chunk_size', values=metric, aggfunc='mean')
+                # 现在，我们直接使用 'topk' 作为 index, 'chunk_size' 作为 columns
+                heatmap_data = df_subset.pivot_table(index='topk', columns='chunk_size', values=metric, aggfunc='mean').fillna(0)
                 fig.add_trace(go.Heatmap(
                     z=heatmap_data.values,
                     x=heatmap_data.columns,
                     y=heatmap_data.index,
-                    colorscale='Viridis',
+                    colorscale=custom_colorscale,
+                    zmin=global_min,  # Set the zmin to be the global minimum
+                    zmax=global_max,  # Set the zmax to be the global maximum
                     showscale=False,
                     hovertemplate='Chunk Size: %{x}<br>TopK: %{y}<br>Score: %{z}<extra></extra>'
                 ), row=row_index, col=col_index + 1)
@@ -203,26 +219,28 @@ def create_dashboard(df):
                     ticktext=topk_values,
                     row=row_index,
                     col=col_index + 1)
-
             row_index += 1
 
     # 添加一个共享的 colorbar（最右边那个）
     fig.add_trace(go.Heatmap(
-        z=[[0, 1]],
-        colorscale='Viridis',
+        z=[[global_min, global_max]],  # Use global min and max for the colorbar trace
+        colorscale=custom_colorscale,
         showscale=True,
     ), row=1, col=1)
 
     fig.update_layout(title='RAG Evaluation Dashboard', showlegend=False, coloraxis_showscale=True,
-    coloraxis_colorbar=dict(
-        x=1.1,
-        xanchor="left"
+    coloraxis=dict(
+        cmin=global_min,  # Set the minimum value for the global color scale
+        cmax=global_max,  # Set the maximum value for the global color scale
+        colorbar=dict(
+            x=1.2,
+            xanchor="left"
+        )
     ))
     fig.show()
 
 
 if __name__ == '__main__':
-    # 示例用法
     real_data = {
         # {'answer_relevancy': 0.9077, 'context_precision': 0.9500, 'factual_correctness': 0.6410}
         # (file_size, chunk_size, with_context, topk_value)
@@ -233,6 +251,7 @@ if __name__ == '__main__':
             "context_precision": 0.9500,
             "answer_context_f1": 0.6410
         },
+        # 以下是示例用法
         (
             '1M', 1000, True, 20
          ): {
