@@ -90,10 +90,12 @@ def chat():
     try:
         user_id = '1'
         data = request.get_json()
-        message = data.get('message', '')
-        article_ids = data.get('article_ids', [])
         conversation_id = data.get('conversation_id', '')
+        message = data.get('message', '')
         model = data.get('model', '')
+        # 可选参数
+        article_ids = data.get('article_ids', [])
+        keep_urls = data.get('keep_urls', 2)
         logger.info(f"收到聊天请求：model={model}, conversation_id={conversation_id}, message={message}, article_ids={article_ids}")
         if not conversation_id:
             return jsonify({
@@ -103,7 +105,7 @@ def chat():
             }), 400
         try:
             # 解析含url的消息
-            message = jina.read_from_jina(message)
+            message = jina.read_from_jina(message, keep_urls)
         except Exception as e:
             logger.error(f"Failed to read from Jina: {str(e)}")
         if article_ids in [None, []]:
