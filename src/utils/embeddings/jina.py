@@ -118,11 +118,11 @@ def jina_reader(url: str, mode='read') -> str:
 def read_from_jina(message, keep_urls=2):
     # 提取URL 数量可能非常多 只保留前N个
     urls = extract_urls(message)
-    print(f"URLs extracted: {urls}")
+    logger.info(f"URLs extracted: {urls}")
     # 对比传入的keep_urls的数量和extract_urls的结果数量，取小的
-    real_keep_urls = min(keep_urls, len(urls))
+    real_keep_urls = min(int(keep_urls), len(urls))
     kept_urls = urls[:real_keep_urls]
-    print(f"Kept URLs: {kept_urls}")
+    logger.info(f"Kept URLs: {kept_urls}")
     # 插入解析后的内容
     text_with_content = insert_content(message, kept_urls)
     return text_with_content
