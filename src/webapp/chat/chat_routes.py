@@ -101,7 +101,7 @@ def chat():
         # 可选参数
         article_ids = data.get('article_ids', [])
         keep_urls = data.get('keep_urls', 5)
-        rag_func = data.get('rag_func', False)
+        rag_func = data.get('rag_func', 0)
         recall_num = data.get('recall_num', 20)
         logger.info(f"收到聊天请求：model={model}, conversation_id={conversation_id}, message={message[:20]}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
         if not conversation_id:
@@ -115,7 +115,7 @@ def chat():
             # 解析含url的消息
             message = jina.read_from_jina(message, keep_urls)
             # 搜索向量RAG
-            if rag_func == True:
+            if rag_func == 1:
                 logger.info(f"已开启向量RAG搜索")
                 client = MilvusDB()
                 children = client.search(
