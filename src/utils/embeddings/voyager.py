@@ -184,15 +184,15 @@ def ann_algo(query, k, doc_embeddings):
 # Reranking 外部调用
 def rerank(query, documents, top_k=k_default):
     print("---------------- RERANK START ----------------")
+    logger.info(f"Reranking with query: {query[:20]}, top_k: {top_k}")
     documents_reranked = voyage.rerank(query, documents or my_documents, model=rerank_model, top_k=top_k)
     for r in documents_reranked.results:
         if len(r.document) > 20:
-            print(f"Document: {r.document[:20]}")
+            logger.info(f"Document: {r.document[:20]}")
         else:
-            print(f"Document: {r.document}")
-        print(f"Relevance Score: {r.relevance_score}")
-        print(f"Index: {r.index}")
-        print()
+            logger.info(f"Document: {r.document}")
+        logger.info(f"Relevance Score: {r.relevance_score}")
+        logger.info(f"Index: {r.index}")
     print("---------------- RERANK END ----------------")
     return [r.document for r in documents_reranked.results]
 
