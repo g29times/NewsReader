@@ -14,6 +14,9 @@ import src.utils.embeddings.voyager as voyager
 
 llm = ChatOpenAI(model="gpt-4o-mini")
 
+import logging
+logger = logging.getLogger(__name__)
+
 class RAG:
     
     def __init__(self):
@@ -57,7 +60,7 @@ class RAG:
             ("system", system_prompt),
             ("human", prompt),
         ]
-        # 官方 llm openai
+        # ragas官方 llm openai
         # ai_msg = self.llm.invoke(messages)
         # return ai_msg.content
         # 自定义 llm gemini google格式
@@ -66,87 +69,115 @@ class RAG:
         # history = [{"role": "user", "content": "晚安，GEMI"},{"role": "assistant", "content": "晚安，Neo"}]
         # return self.minimax.query_openai_with_history(question=query, histories=[], system_prompt=system_prompt)
 
-# Load Documents
-sample_docs = [
-    "Albert Einstein proposed the theory of relativity, which transformed our understanding of time, space, and gravity.",
-    "Marie Curie was a physicist and chemist who conducted pioneering research on radioactivity and won two Nobel Prizes.",
-    "Isaac Newton formulated the laws of motion and universal gravitation, laying the foundation for classical mechanics.",
-    "Charles Darwin introduced the theory of evolution by natural selection in his book 'On the Origin of Species'.",
-    "Ada Lovelace is regarded as the first computer programmer for her work on Charles Babbage's early mechanical computer, the Analytical Engine."
-]
-# real_docs
-#  {
-#     "question": "万博宣伟韩国在2014年获得了哪个奖项？",
-#     "answer": "2014年度亚太顾问咨询大奖（Asia-Pacific Consultancy of the Year 2014）",
-#     "golden_chunk": "万博宣伟韩国 (Weber shandwick Korea)\n万博宣伟是 2001 年由万博集团 (Weber Group) (1987)、宣伟国际 (Shandwick International) \n(1974) 与 BSMG (2001) 合并而成的公关公司。总部位于首尔的万博宣伟也荣获了“2014 年度亚\n太顾问咨询大奖”(Asia-Pacifc Consultancy of the Year 2014)。\nd) 博雅韩国 (Burson-Marsteller Korea)\n博雅公关是一家全球性公关传播公司，总部位于纽约市。博雅公关在 6 大洲的 98 个国家设有 67\n间全资办事处和 61 间联营办事处。Merit/Burson-Marsteller 曾处理韩国重大全球性项目，包括\n1988 年首尔奥运会及韩国 2002 年世界杯申办的全球公关项目。Merit/Burson-Marsteller 目前与\n在韩国开展业务经营的主要跨国公司以及需要全球传播顾问的韩国客户合作。",
-#     "chunk_id": "43"
-#   },
-real_docs = []
-real_queries = []
-real_answers = []
-with open("./src/utils/rag/data/evaluation_set_011201_less.json", "r", encoding="utf-8") as f:
-    data = json.load(f)
-    real_docs = [d["golden_chunk"] for d in data]
-    real_queries = [d["question"] for d in data]
-    real_answers = [d["answer"] for d in data]
-print("Imported docs: " + str(len(real_docs)))
+    def get_evaluation_dataset(self, queries, answers=None, relevant_docs=None, references=None):
+        dataset = []
+        if answers is None:
+            answers = [None]
+        if references is None:
+            references = [None]
+        # for query, reference in zip(sample_queries, expected_responses):
+        for query, answer, reference in zip(queries, answers, references):
+            relevant_docs = relevant_docs or self.get_most_relevant_docs(query)
+            response = answer or self.generate_answer(query, relevant_docs)
+            if reference and reference != "":
+                dataset.append(
+                    {
+                        "user_input": query,
+                        "retrieved_contexts": relevant_docs,
+                        "response": response,
+                        "reference": reference
+                    }
+                )
+            else:
+                dataset.append(
+                    {
+                        "user_input": query,
+                        "retrieved_contexts": relevant_docs,
+                        "response": response
+                    }
+            )
+        from ragas import EvaluationDataset
+        evaluation_dataset = EvaluationDataset.from_list(dataset)
+        print(" ------------------------- 打印第一条数据集观察 ------------------------- ")
+        logger.info(evaluation_dataset[0])
+        return evaluation_dataset
 
-# Initialize RAG instance
-rag = RAG()
+    def eval(self, evaluation_dataset):
+        if not evaluation_dataset.samples:
+            logger.warning("Evaluation dataset is empty.")
+            return
+        from ragas import evaluate
+        from ragas.llms import LangchainLLMWrapper
+        evaluator_llm = LangchainLLMWrapper(llm)
+        # from ragas.metrics import LLMContextRecall, Faithfulness, FactualCorrectness
+        # result = evaluate(dataset=evaluation_dataset,metrics=[LLMContextRecall(), Faithfulness(), FactualCorrectness()], llm=evaluator_llm)
+        from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, ContextUtilization, FactualCorrectness
+        if evaluation_dataset.samples[0].reference:
+            result = evaluate(dataset=evaluation_dataset, metrics=[AnswerRelevancy(), ContextPrecision(), FactualCorrectness()], llm=evaluator_llm)
+        else:
+            result = evaluate(dataset=evaluation_dataset, metrics=[AnswerRelevancy()], llm=evaluator_llm)
+        logger.info(result)
 
-# Load documents
-rag.load_documents(real_docs) # sample_docs
-# Query and retrieve the most relevant document
-query = "万博宣伟韩国在2014年获得了哪个奖项？" # "Who introduced the theory of relativity?"
-relevant_doc = rag.get_most_relevant_docs(query)
-# Generate an answer
-answer = rag.generate_answer(query, relevant_doc)
-print(f"Query: {query}")
-print(f"Relevant Document: {relevant_doc}")
-print(f"Answer: {answer}")
+if __name__ == "__main__":
+    # Load Documents
+    sample_docs = [
+        "Albert Einstein proposed the theory of relativity, which transformed our understanding of time, space, and gravity.",
+        "Marie Curie was a physicist and chemist who conducted pioneering research on radioactivity and won two Nobel Prizes.",
+        "Isaac Newton formulated the laws of motion and universal gravitation, laying the foundation for classical mechanics.",
+        "Charles Darwin introduced the theory of evolution by natural selection in his book 'On the Origin of Species'.",
+        "Ada Lovelace is regarded as the first computer programmer for her work on Charles Babbage's early mechanical computer, the Analytical Engine."
+    ]
+    # real_docs
+    #  {
+    #     "question": "万博宣伟韩国在2014年获得了哪个奖项？",
+    #     "answer": "2014年度亚太顾问咨询大奖（Asia-Pacific Consultancy of the Year 2014）",
+    #     "golden_chunk": "万博宣伟韩国 (Weber shandwick Korea)\n万博宣伟是 2001 年由万博集团 (Weber Group) (1987)、宣伟国际 (Shandwick International) \n(1974) 与 BSMG (2001) 合并而成的公关公司。总部位于首尔的万博宣伟也荣获了“2014 年度亚\n太顾问咨询大奖”(Asia-Pacifc Consultancy of the Year 2014)。\nd) 博雅韩国 (Burson-Marsteller Korea)\n博雅公关是一家全球性公关传播公司，总部位于纽约市。博雅公关在 6 大洲的 98 个国家设有 67\n间全资办事处和 61 间联营办事处。Merit/Burson-Marsteller 曾处理韩国重大全球性项目，包括\n1988 年首尔奥运会及韩国 2002 年世界杯申办的全球公关项目。Merit/Burson-Marsteller 目前与\n在韩国开展业务经营的主要跨国公司以及需要全球传播顾问的韩国客户合作。",
+    #     "chunk_id": "43"
+    #   },
+    real_docs = []
+    real_queries = []
+    real_references = []
+    with open("./src/utils/rag/data/evaluation_set_011201_less.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+        real_docs = [d["golden_chunk"] for d in data]
+        real_queries = [d["question"] for d in data]
+        real_references = [d["answer"] for d in data]
+    print("Imported docs: " + str(len(real_docs)))
 
-# Collect Evaluation Data
-sample_queries = [
-    "Who introduced the theory of relativity?",
-    "Who was the first computer programmer?",
-    "What did Isaac Newton contribute to science?",
-    "Who won two Nobel Prizes for research on radioactivity?",
-    "What is the theory of evolution by natural selection?"
-]
-expected_responses = [
-    "Albert Einstein proposed the theory of relativity, which transformed our understanding of time, space, and gravity.",
-    "Ada Lovelace is regarded as the first computer programmer for her work on Charles Babbage's early mechanical computer, the Analytical Engine.",
-    "Isaac Newton formulated the laws of motion and universal gravitation, laying the foundation for classical mechanics.",
-    "Marie Curie was a physicist and chemist who conducted pioneering research on radioactivity and won two Nobel Prizes.",
-    "Charles Darwin introduced the theory of evolution by natural selection in his book 'On the Origin of Species'."
-]
+    # Initialize RAG instance
+    rag = RAG()
 
-# 进行批量测试
-dataset = []
-# for query, reference in zip(sample_queries, expected_responses):
-for query, reference in zip(real_queries, real_answers):
-    relevant_docs = rag.get_most_relevant_docs(query)
-    response = rag.generate_answer(query, relevant_docs)
-    dataset.append(
-        {
-            "user_input": query,
-            "retrieved_contexts": relevant_docs,
-            "response": response,
-            "reference": reference
-        }
-    )
+    # 1 测试一条
+    # Load documents
+    rag.load_documents(real_docs) # sample_docs
+    # Query and retrieve the most relevant document
+    query = "万博宣伟韩国在2014年获得了哪个奖项？" # "Who introduced the theory of relativity?"
+    relevant_doc = rag.get_most_relevant_docs(query)
+    # Generate an answer
+    answer = rag.generate_answer(query, relevant_doc)
+    print(f"Query: {query}")
+    print(f"Relevant Document: {relevant_doc}")
+    print(f"Answer: {answer}")
 
-from ragas import EvaluationDataset
-evaluation_dataset = EvaluationDataset.from_list(dataset)
-print(" ------------------------- 打印第一条数据集观察 ------------------------- ")
-print(evaluation_dataset[0])
+    # Collect Evaluation Data
+    sample_queries = [
+        "Who introduced the theory of relativity?",
+        "Who was the first computer programmer?",
+        "What did Isaac Newton contribute to science?",
+        "Who won two Nobel Prizes for research on radioactivity?",
+        "What is the theory of evolution by natural selection?"
+    ]
+    expected_responses = [
+        "Albert Einstein proposed the theory of relativity, which transformed our understanding of time, space, and gravity.",
+        "Ada Lovelace is regarded as the first computer programmer for her work on Charles Babbage's early mechanical computer, the Analytical Engine.",
+        "Isaac Newton formulated the laws of motion and universal gravitation, laying the foundation for classical mechanics.",
+        "Marie Curie was a physicist and chemist who conducted pioneering research on radioactivity and won two Nobel Prizes.",
+        "Charles Darwin introduced the theory of evolution by natural selection in his book 'On the Origin of Species'."
+    ]
 
-# Evaluate
-from ragas import evaluate
-from ragas.llms import LangchainLLMWrapper
-evaluator_llm = LangchainLLMWrapper(llm)
-# from ragas.metrics import LLMContextRecall, Faithfulness, FactualCorrectness
-# result = evaluate(dataset=evaluation_dataset,metrics=[LLMContextRecall(), Faithfulness(), FactualCorrectness()], llm=evaluator_llm)
-from ragas.metrics import AnswerRelevancy, ContextPrecision, ContextRecall, ContextUtilization, FactualCorrectness
-result = evaluate(dataset=evaluation_dataset, metrics=[AnswerRelevancy(), ContextPrecision(), FactualCorrectness()], llm=evaluator_llm)
-print(result)
+    # 2 进行批量测试
+    evaluation_dataset = rag.get_evaluation_dataset(real_queries)
+    # evaluation_dataset = rag.get_evaluation_dataset(real_queries, real_references)
+
+    # Evaluate
+    rag.eval(evaluation_dataset)

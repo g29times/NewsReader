@@ -12,7 +12,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
-# import src.utils.embeddings.jina as jina
+import src.utils.embeddings.jina as jina
 
 import logging
 logger = logging.getLogger(__name__)
@@ -22,26 +22,80 @@ class TextInputHandler:
     """
     Handler for processing text input for LLM processing
     """
-    # TODO 文本清洗
+    # TODO 文本清洗 
+    # 已知脏数据：1. [Image 110](https:...
     @staticmethod
     def preprocess_text(text):
         """
         Preprocess text data by cleaning and formatting
         """
-        # Remove extra whitespace
-        text = re.sub(r'\s+', ' ', text)
+        try:
+            # Remove [Image xxx](https://...) and [Image xxx: Image](https://...) type links
+            # text = re.sub(r'\[Image\s*\d+(:?\s*Image)?\]\((https?:\/\/[^\s]+)\)', '', text)
 
-        # Remove special characters
-        text = re.sub(r'[^\w\s]', '', text)
+            # Remove [Image xxx](https://...) and [Image xxx: Image](https://...) type links, allowing spaces and newlines inside the link
+            text = re.sub(r'\[Image\s*\d+(:?\s*Image)?\]\(([\s\S]*?)\)', '', text)
 
-        # Convert to lowercase
-        text = text.lower()
+            # # Remove HTML tags
+            # text = re.sub(r'<[^>]*>', '', text)
 
+            # Remove (image) type links
+            text = re.sub(r'\((image)\)', '', text, flags=re.IGNORECASE)
+
+            # Remove extra whitespace
+            text = re.sub(r'\s+', ' ', text)
+
+            # Remove leading and trailing whitespace
+            text = text.strip()
+
+        except Exception as e:
+            logger.error(f"文本预处理异常：{e}")
+        # logger.info(f"文本预处理后：{text}")
+        logger.info(f"文本预处理后：{len(text)}")
         return text
 
-    # 文本分割：默认使用JINA API，失败时自动切换到本地分割
     @staticmethod
-    async def split_text(text: str, max_chunk_length: int = 1000, chunk_overlap: int = 50) -> List[str]:
+    async def split_text(text: str, max_chunk_length: int = 1000, chunk_overlap: int = 100) -> Tuple[List[str], List[str], Dict[int, int]]:
+        max_node_length = max_chunk_length - chunk_overlap
+        nodes = []
+        nodes = await jina.split_text_with_jina(TextInputHandler.preprocess_text(text), max_chunk_length)
+        logger.info(f"文章长度：{len(text)}，JINA分割初步切分成 {len(nodes)} 个chunk")
+        # 合并短句，确保语义完整性
+        big_chunks = []
+        current_text = []
+        current_length = 0
+        small_big_dict = {} # node_id: big_chunk_id
+        big_chunk_id = 0
+        for i, node in enumerate(nodes):
+            # 如果当前句子很短，尝试与下一句合并
+            node_length = len(node)
+            if node_length < max_node_length and current_length + node_length < max_chunk_length:
+                current_text.append(node)
+                current_length += node_length
+                small_big_dict.update({i: big_chunk_id}) # NEW
+            else:
+                # 如果积累了一些短句，将它们合并
+                if current_text:
+                    merged_text = " ".join(current_text)
+                    big_chunks.append(merged_text)
+                    current_text = []
+                    current_length = 0
+                    big_chunk_id += 1  # NEW
+                # 将当前句子作为独立的块
+                # big_chunks.append(node)
+                current_text.append(node) # NEW
+                current_length = node_length # NEW
+                small_big_dict.update({i: big_chunk_id}) # NEW
+        # 处理剩余的短句
+        if current_text:
+            merged_text = " ".join(current_text)
+            big_chunks.append(merged_text)
+        logger.info(f"最终合并成 {len(big_chunks)} 个chunk")
+        return big_chunks, nodes, small_big_dict
+
+    # 文本分割：使用JINA API + 本地分割 # TODO 小到大
+    @staticmethod
+    async def split_text_old(text: str, max_chunk_length: int = 1000, chunk_overlap: int = 100) -> List[str]:
         """智能分割文本，优先使用JINA API，失败时自动切换到本地分割器
         Args:
             text: 要分割的文本
@@ -50,17 +104,17 @@ class TextInputHandler:
             List[str]: 分割后的文本块列表
         """
         try:
-            # JINA API 分的比较细 句子级别
-            # chunks = await jina.split_text_with_jina(text, max_chunk_length)
-            # if chunks:  # 如果成功获取到分块
-            #     logger.info(f"JINA分割成功，切分成 {len(chunks)} 个chunk")
-            #     return chunks
-        #     raise Exception("JINA API returned empty chunks")
-        # except Exception as e:
-            # logger.warning(f"JINA分割失败，切换到本地分割器: {str(e)}")
+            try: # TODO
+                # JINA API 分的比较细 句子级别 小
+                small_chunks = await jina.split_text_with_jina(text, max_chunk_length)
+                if small_chunks:  # 如果成功获取到分块
+                    logger.info(f"JINA分割成功，切分成 {len(small_chunks)} 个chunk")
+                    return small_chunks
+            except Exception as e:
+                logger.warning(f"JINA分割失败，切换到本地分割器: {str(e)}")
             try:
                 # return TextInputHandler._split_document(text, max_chunk_length)
-                # 使用本地分割器作为后备方案
+                # 使用本地分割器作为大块
                 doc = Document(text=text, metadata={})
                 parser = SentenceSplitter(
                     chunk_size=max_chunk_length,
@@ -72,7 +126,7 @@ class TextInputHandler:
                 initial_nodes = parser.get_nodes_from_documents([doc])
                 logger.info(f"本地分割初步切分成 {len(initial_nodes)} 个chunk")
                 # 合并短句，确保语义完整性
-                merged_nodes = []
+                big_chunks = []
                 current_text = []
                 current_length = 0
                 for node in initial_nodes:
@@ -93,13 +147,13 @@ class TextInputHandler:
                             current_text = []
                             current_length = 0
                         # 将当前句子作为独立的块
-                        merged_nodes.append(node.text)
+                        big_chunks.append(node.text)
                 # 处理剩余的短句
                 if current_text:
                     merged_text = " ".join(current_text)
-                    merged_nodes.append(merged_text)
-                logger.info(f"本地分割最终切分成 {len(merged_nodes)} 个chunk")
-                return merged_nodes
+                    big_chunks.append(merged_text)
+                logger.info(f"本地分割最终切分成 {len(big_chunks)} 个chunk")
+                return big_chunks
             except Exception as e:
                 logger.error(f"本地分割失败，使用简单长度分割: {str(e)}")
                 # 如果本地分割也失败，使用最简单的长度分割作为最后的后备方案
@@ -108,7 +162,7 @@ class TextInputHandler:
             logger.error(f"分割文本失败: {str(e)}")
             return []
 
-    def _split_document_old(text: str, max_chunk_length: int = 500) -> List[NodeWithScore]:
+    def _split_document_old1(text: str, max_chunk_length: int = 500) -> List[NodeWithScore]:
         """智能分割文档，生成语义完整的黄金块
         Args:
             doc: 输入文档
@@ -204,8 +258,9 @@ if __name__ == "__main__":
                 sample_text = f.read()
         # processed_text = TextInputHandler.preprocess_text(sample_text)
         # print(processed_text)  # Output: "this is a sample text with special characters"
-        chunks = await TextInputHandler.split_text(sample_text, 10, 2)
+        chunks, nodes = await TextInputHandler.split_text(sample_text, 10, 2)
         print(chunks)
+        print(nodes)
     asyncio.run(main())
     # asyncio.run(main("C:/Users/SWIFT/Desktop/temp/accouting.txt"))
 

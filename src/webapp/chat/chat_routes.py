@@ -17,7 +17,12 @@ import os
 import json
 import threading
 from src.utils.redis.redis_service import redis_service
+from src.utils.rag.rag_service import MilvusDB
 from src.utils.embeddings import jina
+import src.utils.embeddings.voyager as voyager
+from src.utils.redis.redis_service import RedisService
+from src import VECTOR_DB_ARTICLES
+
 # from src.utils.memory.memory_service import NotionMemoryService
 # # 直接使用NotionMemoryService的单例
 # memory_service = NotionMemoryService()
@@ -92,10 +97,12 @@ def chat():
         data = request.get_json()
         conversation_id = data.get('conversation_id', '')
         message = data.get('message', '')
-        model = data.get('model', '')
+        model = data.get('model', 'GEMINI_MODEL')
         # 可选参数
         article_ids = data.get('article_ids', [])
-        keep_urls = data.get('keep_urls', 2)
+        keep_urls = data.get('keep_urls', 5)
+        rag_func = data.get('rag_func', False)
+        recall_num = data.get('recall_num', 20)
         logger.info(f"收到聊天请求：model={model}, conversation_id={conversation_id}, message={message}, article_ids={article_ids}")
         if not conversation_id:
             return jsonify({
@@ -103,15 +110,46 @@ def chat():
                 'message': 'no conversation_id',
                 'data': None
             }), 400
-        try:
+        context = ""
+        try: # 信息辅助增强 允许报错通过
             # 解析含url的消息
             message = jina.read_from_jina(message, keep_urls)
+            # 搜索向量RAG
+            if rag_func:
+                logger.info(f"已开启向量RAG搜索")
+                client = MilvusDB()
+                children = client.search(
+                    collection_name=VECTOR_DB_ARTICLES,
+                    query=message,
+                    limit=int(recall_num),
+                    # search_params={"params": {"nprobe": 10}}, # 高级参数 https://milvus.io/docs/v2.0.x/performance_faq.md https://zilliz.com/blog/select-index-parameters-ivf-index
+                    output_fields=["text", "metadata"],
+                    # filter=filter
+                )
+                children = children[0]
+                chunk_ids = []
+                for i, node in enumerate(children):
+                    if node.get("entity").get("metadata") and node.get("entity").get("metadata").get("chunk_id"):
+                        chunk_id = node.get("entity").get("metadata").get("chunk_id")
+                        if chunk_id not in chunk_ids:
+                            chunk_ids.append(chunk_id)
+                    continue
+                chunks = []
+                for chunk_id in chunk_ids:
+                    redis_client = RedisService()
+                    chunk = redis_client.get_hash_value(f"article_chunks", chunk_id)
+                    chunks.append(chunk)
+                rerank_documents = voyager.rerank(query=message, documents=chunks, top_k=int(recall_num)/2)
+                context = " ".join([str(chunk) for chunk in rerank_documents])
+            else: # 普通聊天
+                redis_client = RedisService()
+                context = " ".join([str(chunk) for chunk in chunks])
         except Exception as e:
             logger.error(f"Failed to read from Jina: {str(e)}")
         if article_ids in [None, []]:
-            response = rag_service.chat(conversation_id, message, os.getenv(model or "GEMINI_MODEL"))
-        else: # 对于长文默认使用更快速的模型
-            response = rag_service.chat_with_articles(conversation_id, article_ids, message, os.getenv("GEMINI_MODEL"))
+            response = rag_service.chat_with_file(conversation_id, context, message, os.getenv(model or "GEMINI_MODEL"))
+        else: # 勾选了文章进行聊天
+            response = rag_service.chat_with_articles(conversation_id, article_ids, message, os.getenv(model or "GEMINI_MODEL"))
         # 异步更新LLM记忆 暂停
         # try:
         #     memory_service.update_memory_async(message, str(response))
@@ -221,7 +259,7 @@ async def save_file_as_article(content: str, filename: str):
         db_session.commit()
         
         # 添加到向量库
-        article_routes.add_articles_to_vector_store(new_article)
+        article_routes.add_articles_to_vector_store([new_article])
         
         logger.info(f"文件保存成功: {filename}")
         return new_article
@@ -278,7 +316,7 @@ def edit_chat_msg():
 def get_conversations():
     try:
         user_id = '1'
-        conversations = rag_service.load_conversations(user_id)
+        conversations = rag_service.load_conversations(int(user_id))
         logger.info(f"User {user_id} has {len(conversations)} conversations")
         return jsonify(conversations)
     except Exception as e:
@@ -286,7 +324,7 @@ def get_conversations():
 
 # 搜索对话
 @chat_bp.route('/api/conversations/search', methods=['GET'])
-def search_chats_api():
+def search_conversations():
     try:
         query = request.args.get('query')
         user_id = request.args.get('user_id', '1')
@@ -296,13 +334,10 @@ def search_chats_api():
         else:
             conv_ids = redis_service.search_conversation_content(int(user_id), query)
         # 2. 从数据库搜索对话
-        chats = search_chats(db_session, int(user_id), query, conv_ids)
-        logger.info(f"Searched chats: {len(chats)}")
-        return jsonify([{
-            'id': chat.id,
-            'title': chat.title,
-            'conversation_id': chat.conversation_id,
-        } for chat in chats])
+        # chats = search_chats(db_session, int(user_id), query, conv_ids)
+        conversations = rag_service.load_conversations(int(user_id), query, conv_ids)
+        logger.info(f"Searched User {user_id} has {len(conversations)} conversations")
+        return jsonify(conversations)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -89,22 +89,40 @@
                 <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
                 <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
                 <div class="choice-radio">
-                    <input type="radio" id="choice1" name="choices" value="OPENAI_MODEL" checked>
-                    <label for="choice1" value="GPT">4o-mini</label>
+                    <!-- <input type="radio" id="choice1" name="choices" value="OPENAI_MODEL" checked>
+                    <label for="choice1" value="GPT">4o-mi</label>
+                    
                     <input type="radio" id="choice2" name="choices" value="GEMINI_MODEL">
-                    <label for="choice2" value="Quick and smart">GEMINI</label>
+                    <label for="choice2" value="Quick and smart">G</label>
+                    
                     <input type="radio" id="choice3" name="choices" value="GEMINI_BEST_MODEL">
-                    <label for="choice3" value="BEST for long text">1206</label>
+                    <label for="choice3" value="BEST for long text">1206</label> -->
+                    <!-- 模型 -->
+                    <label for="llm_choice" value="LLM Choice">LLM</label>
+                    <select name="llm_choice" id="llm_choice">
+                        <option value='GEMINI_MODEL'>Gemini2</option>
+                        <option value='GEMINI_BEST_MODEL'>G-1206</option>
+                        <option value='MINIMAX_MODEL'>abab6.5s</option>
+                        <option value='OPENAI_MODEL'>4o-mini</option>
+                    </select>
+                    <!-- 最大查询URL数量 -->
+                     <label for="keep_urls" value="Max Recall URL">URLs</label>
                     <select name="keep_urls" id="keep_urls">
-                        <option value=1>1</option>
-                        <option value=2>2</option>
-                        <option value=3>3</option>
-                        <option value=4>4</option>
                         <option value=5>5</option>
+                        <option value=1>1</option>
+                        <option value=10>10</option>
+                     </select>
+                     <!-- 默认关闭RAG -->
+                     <label for="rag_func" value="Is RAG Func">RAG</label>
+                     <select name="rag_func" id="rag_func">
+                        <option value=0>OFF</option>
+                        <option value=1>ON</option>
+                     </select>
+                     <!-- RAG召回数量 -->
+                     <label for="recall_num" value="RAG Recall Number">REF</label>
+                     <select name="recall_num" id="recall_num">
+                        <option value=20>20</option>
                         <option value=6>6</option>
-                        <option value=7>7</option>
-                        <option value=8>8</option>
-                        <option value=9>9</option>
                         <option value=10>10</option>
                      </select>
                 </div>
@@ -590,7 +608,7 @@
                 console.log('Conversation ID:', conv_id);
                 // 调用chat服务
                 let result;
-                const modelChoice = document.querySelector('.choice-radio input[name="choices"]:checked').value;
+                // const modelChoice = document.querySelector('.choice-radio input[name="choices"]:checked').value;
                 if (file) { // 如果有文件，使用文件聊天接口
                     const formData = new FormData();
                     formData.append('file', file);
@@ -603,10 +621,10 @@
                     result = await response.json();
                 }
                 else if (selectedArticles.length > 0) { // 普通聊天接口，如果选择了文章，发送文章id
-                    result = await call_chat(conv_id, message, modelChoice, selectedArticles);
+                    result = await call_chat(conv_id, message, selectedArticles);
                 }
                 else { // 普通聊天接口
-                    result = await call_chat(conv_id, message, modelChoice);
+                    result = await call_chat(conv_id, message);
                 }
                 if (result.success) {
                     if (result.data && result.data.response) {
@@ -626,7 +644,7 @@
         }
 
         // sendChatMessage 调用后端chat服务
-        async function call_chat(conv_id, message, modelChoice, selectedArticles = []) {
+        async function call_chat(conv_id, message, selectedArticles = []) {
             try {
                 if (conv_id == undefined || conv_id == null || conv_id == '') {
                    throw new Error('请稍后再试');
@@ -640,9 +658,11 @@
                     body: JSON.stringify({
                         conversation_id: conv_id,
                         message: message,
-                        model: modelChoice, // "GEMINI_MODEL"
                         article_ids: selectedArticles,
-                        keep_urls: document.getElementById('keep_urls').value
+                        model: document.getElementById('llm_choice').value, // "GEMINI_MODEL"
+                        keep_urls: document.getElementById('keep_urls').value,
+                        rag_func: document.getElementById('rag_func').value,
+                        recall_num: document.getElementById('recall_num').value,
                     })
                 });
                 if (!response.ok) {
@@ -1155,8 +1175,8 @@
         }
 
         // -------------------------------- 笔记管理 --------------------------------
-        // TODO 多笔记汇入合并 线上 chatid 没带过来APP类型记为NewsReader 用户界面系统提示词。项目？分组、标签， 接入搜素， 支持url， 新建/追加笔记 大笔记失败， chatid conv_id精简， 底部滚动条，Perplexiti AI集成 获取新闻，google 搜索集成，学术搜索集成，改密码，拉勾
-
+        // TODO 多笔记汇入合并
+        
         // 调用后端方法 记笔记
         async function createNote(noteData) {
             try {

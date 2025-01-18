@@ -51,6 +51,7 @@
                         <input type="text" name="url" placeholder="Url" required style="flex: 1;">
                         <input type="text" name="tags" placeholder="Tags" style="flex: 1;">
                         <button type="submit" id="add-button">添加</button>
+                        <button type="button" id="vec-button" onclick="vectorArticles()">向量</button>
                         <!-- </div> -->
                     </form>
                 </div>
@@ -291,7 +292,7 @@
             inputElement.focus();
         }
 
-        // 保存标签
+        // 修改文章-标签
         async function saveTags(articleId) {
             const inputElement = document.getElementById(`tags-input-${articleId}`);
             const textElement = document.getElementById(`tags-text-${articleId}`);
@@ -322,6 +323,36 @@
             }
         }
 
+        // 管理员 文章向量化
+        async function vectorArticles() {
+            try {
+                const formData = new FormData();
+                // add checked article_ids into formData
+                ids = Array.from(document.querySelectorAll('.article-checkbox:checked'))
+                    .map(checkbox => checkbox.value)
+                    .join(',');
+                formData.append('article_ids', ids);
+                if (ids === '') {
+                    showToast('请至少选择一篇文章', 'error');
+                    return;
+                }
+                const response = await fetch('/article/vector_article', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(result.message, 'success');
+                } else {
+                    // showToast(result.message || '文章向量化失败', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast(error.message || '文章向量化失败，请稍后重试', 'error');
+            } finally {
+
+            }
+        }
     </script>
     <!-- 辅助功能 -->
     <script> 

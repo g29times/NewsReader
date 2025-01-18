@@ -1,4 +1,5 @@
 from flask import render_template, request, jsonify, flash, redirect, url_for
+from typing import List, Dict, Any, Optional, Tuple, Union
 from . import article_bp
 from models.article import Article
 from models.article_crud import *
@@ -80,11 +81,11 @@ def add_article(type: str = "WEB"):
             'user_id': user_id
         })
         # 文章入库
-        article_crud.create_article(db_session, article_data)
+        new_article = article_crud.create_article(db_session, article_data)
         logger.info(f"成功添加文章到数据库: {new_article.title}")
 
         # 6 存向量数据库
-        add_articles_to_vector_store(new_article)
+        add_articles_to_vector_store([new_article])
         return jsonify({
             'success': True,
             'message': '文章添加成功',
@@ -119,7 +120,7 @@ def delete_article_route(article_id):
             }), 404
 
         delete_article(db_session, article_id)
-        # 删除文章后，也删除向量数据库中该文章的信息 # TODO 经常失败
+        # 删除文章后，也删除向量数据库中该文章的信息
         rag_service.delete_articles_from_vector_store([article], collection_name=VECTOR_DB_ARTICLES)
         return jsonify({
             'success': True,
@@ -151,7 +152,7 @@ def update_article_route(article_id):
 
         # 更新文章后，将文章转存向量数据库
         article = get_article_by_id(db_session, article_id)
-        add_articles_to_vector_store(article)
+        add_articles_to_vector_store([article])
 
         return jsonify({
             'success': True,
@@ -182,6 +183,30 @@ def search_articles_route():
         logger.error(f"Error searching articles: {e}")
         flash('Error performing search')
         return render_template('article/article.html', articles=[])
+
+@article_bp.route('/vector_article', methods=['POST'])
+def batch_vector_store():
+    """批量添加文章到向量数据库"""
+    user_id = '1'
+    try:
+        # 1 获取表单数据
+        article_ids = request.form.get('article_ids', '')
+        articles = get_article_by_ids(db_session, article_ids.split(","))
+        # 在后台处理向量数据库操作
+        rag_service.add_articles_to_vector_store_background(articles, collection_name=VECTOR_DB_ARTICLES)
+        logger.info(f"开始在后台添加文章到向量数据库：{article_ids}")
+        return jsonify({
+                'success': True,
+                'message': '开始在后台添加文章到向量数据库',
+                'data': None
+            }), 200
+    except Exception as e:
+        logger.error(f"启动后台向量数据库任务失败: {str(e)}")
+        return jsonify({
+                'success': False,
+                'message': '启动后台向量数据库任务失败',
+                'data': None
+            }), 200
 
 # 文章摘要
 def summarize_article_content(content: str, article_data: dict = None) -> dict:
@@ -219,11 +244,10 @@ def summarize_article_content(content: str, article_data: dict = None) -> dict:
     
     return article_data
 
-def add_articles_to_vector_store(article: Article):
+def add_articles_to_vector_store(articles: List[Article]):
     """将文章添加到向量数据库"""
     user_id = '1'
     try:
-        articles = [article]
         # 在后台处理向量数据库操作
         rag_service.add_articles_to_vector_store_background(articles, collection_name=VECTOR_DB_ARTICLES)
         logger.info(f"开始在后台添加文章到向量数据库: <{article.title}>")

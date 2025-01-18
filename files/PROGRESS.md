@@ -11,6 +11,7 @@
 # 1 TODO
 ## 整体设计
   见SYSTEM-DESIGN
+  文章向量声明统一，目前分散于milvus_client.build_data，rag_service.add_articles_to_vector_store，chat_routes.chat
 ## BUG
 	多余的方法
 	数据库重构

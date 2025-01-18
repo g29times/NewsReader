@@ -55,10 +55,13 @@ class GeminiClient:
     # 初始化Generative Model
     @classmethod
     def _initialize_model(cls, system_prompt) -> genai.GenerativeModel:
+        if system_prompt:
+            logger.info("GEMINI SYSTEM_PROMPT: " + system_prompt)
+        system_prompt = system_prompt or LLMCommonUtils._get_time_prompt()
         return genai.GenerativeModel(
             model_name=cls.MODEL,
             generation_config=cls.GENERATION_CONFIG,
-            system_instruction=system_prompt
+            system_instruction=system_prompt,
         )
 
     # 多轮对话 TODO 未完成 

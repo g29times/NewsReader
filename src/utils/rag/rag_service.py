@@ -6,6 +6,8 @@ import os
 import sys
 import logging
 import time
+import uuid
+import numpy as np
 import asyncio
 import requests
 from abc import ABC, abstractmethod
@@ -26,13 +28,13 @@ from llama_index.core.memory import ChatMemoryBuffer
 from llama_index.core.llms import ChatMessage
 from llama_index.core.chat_engine import SimpleChatEngine
 import json
-
-from src.models import article_crud
+from pymilvus import DataType
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
+from src.models import article_crud
 from src.utils.llms.llm_common_utils import LLMCommonUtils
 from src.database.connection import db_session
 from src.database.milvus_client import Milvus
@@ -44,12 +46,19 @@ import src.utils.embeddings.jina as jina
 from src.utils.text_input_handler import TextInputHandler
 from models.chat import Chat
 from models.chat_crud import *
+from src.utils.redis.redis_service import RedisService
+
+redis_client = RedisService()
 
 logger = logging.getLogger(__name__)
 # 向量数据库抽象接口
 class VectorDB(ABC):
     @abstractmethod
-    def create_collection(self, collection_name: str, embedding_fn=None):
+    def get_client(self):
+        pass
+
+    @abstractmethod
+    def create_collection(self, collection_name: str, embedding_fn=None, schema=None, index_params=None):
         pass
         
     @abstractmethod
@@ -57,15 +66,15 @@ class VectorDB(ABC):
         pass
         
     @abstractmethod
-    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
+    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None, data=None):
         pass
         
     @abstractmethod
-    def search(self, collection_name: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, collection_name: str, query: str, limit: int = 5, output_fields=["text"], search_params={}, filter="") -> List[Dict[str, Any]]:
         pass
 
     @abstractmethod
-    def delete_items(self, collection_name: str, item_ids: List[str]):
+    def delete_items(self, collection_name: str, item_ids: List[str], filter: str = None):
         pass
 
     @abstractmethod
@@ -80,8 +89,11 @@ class VectorDB(ABC):
 class ChromaDB(VectorDB):
     def __init__(self):
         self.client = chromadb.Client()
-        
-    def create_collection(self, collection_name: str, embedding_fn=None):
+    
+    def get_client(self):
+        return self.client
+
+    def create_collection(self, collection_name: str, embedding_fn=None, schema=None, index_params=None):
         return self.client.get_or_create_collection(
             name=collection_name,
             embedding_function=embedding_fn
@@ -93,7 +105,7 @@ class ChromaDB(VectorDB):
             embedding_function=embedding_fn
         )
         
-    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
+    def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None, data=None):
         collection = self.get_collection(collection_name)
         collection.upsert(
             documents=[doc["text"] for doc in documents],
@@ -101,7 +113,7 @@ class ChromaDB(VectorDB):
             embeddings=embeddings
         )
         
-    def search(self, collection_name: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    def search(self, collection_name: str, query: str, limit: int = 5, output_fields=["text"], search_params={}, filter="") -> List[Dict[str, Any]]:
         collection = self.get_collection(collection_name)
         results = collection.query(
             query_texts=[query],
@@ -110,7 +122,7 @@ class ChromaDB(VectorDB):
         )
         return results
 
-    def delete_items(self, collection_name: str, item_ids: List[str]):
+    def delete_items(self, collection_name: str, item_ids: List[str], filter: str = None):
         collection = self.get_collection(collection_name)
         collection.delete(ids=item_ids)
         
@@ -125,21 +137,30 @@ class ChromaDB(VectorDB):
 class MilvusDB(VectorDB):
     def __init__(self):
         self.client = Milvus()
+
+    def get_client(self):
+        return self.client.get_client()
         
-    def create_collection(self, collection_name: str, embedding_fn=None):
-        return self.client.create_collection(collection_name)
+    def create_collection(self, collection_name: str, embedding_fn=None, schema=None, index_params=None):
+        return self.client.create_collection(collection_name, schema=schema, index_params=index_params)
         
     def get_collection(self, collection_name: str, embedding_fn=None):
-        return None # self.client.get_collection(collection_name)
-        
-    async def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None):
-        await self.client.upsert_docs(collection_name, documents)
-        
-    def search(self, collection_name: str, query: str, limit: int = 5) -> List[Dict[str, Any]]:
-        return self.client.search(collection_name, query, limit=limit)
+        if self.client.has_collection(collection_name):
+            return self.client.describe_collection(collection_name)
+        else:
+            return None
 
-    def delete_items(self, collection_name: str, item_ids: List[str]):
-        self.client.delete_items(collection_name, item_ids)
+    async def add_documents(self, collection_name: str, documents: List[Dict[str, Any]], embeddings: Optional[List[List[float]]] = None, data=None):
+        if data:
+            await self.client.upsert_data(collection_name, data)
+        else:
+            await self.client.upsert_docs(collection_name, documents, embeddings)
+        
+    def search(self, collection_name: str, query: str, limit: int = 5, output_fields=["text"], search_params={}, filter="") -> List[Dict[str, Any]]:
+        return self.client.search(collection_name, query, limit, output_fields, search_params, filter)
+
+    def delete_items(self, collection_name: str, item_ids: List[str], filter: str = None):
+        self.client.delete_items(collection_name, item_ids, filter)
         
     def delete_collection(self, collection_name: str):
         self.client.delete_collection(collection_name)
@@ -223,11 +244,6 @@ class RAGService:
             persist_path="chat_store.json"
         )
         self.chat_store = remote_chat_store if remote_chat_store else local_chat_store
-        self.chat_memory = ChatMemoryBuffer.from_defaults(
-            token_limit=10000, # shape 相似
-            chat_store=self.chat_store,
-            chat_store_key="user1_conv1", # TODO user_id
-        )
 
         # 全局配置 Global 默认值
         # Settings.llm = self.gemini
@@ -528,28 +544,68 @@ class RAGService:
             documents.append(doc)
         return documents
     
-    # 异步方法 将文章添加到向量数据库
+    def generate_id_with_time_and_random(self):
+        timestamp = time.time_ns()
+        random_part = uuid.uuid4().int & (1 << 32) - 1
+        # 使用 numpy.int64
+        timestamp_part = np.int64(timestamp & ((1 << 31) - 1))  # 取时间戳低 31 位
+        return (timestamp_part << np.int64(32)) | np.int64(random_part)
+
+    # 将文章添加到向量数据库
     async def add_articles_to_vector_store(self, articles: List[Article], collection_name: Optional[str] = None):
         try:
             # 获取或创建collection
             if collection_name is None:
                 collection_name = f"{self.current_collection_name}_{int(time.time())}"
-            
-            # 切分文本并入库
+            # 切分内容或概要并入库 
+            chunk_size = os.getenv("CHUNK_SIZE", 1000)
+            overlap = os.getenv("OVERLAP", 100)
             for article in articles:
-                chunks = await TextInputHandler.split_text(article.content or article.summary, max_chunk_length=2000)
+                chunks, nodes, small_big_dict = await TextInputHandler.split_text(article.content or article.summary, int(chunk_size), int(overlap))
                 if not chunks:
                     logger.warning(f"文章 {article.id} 没有有效内容可切分")
                     continue
                 # 为每个chunk生成唯一ID
                 chunk_ids = [f"article_{article.id}_chunk_{i}" for i in range(len(chunks))]
-                logger.info(f"JINA 将文章 <{article.title}> 切分成 {len(chunks)} 个chunk")
+                logger.info(f"<{article.title}> 文章切分成 {len(chunks)} 个chunk")
                 # TODO chunk 用LLM增加上下文
-                await self.vector_db.add_documents(collection_name, chunks)
+                client = self.vector_db.get_client()
+                schema = client.create_schema(
+                    auto_id=False,
+                    enable_dynamic_fields=True,
+                )
+                # 添加 JSON 字段
+                schema.add_field(field_name="metadata", datatype=DataType.JSON)
+                schema.add_field(field_name="id", datatype=DataType.INT64, is_primary=True)
+                schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=2048)
+                schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=1024)
+                # 创建 Collection
+                index_params = client.prepare_index_params()
+                index_params.add_index(
+                    field_name="embedding",
+                    index_type="AUTOINDEX",
+                    metric_type="COSINE"
+                )
+                self.vector_db.create_collection(collection_name, None, schema, index_params)
+                # 1 将子句保存到向量库
+                doc_embeddings = voyager.get_doc_embeddings(nodes)
+                vc_nodes = []
+                for i, node in enumerate(nodes):
+                    chunk_id = small_big_dict.get(i)
+                    vc_nodes.append({
+                        "metadata": {"article_id": article.id, "article_title": article.title, "chunk_id": f"article_{article.id}_chunk_{chunk_id}"},
+                        "id": self.generate_id_with_time_and_random(),
+                        "text": node,
+                        "embedding": doc_embeddings[i] # 1024
+                    })
+                await self.vector_db.add_documents(collection_name, [], [], vc_nodes)
                 # 更新sqlite数据库 文章的vector_ids
                 article.vector_ids = ",".join(chunk_ids)
                 update_article(db_session, article.id, {"vector_ids": article.vector_ids})
-
+                # 2 将父文档缓存 save big chunk to redis {article_chunks: {article_1_chunk_19: "..."}}
+                for i, big_chunk in enumerate(chunks):
+                    chunk_id = f"article_{article.id}_chunk_{i}"
+                    redis_client.set_hash(f"article_chunks", {chunk_id: big_chunk})
             logger.info(f"成功将 {len(articles)} 个文档添加到向量库 {collection_name} 集合中")
             return True
         except Exception as e:
@@ -578,7 +634,6 @@ class RAGService:
         try:
             if collection_name is None:
                 collection_name = self.current_collection_name
-            # collection = self.chroma_client.get_collection(name=collection_name)
             
             for article in articles:
                 if not article.vector_ids:
@@ -588,12 +643,19 @@ class RAGService:
                 vector_ids = article.vector_ids.split(",")
                 
                 # 从VectorDB中删除
-                # collection.delete(ids=vector_ids)
-                self.vector_db.delete_items(collection_name, vector_ids)
+                filter=f'metadata["article_id"] == {article.id}' # TODO 此条件可以优化
+                self.vector_db.delete_items(collection_name, item_ids=None, filter=filter)
                 
                 # 清空文章的vector_ids
                 update_article(db_session, article.id, {"vector_ids": None})
                 
+                # 删除redis缓存 # TODO 此循环可以优化
+                for chunk_id in vector_ids:
+                    redis_client.delete_hash_value("article_chunks", chunk_id)
+                # async def inner_async_function():
+                #     await redis_client.batch_delete_hash_fields(f"article_{article.id}_chunk_*")
+                # asyncio.run(inner_async_function())
+
             logger.info(f"成功从向量库 {collection_name} 删除 {len(articles)} 个文档")
             return True
         except Exception as e:
@@ -643,10 +705,10 @@ class RAGService:
             return None
 
     # 加载用户的所有对话列表（仅标题和基本信息） DONE
-    def load_conversations(self, user_id: str):
+    def load_conversations(self, user_id: int, query: str="", conv_ids: List[str]=[]):
         try:
             # 1 获取数据库用户的所有对话(仅is_active的)
-            user_conversations = get_user_chats(self.session, int(user_id))
+            user_conversations = search_chats(self.session, int(user_id), query, conv_ids, limit=100)
             if not user_conversations:
                 return []
             from collections import OrderedDict
@@ -656,8 +718,8 @@ class RAGService:
             redis_keys = redis_service.get_keys(f"user{user_id}_conv*")
             if redis_keys:
                 for chat in user_conversations: # user1_conv1
-                    redis_key = "user" + str(user_id) + "_conv" + chat.conversation_id
-                    if redis_key not in redis_keys:
+                    db_key = "user" + str(user_id) + "_conv" + chat.conversation_id
+                    if db_key not in redis_keys:
                         dict.pop(chat.conversation_id)
             # 3 转换为前端需要的格式
             conversations = []

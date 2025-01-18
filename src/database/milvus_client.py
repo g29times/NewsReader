@@ -76,6 +76,8 @@ class Milvus:
             )
         self.embedding_fn = embedding_fn
 
+    def get_client(self):
+        return self.client
 # ------------------------------ collection level 操作 增删改查 ------------------------------
     
     # Create db self.embedding_fn.dim
@@ -83,15 +85,18 @@ class Milvus:
         if self.has_collection(collection_name=collection_name):
             return# self.client.drop_collection(collection_name=collection_name)
         self.client.create_collection(
-            dimension=dim,
             collection_name=collection_name,
+            dimension=int(os.getenv('EMBEDDING_DIM', dim)),
             schema=schema,
             index_params=index_params # 默认使用cosine similarity
         )
-        log.info("create_db with dimension", dim)
+        log.info("create_db: ", collection_name)
 
     def has_collection(self, collection_name):
         return self.client.has_collection(collection_name=collection_name)
+
+    def describe_collection(self, collection_name):
+        return self.client.describe_collection(collection_name=collection_name)
 
     # milvus.client.load_collection(
     #     collection_name=collection_name
@@ -132,9 +137,10 @@ class Milvus:
 # ------------------------------ collection 内的元素（document） level 操作 增删改查 ------------------------------
 
     # 将文本转换为milvus格式的向量表示 Each entity has id, vector representation, raw text, and a subject label to filtering metadata.
-    def build_data(self, docs, docs_embeddings, subject, metadata):
+    # TODO build_data 应改为回调，由业务方决定
+    def build_data(self, docs, docs_embeddings, subjects, metadatas):
         data = [
-            {"id": i, "vector": docs_embeddings[i], "text": docs[i], "subject": subject, "metadata": metadata}
+            {"id": i, "embedding": docs_embeddings[i], "text": docs[i], "subject": subjects[i], "metadata": metadatas[i]}
             for i in range(len(docs_embeddings))
         ]
         return data
@@ -153,15 +159,20 @@ class Milvus:
     # Add、Update Data (入参data必须是向量表示)
     async def upsert_data(self, collection_name, data):
         res = self.client.upsert(collection_name=collection_name, data=data)
-        log.info("upsert_data: ", res)
+        log.info(f"upsert_id: {data[0].get('id')}")
         return res
 
     # Update Docs 聚合方法 subject可用于后续partition
-    async def upsert_docs(self, collection_name, docs, subject="criticism", author=""):
+    async def upsert_docs(self, collection_name, docs, embeddings, metadatas):
         if not self.has_collection(collection_name=collection_name):
             self.create_collection(collection_name)
-        docs_embeddings = self.encode_documents(docs)
-        data = self.build_data(docs, docs_embeddings, subject, author)
+        if not embeddings:
+            docs_embeddings = self.encode_documents(docs)
+        else:
+            docs_embeddings = embeddings
+        if not metadatas:
+            metadatas = {"subjects": ["article"] * len(docs), "authors": [""] * len(docs)}
+        data = self.build_data(docs, docs_embeddings, metadatas.get("subjects"), metadatas.get("authors"))
         res = await self.upsert_data(collection_name=collection_name, data=data)
         log.info("upsert_docs: ", res)
         return res
@@ -175,14 +186,16 @@ class Milvus:
         )
         return res
 
-    # Semantic Search client.search()是milvus 内部逻辑
-    def search(self, collection_name, query, limit=3, output_fields=["text"]):
+    # Semantic Search
+    def search(self, collection_name, query, limit=5, output_fields=["text"], search_params={}, filter=""):
         query_vectors = self.encode_query(query)
         res = self.client.search(
             collection_name=collection_name,  # target collection
             data=query_vectors,  # query vectors
             limit=limit,  # number of returned entities
             output_fields=output_fields,  # specifies fields to be returned
+            search_params=search_params,
+            filter=filter
         )
         return res
 
@@ -195,9 +208,14 @@ class Milvus:
         return res[0]["count(*)"]
 
     # delete items
-    def delete_items(self, collection_name, ids):
-        res = self.client.delete(collection_name=collection_name, ids=ids)
-        log.info("delete_items: ", res)
+    def delete_items(self, collection_name, ids, filter):
+        """此id是指vector db的id"""
+        if ids:
+            res = self.client.delete(collection_name=collection_name, ids=ids)
+            log.info("delete_items: ", res)
+        else:
+            res = self.client.delete(collection_name=collection_name, filter=filter)
+            log.info("delete_items: ", res)
 
 # main
 if __name__ == "__main__":

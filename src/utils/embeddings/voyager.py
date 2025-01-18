@@ -90,8 +90,19 @@ def get_my_documents():
 # 将文档列表转换为嵌入向量  voyageai 限制batch数量：128
 def get_doc_embeddings(documents):
     print(f"---------------- voyageai embedding {len(documents)} docs ----------------")
-    embeddings = voyage.embed(documents, model=embed_model, input_type="document").embeddings
-    return embeddings
+    all_embeddings = []
+    batch_size = 128
+    for i in range(0, len(documents), batch_size):
+        batch_docs = documents[i:i+batch_size] # 获取当前批次的文档
+        # 调用 voyage API 获取当前批次的 embeddings
+        try:
+          batch_embeddings = voyage.embed(batch_docs, model=embed_model, input_type="document").embeddings
+          all_embeddings.extend(batch_embeddings) # 将当前批次的 embeddings 加入到总的 embeddings 列表中
+        except Exception as e:
+          print(f"Error during batch embedding: {e}")
+    return all_embeddings # np.array(all_embeddings) # 将结果转换为 numpy 数组，方便后续处理
+    # embeddings = voyage.embed(documents, model=embed_model, input_type="document").embeddings
+    # return embeddings
 
 # 将查询字符串转换为嵌入向量
 def get_query_embedding(query):
@@ -171,15 +182,19 @@ def ann_algo(query, k, doc_embeddings):
     
 
 # Reranking 外部调用
-def rerank(query, k=k_default):
+def rerank(query, documents, top_k=k_default):
     print("---------------- RERANK START ----------------")
-    documents_reranked = voyage.rerank(query, my_documents, model=rerank_model, top_k=k)
+    documents_reranked = voyage.rerank(query, documents or my_documents, model=rerank_model, top_k=top_k)
     for r in documents_reranked.results:
-        print(f"Document: {r.document[:20]}")
+        if len(r.document) > 20:
+            print(f"Document: {r.document[:20]}")
+        else:
+            print(f"Document: {r.document}")
         print(f"Relevance Score: {r.relevance_score}")
         print(f"Index: {r.index}")
         print()
     print("---------------- RERANK END ----------------")
+    return [r.document for r in documents_reranked.results]
 
 # Rerank实现
 def rerank_with_voyage(query: str, documents: List[str], top_k: int = None) -> List[Dict[str, float]]:

@@ -32,6 +32,132 @@ class RedisService:
         except Exception as e:
             logy.error(f"Error deleting keys: {str(e)}")
     
+    def get_string(self, key: str):
+        try:
+            value = self.redis.get(key)
+            return value
+        except Exception as e:
+            logy.error(f"Error getting string: {str(e)}")
+            return None
+
+    def set_string(self, key: str, value: str):
+        try:
+            self.redis.set(key, value)
+        except Exception as e:
+            logy.error(f"Error setting string: {str(e)}")
+
+    def get_hash(self, key: str):
+        try:
+            value = self.redis.hgetall(key)
+            return value
+        except Exception as e:
+            logy.error(f"Error getting hash: {str(e)}")
+            return None
+    
+    def get_hash_value(self, key: str, field: str):
+        try:
+            value = self.redis.hget(key, field)
+            return value
+        except Exception as e:
+            logy.error(f"Error getting hash value: {str(e)}")
+            return None
+            
+    def set_hash(self, key: str, data: dict):
+        """
+        def hset(
+            self,
+            key: str,
+            field: Optional[str] = None,
+            value: Optional[ValueT] = None,
+            values: Optional[Mapping[str, ValueT]] = None,
+        ) -> ResponseT:
+        
+        Sets the value of one or multiple fields in a hash.
+
+        Returns the number of fields that were added.
+
+        `hmset` can be used to set multiple fields at once too.
+
+        Example:
+        ```python
+
+        # Set a single field
+        assert redis.hset("myhash", "field1", "Hello") == 1
+
+        # Set multiple fields
+        assert redis.hset("myhash", values={
+            "field1": "Hello",
+            "field2": "World"
+        }) == 2
+        ```
+
+        See https://redis.io/commands/hset
+        """
+        try:
+            # self.redis.hset(key, data) # ERR wrong number of arguments for 'hset' command
+            for field, value in data.items():
+                self.redis.hset(key, field, value)
+        except Exception as e:
+            logy.error(f"Error setting hash: {str(e)}")
+
+    def delete_hash_value(self, key: str, field: str):
+        try:
+            self.redis.hdel(key, field)
+        except Exception as e:
+            logy.error(f"Error deleting hash value: {str(e)}")
+
+    async def batch_delete_hash_fields(self, key_pattern):
+        """
+        批量删除 Redis Hash 中符合指定模式的 key 的 field。
+
+        Args:
+            key_pattern: key 的模式，例如 "article_2_chunk_*"。
+        """
+        keys = []
+        cursor = '0'
+        while True:
+            cursor, batch_keys = self.redis.scan(cursor=cursor, match=key_pattern)
+            keys.extend(batch_keys)
+            if cursor == '0':
+                break
+        print(f"匹配到的 keys: {keys}")
+
+        for key in keys:
+            key = key.decode("utf-8")
+            fields = self.redis.hkeys(key)
+            if fields:
+                field_list = [field.decode("utf-8") for field in fields]
+                print(f"key: {key}, 将删除 field: {field_list}")
+                self.redis.hdel(key, *field_list) # 批量删除 field，注意*的使用
+        print("批量删除完成")
+
+    async def batch_delete_hash_fields_with_lua(self, key_pattern):
+        """
+        使用 Lua 脚本批量删除 Redis Hash 中符合指定模式的 key 的 field。
+
+        Args:
+            key_pattern: key 的模式，例如 "article_2_chunk_*"。
+        """
+        lua_script = """
+        local keys = redis.call('KEYS', ARGV[1])
+        if not keys then
+           return {}
+        end
+        for _, key in ipairs(keys) do
+            local fields = redis.call('HKEYS', key)
+            if #fields > 0 then
+                redis.call('HDEL', key, unpack(fields))
+            end
+        end
+        return keys
+        """
+        keys = self.redis.eval(lua_script, 0, key_pattern) # 传入 key 的模式
+        if isinstance(keys, list):
+            print(f"匹配到的 keys: {keys}")
+        else:
+            print(f"没有匹配到keys: {keys}") # 新增提示
+        print("批量删除完成 (使用 Lua 脚本)")
+
     def decode_unicode_escape(self, s: str) -> str:
         """解码Unicode转义序列"""
         try:
@@ -103,36 +229,44 @@ class RedisService:
 redis_service = RedisService()
 
 if __name__ == "__main__":
-    print(redis_service.decode_unicode_escape("\\u8c93")) # 成功 貓
+    # print(redis_service.decode_unicode_escape("\\u8c93")) # 成功 貓
 
-    print(redis_service.get_keys("user1_conv*")) # 成功
+    # print(redis_service.get_keys("user1_conv*")) # 成功
 
-    # helloworld 成功
-    script = 'return ARGV[1]'
-    result = redis_service.redis.eval(script, [], ["hello"])
-    print(result) # "hello"
+    # # helloworld 成功
+    # script = 'return ARGV[1]'
+    # result = redis_service.redis.eval(script, [], ["hello"])
+    # print(result) # "hello"
 
-    # 用lua 获取所有keys 成功
-    script = '''
-    local pattern = ARGV[1]
-    local keys = redis.call('KEYS', pattern)
-    return keys
-    '''
-    result = redis_service.redis.eval(script, [], ["user1_conv*"])
-    print("All keys:", result)
+    # # 用lua 获取所有keys 成功
+    # script = '''
+    # local pattern = ARGV[1]
+    # local keys = redis.call('KEYS', pattern)
+    # return keys
+    # '''
+    # result = redis_service.redis.eval(script, [], ["user1_conv*"])
+    # print("All keys:", result)
 
-    # 用lua 获取一个list类型的key的所有元素 成功
-    script = '''
-    local key = ARGV[1]
-    local messages = redis.call('LRANGE', key, 0, -1)
-    return messages
-    '''
-    # 使用第一个key来测试
-    first_key = redis_service.get_keys("user1_conv1")[0]
-    result = redis_service.redis.eval(script, [], [first_key])
-    print("\nFirst key:", first_key)
-    print("List contents:", result)
+    # # 用lua 获取一个list类型的key的所有元素 成功
+    # script = '''
+    # local key = ARGV[1]
+    # local messages = redis.call('LRANGE', key, 0, -1)
+    # return messages
+    # '''
+    # # 使用第一个key来测试
+    # first_key = redis_service.get_keys("user1_conv1")[0]
+    # result = redis_service.redis.eval(script, [], [first_key])
+    # print("\nFirst key:", first_key)
+    # print("List contents:", result)
 
-    # 用lua 搜索
-    print(redis_service.search_conversation_content(1, "トレンディドラマ")) # 成功
+    # # 用lua 搜索
+    # print(redis_service.search_conversation_content(1, "トレンディドラマ")) # 成功
     
+    # set string
+    # redis_service.set_string("chunk:A", "这是第一段大段文本的内容...")
+    # redis_service.set_string("chunk:B", "这是第二段大段文本的内容...")
+    print(redis_service.get_string("chunk:A")) # b'world'
+
+    # set hash
+    # redis_service.set_hash("child_chunk_map", {"child_1": "A", "child_2": "B"}) # 成功
+    print(redis_service.get_hash("child_chunk_map"))

@@ -24,7 +24,7 @@ class Article(Base):
     collection_date = Column(DateTime, default=func.datetime('now', 'localtime')) # 收集文章的时间
     publication_date = Column(String) # 粗略文章发布时间 由LLM生成 格式可能不统一 因此不使用DateTime
     authors = Column(String) # 作者
-    type = Column(String) # 资源类型 （WEB FILE 等）
+    type = Column(String) # 资源类型 （WEB FILE NOTE）
 
     # 一对多关系
     user_id = Column(Integer, nullable=False) # 不使用外键 示例：1,2,3

@@ -18,26 +18,26 @@ from datetime import datetime
 def get_user_all_chats(db: Session, user_id: int):
     return db.query(Chat).filter(Chat.user_id == user_id).all()
 
-# 按聊天内容 搜索用户的有效的聊天记录 倒排
+# 按聊天内容 搜索用户的有效的聊天记录 倒排 限定数量
 @logy
-def search_chats(db: Session, user_id: int, query: str, conv_ids: List[str]):
+def search_chats(db: Session, user_id: int, query: str="", conv_ids: List[str]=[], limit: int = 100):
     if conv_ids and conv_ids != []:
         return db.query(Chat).filter(
             Chat.user_id == user_id,
             Chat.is_active == True,
             Chat.conversation_id.in_(conv_ids)
-        ).order_by(Chat.updated_at.desc()).all()
+        ).order_by(Chat.updated_at.desc()).limit(limit).all()
     elif query and query != "":
         return db.query(Chat).filter(
             Chat.user_id == user_id,
             Chat.is_active == True,
             Chat.title.contains(query)
-        ).order_by(Chat.updated_at.desc()).all()
+        ).order_by(Chat.updated_at.desc()).limit(limit).all()
     else:
         return db.query(Chat).filter(
             Chat.user_id == user_id,
             Chat.is_active == True
-        ).order_by(Chat.updated_at.desc()).all()
+        ).order_by(Chat.updated_at.desc()).limit(limit).all()
 
 # 重点 获取用户的所有有效的聊天记录 按编辑时间倒排 限定数量
 @logy
@@ -77,7 +77,7 @@ def update_chat(db: Session, user_id: int, conversation_id: str, **kwargs) -> Op
     db.refresh(chat)
     return chat
 
-# 重点 删除聊天记录（软删除）
+# 重点 删除聊天记录（硬删除）
 @logy
 def delete_chat(db: Session, user_id: int, conversation_id: str) -> bool:
     chat = get_chat(db, user_id, conversation_id)
