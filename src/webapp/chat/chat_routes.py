@@ -115,7 +115,7 @@ def chat():
             # 解析含url的消息
             message = jina.read_from_jina(message, keep_urls)
             # 搜索向量RAG
-            if rag_func == 1:
+            if int(rag_func) == 1:
                 logger.info(f"已开启向量RAG搜索")
                 client = MilvusDB()
                 children = client.search(
@@ -141,9 +141,6 @@ def chat():
                     chunks.append(chunk)
                 rerank_documents = voyager.rerank(query=message, documents=chunks, top_k=int(recall_num)/2)
                 context = " ".join([str(chunk) for chunk in rerank_documents])
-            else: # 普通聊天
-                redis_client = RedisService()
-                context = " ".join([str(chunk) for chunk in chunks])
         except Exception as e:
             logger.error(f"Failed to read from Jina: {str(e)}")
         if article_ids in [None, []]:
