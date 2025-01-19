@@ -29,44 +29,29 @@
             <!-- Toast 容器 -->
             <div class="toast-container" id="toastContainer"></div>
 
-            <h1 class="mt-5" id="resources-text">{{ articles|length }} 篇文章</h1>
-            
             <div class="search-chat-container">
+                <h1 class="mt-5" id="resources-text">{{ articles|length }} 篇文章</h1>
+                <div class="language-selector">
+                    <!-- <label for="language-select">语言选择/Language:</label> -->
+                    <select id="language-select" onchange="changeLanguage()">
+                        <option value="zh">中文</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
                 <div class="search-section">
-                    <div class="language-selector">
-                        <label for="language-select">语言选择/Language:</label>
-                        <select id="language-select" onchange="changeLanguage()">
-                            <option value="zh">中文</option>
-                            <option value="en">English</option>
-                        </select>
-                    </div>
-
                     <form action="/article/search" method="get" class="mb-3" style="display: flex; gap: 10px;">
                         <input type="text" name="query" placeholder="Search Title, Summary, Key or Tags" style="flex: 1;">
                         <button type="submit" id="search-button">搜索</button>
                     </form>
-                    
                     <form action="/article/add_article" method="post" class="mb-3 add-article-form" style="display: flex; gap: 10px;">
                         <!-- <div style="display: flex; gap: 10px;"> -->
                         <input type="text" name="url" placeholder="Url" required style="flex: 1;">
                         <input type="text" name="tags" placeholder="Tags" style="flex: 1;">
-                        <button type="submit" id="add-button">添加</button>
-                        <button type="button" id="vec-button" onclick="vectorArticles()">向量</button>
+                        <button type="submit" id="add-button">加</button>
+                        <button type="button" id="vec-button" onclick="vectorArticles()">嵌</button>
                         <!-- </div> -->
                     </form>
                 </div>
-                <!-- AI对话窗口 -->
-                <!-- <div class="chat-section">
-                    <div class="chat-controls">
-                        <span>AI Assistant</span>
-                        <button id="upload-button" onclick="document.getElementById('file-upload').click()">上传文件</button>
-                        <input type="file" id="file-upload" accept=".jpg, .jpeg, .png, .txt, .json, .pdf, .html, .doc, .ppt, .xls, .xlsx" style="display: none" onchange="handleFileUpload(event)" multiple>
-                        <button id="record-button" onclick="startRecording()">录音</button>
-                        <button id="camera-button" onclick="openCamera()">相机</button>
-                    </div>
-                    <textarea class="chat-input" placeholder="Type your message or drop files here..."></textarea>
-                    <button id="send-button" onclick="sendChatMessage()">发送</button>
-                </div> -->
             </div>
 
             <!-- 添加固定的标题行 -->
@@ -361,11 +346,8 @@
             const language = document.getElementById('language-select').value;
             const resourcesText = document.getElementById('resources-text');
             const searchButton = document.getElementById('search-button');
-            const uploadButton = document.getElementById('upload-button');
-            const recordButton = document.getElementById('record-button');
-            const cameraButton = document.getElementById('camera-button');
-            const sendButton = document.getElementById('send-button');
             const addButton = document.getElementById('add-button');
+            const vecButton = document.getElementById('vec-button');
             const editButton = document.querySelectorAll('button[onclick*="editTags"]');
             const saveButton = document.querySelectorAll('button[onclick*="saveTags"]');
             const deleteButton = document.querySelectorAll('button[onclick*="deleteArticle"]');
@@ -382,7 +364,8 @@
                 // recordButton.textContent = '录音';
                 // cameraButton.textContent = '相机';
                 // sendButton.textContent = '发送';
-                addButton.textContent = '添加';
+                addButton.textContent = '加';
+                vecButton.textContent = '嵌';
                 editButton.forEach(btn => btn.textContent = '编辑');
                 saveButton.forEach(btn => btn.textContent = '保存');
                 deleteButton.forEach(btn => btn.textContent = '删除');
@@ -399,6 +382,7 @@
                 // cameraButton.textContent = 'Camera';
                 // sendButton.textContent = 'Chat';
                 addButton.textContent = 'Add';
+                vecButton.textContent = 'Embed';
                 editButton.forEach(btn => btn.textContent = 'Edit');
                 saveButton.forEach(btn => btn.textContent = 'Save');
                 deleteButton.forEach(btn => btn.textContent = 'Delete');
@@ -406,7 +390,7 @@
                 summaryColumn.textContent = 'Summary';
                 // keytopicsColumn.textContent = 'Key Topics';
                 tagsColumn.textContent = 'Tags';
-                dateColumn.textContent = 'Date(Id)';
+                dateColumn.textContent = 'Date';
             } else {
                 resourcesText.textContent = `{{ articles|length }} 篇资源`;
             }

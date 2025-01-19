@@ -103,7 +103,7 @@ def chat():
         keep_urls = data.get('keep_urls', 5)
         rag_func = data.get('rag_func', 0)
         recall_num = data.get('recall_num', 20)
-        logger.info(f"收到聊天请求：model={model}, conversation_id={conversation_id}, message={message[:20]}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
+        logger.info(f"收到聊天请求：message={message[:20]}, model={model}, conversation_id={conversation_id}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
         if not conversation_id:
             return jsonify({
                 'success': False,

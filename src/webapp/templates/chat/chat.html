@@ -41,7 +41,7 @@
                 <div id="expandedArticle" style="display: none;">
                     <div class="article-header">
                         <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">回到列表</button>
-                        <!-- <button class="btn btn-sm btn-outline-secondary" onclick="quoteContent('full')">引用全文</button> -->
+                        <button class="btn btn-sm btn-outline-secondary" onclick="quoteContent('full')">加知识库</button>
                     </div>
                     <h2 class="article-title" id="expandedArticleTitle"></h2>
                     <div class="source-guide-container">
@@ -89,38 +89,29 @@
                 <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
                 <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
                 <div class="choice-radio">
-                    <!-- <input type="radio" id="choice1" name="choices" value="OPENAI_MODEL" checked>
-                    <label for="choice1" value="GPT">4o-mi</label>
-                    
-                    <input type="radio" id="choice2" name="choices" value="GEMINI_MODEL">
-                    <label for="choice2" value="Quick and smart">G</label>
-                    
-                    <input type="radio" id="choice3" name="choices" value="GEMINI_BEST_MODEL">
-                    <label for="choice3" value="BEST for long text">1206</label> -->
                     <!-- 模型 -->
-                    <label for="llm_choice" value="LLM Choice">LLM</label>
                     <select name="llm_choice" id="llm_choice">
-                        <option value='GEMINI_MODEL'>Gemini2</option>
-                        <option value='GEMINI_BEST_MODEL'>G-1206</option>
-                        <option value='MINIMAX_MODEL'>abab6.5s</option>
-                        <option value='OPENAI_MODEL'>4o-mini</option>
+                        <option value='GEMINI_MODEL'>Gemini</option>
+                        <option value='GEMINI_BEST_MODEL'>G1206</option>
+                        <option value='MINIMAX_MODEL'>abab65</option>
+                        <option value='OPENAI_MODEL'>4omini</option>
                     </select>
                     <!-- 最大查询URL数量 -->
-                     <label for="keep_urls" value="Max Recall URL">URLs</label>
+                    <!-- <label for="keep_urls" value="Max Recall URL">URLs</label> -->
                     <select name="keep_urls" id="keep_urls">
-                        <option value=5>5</option>
-                        <option value=1>1</option>
+                        <option value=5>5URL</option>
                         <option value=10>10</option>
+                        <option value=20>20</option>
                      </select>
                      <!-- 默认关闭RAG -->
-                     <label for="rag_func" value="Is RAG Func">RAG</label>
+                     <!-- <label for="rag_func" value="Is RAG Func">RAG</label> -->
                      <select name="rag_func" id="rag_func">
                         <option value=0>OFF</option>
-                        <option value=1>ON</option>
+                        <option value=1>RAG</option>
                      </select>
                      <!-- RAG召回数量 -->
-                     <label for="recall_num" value="RAG Recall Number">REF</label>
-                     <select name="recall_num" id="recall_num">
+                     <!-- <label for="recall_num" value="RAG Recall Number">REF</label> -->
+                     <select name="recall_num" id="recall_num" hidden="true">
                         <option value=20>20</option>
                         <option value=6>6</option>
                         <option value=10>10</option>
@@ -1284,6 +1275,11 @@
             } catch (error) {
                 showToast('创建笔记失败: ' + error.message, 'error');
             }
+        }
+
+        // 新建笔记
+        function createNewNote() {
+            showToast('笔记功能即将推出', 'info');
         }
     
     </script>

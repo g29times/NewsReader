@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 JINA_API_KEY = os.getenv("JINA_API_KEY")
 
-# JINA的Embedding task：多种下游任务优化 必须带token
+# JINA的Embedding：多种下游任务优化 必须带token 付费
 @logy
 @staticmethod
 async def get_doc_embeddings_jina(documents, task="text-matching"):
@@ -47,7 +47,7 @@ async def get_doc_embeddings_jina(documents, task="text-matching"):
     logger.info(f"JINA embedding success")
     return embeddings
 
-# 使用JINA API切分文本 不带token则免费 但速度慢
+# 重点工具 使用JINA API切分文本 不带token则免费 但速度慢
 @logy
 @staticmethod
 async def split_text_with_jina(text: str, max_chunk_length: int = 1000) -> List[str]:
@@ -85,7 +85,7 @@ async def split_text_with_jina(text: str, max_chunk_length: int = 1000) -> List[
         # 如果JINA API失败，使用简单的长度切分作为后备方案
         return [text[i:i+max_chunk_length] for i in range(0, len(text), max_chunk_length)]
 
-# JINA Reader 不需要token 免费
+# 重点工具 JINA Reader 不需要token 免费
 @logy
 @staticmethod
 def jina_reader(url: str, mode='read') -> str:
@@ -96,7 +96,7 @@ def jina_reader(url: str, mode='read') -> str:
         mode: 'read' to return content directly, 'write' to write to file and return None
     """
     url = f"https://r.jina.ai/{url}"
-    logger.info(f"JINA Reader Fetching content from: {url}")
+    # logger.info(f"JINA Reader Fetching content from: {url}")
     try:
         response = requests.get(url)
         response.raise_for_status()
@@ -112,22 +112,22 @@ def jina_reader(url: str, mode='read') -> str:
         logger.error(f"JINA Reader Fetching Error'{url}': {e}")
         return None
 
-# JINA 解析含url的消息
+# 重点工具 解析含url的消息 数量可能非常多 只保留前N个
 @logy
 @staticmethod
 def read_from_jina(message, keep_urls=2):
-    # 提取URL 数量可能非常多 只保留前N个
-    urls = extract_urls(message)
-    logger.info(f"URLs extracted: {urls}")
+    urls = _extract_urls(message)
+    logger.info(f"URLs extracted: {len(urls)}")
     # 对比传入的keep_urls的数量和extract_urls的结果数量，取小的
     real_keep_urls = min(int(keep_urls), len(urls))
     kept_urls = urls[:real_keep_urls]
-    logger.info(f"Kept URLs: {kept_urls}")
-    # 插入解析后的内容
-    text_with_content = insert_content(message, kept_urls)
+    logger.info(f"URLs kept: {len(kept_urls)}")
+    # 插入URL解析后的内容 此处会调用JINA Reader
+    text_with_content = _insert_content(message, kept_urls)
     return text_with_content
 
-def extract_urls(text):
+# 提取URL 数量可能非常多 只保留前N个
+def _extract_urls(text):
   """
   从文本中提取 URL 的函数。
   Returns:
@@ -137,10 +137,13 @@ def extract_urls(text):
   urls = url_pattern.findall(text)
   return urls
 
-# 将URL的内容跟URL拼起来 此处会进行JINA调用
-def insert_content(text, urls):
+# 将URL的内容跟URL拼起来 此处会调用JINA Reader
+def _insert_content(text, urls):
+    from src.utils.text_input_handler import TextInputHandler
     for url in urls:
         content = jina_reader(url)
+        # 文字清洗
+        content = TextInputHandler.preprocess_text(content)
         # 在 URL 后面接 URL 中的内容
         text = text.replace(url, f"{url}\n<blockquote>{content}</blockquote>")
     return text
@@ -158,11 +161,12 @@ if __name__ == "__main__":
 
     # 解析URL示例
     message = "看看 这篇文章 https://www.sanwenwang.com/sanwen/vivymkqf.html, 和 另一篇 https://m.mashhad24.com/html/708/707377.html 说了什么"
+    # message = "看看 这篇文章"
     # 提取URL
     # urls = extract_urls(message)
     # print(f"URLs extracted: {urls}")
     # 插入解析后的内容
     # text_with_content = insert_content(message, urls)
     # print(text_with_content)
-    # 合并 提取+解析
-    read_from_jina(message, 10)
+    # 合并 提取+解析 示例 两个留一个
+    read_from_jina(message, 1)

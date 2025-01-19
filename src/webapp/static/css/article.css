@@ -24,13 +24,13 @@ table {
     padding: 5px;
 }
 /* 设置列宽 加起来100%*/
-.checkbox-column { width: 2%; }
-.col-title { width: 13%; }
+.checkbox-column { width: 8%; } /* 多选框 */
+.col-title { width: 12%; } /* 标题 */
 /* .col-url { width: 10%; } */
-.col-summary { width: 55%; }
+.col-summary { width: 50%; } /* 摘要 */
 /* .col-keytopics { width: 35%; } */
-.col-tags { width: 15%; }
-.col-date { width: 15%; }
+.col-tags { width: 13%; } /* 标签 */
+.col-date { width: 12%; } /* 日期 */
 
 /* 固定标题行样式 */
 .sticky-header {

@@ -18,12 +18,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 class TextInputHandler:
-
     """
     Handler for processing text input for LLM processing
     """
-    # TODO 文本清洗 
-    # 已知脏数据：1. [Image 110](https:...
+    # 文本清洗 
     @staticmethod
     def preprocess_text(text):
         """
@@ -54,6 +52,7 @@ class TextInputHandler:
         logger.info(f"文本预处理后：{len(text)}")
         return text
 
+    # 文本分割：使用JINA API + 本地分割
     @staticmethod
     async def split_text(text: str, max_chunk_length: int = 1000, chunk_overlap: int = 100) -> Tuple[List[str], List[str], Dict[int, int]]:
         max_node_length = max_chunk_length - chunk_overlap
@@ -93,7 +92,7 @@ class TextInputHandler:
         logger.info(f"最终合并成 {len(big_chunks)} 个chunk")
         return big_chunks, nodes, small_big_dict
 
-    # 文本分割：使用JINA API + 本地分割 # TODO 小到大
+    # 文本分割：使用JINA API + 本地分割
     @staticmethod
     async def split_text_old(text: str, max_chunk_length: int = 1000, chunk_overlap: int = 100) -> List[str]:
         """智能分割文本，优先使用JINA API，失败时自动切换到本地分割器
