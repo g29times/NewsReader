@@ -317,7 +317,7 @@ async def save_file_as_article(content: str, filename: str):
         db_session.commit()
         
         # 添加到向量库
-        article_routes.add_articles_to_vector_store([new_article])
+        # article_routes.add_articles_to_vector_store([new_article])
         
         logger.info(f"文件保存成功: {filename}")
         return new_article
