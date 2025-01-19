@@ -94,73 +94,52 @@ def chat_page():
 def chat():
     try:
         user_id = '1'
-        data = request.get_json()
-        conversation_id = data.get('conversation_id', '')
-        message = data.get('message', '')
-        model = data.get('model', 'GEMINI_MODEL')
-        # 可选参数
-        article_ids = data.get('article_ids', [])
-        keep_urls = data.get('keep_urls', 5)
-        rag_func = data.get('rag_func', 0)
-        recall_num = data.get('recall_num', 20)
-        logger.info(f"收到聊天请求：message={message[:20]}, model={model}, conversation_id={conversation_id}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
+        # 从form表单中获取参数
+        conversation_id = request.form.get('conversation_id', '')
         if not conversation_id:
             return jsonify({
                 'success': False,
                 'message': 'no conversation_id',
                 'data': None
             }), 400
-        context = ""
-        try: # 信息辅助增强 允许报错通过
-            # 解析含url的消息
-            message = jina.read_from_jina(message, keep_urls)
-            # 搜索向量RAG
-            if int(rag_func) == 1:
-                logger.info(f"已开启向量RAG搜索")
-                client = MilvusDB()
-                children = client.search(
-                    collection_name=VECTOR_DB_ARTICLES,
-                    query=message,
-                    limit=int(recall_num),
-                    # search_params={"params": {"nprobe": 10}}, # 高级参数 https://milvus.io/docs/v2.0.x/performance_faq.md https://zilliz.com/blog/select-index-parameters-ivf-index
-                    output_fields=["text", "metadata"],
-                    # filter=filter
-                )
-                children = children[0]
-                chunk_ids = []
-                for i, node in enumerate(children):
-                    if node.get("entity").get("metadata") and node.get("entity").get("metadata").get("chunk_id"):
-                        chunk_id = node.get("entity").get("metadata").get("chunk_id")
-                        if chunk_id not in chunk_ids:
-                            chunk_ids.append(chunk_id)
-                    continue
-                chunks = []
-                for chunk_id in chunk_ids:
-                    redis_client = RedisService()
-                    chunk = redis_client.get_hash_value(f"article_chunks", chunk_id)
-                    chunks.append(chunk)
-                rerank_documents = voyager.rerank(query=message, documents=chunks, top_k=int(recall_num)/2)
-                context = " ".join([str(chunk) for chunk in rerank_documents])
+        question = request.form.get('message', '')
+        model = request.form.get('model', 'GEMINI_MODEL')
+        # 可选参数
+        article_ids = request.form.get('article_ids', [])
+        keep_urls = request.form.get('keep_urls', 5)
+        rag_func = request.form.get('rag_func', 0)
+        recall_num = request.form.get('recall_num', 20)
+        # 获取多文件
+        files = request.files.getlist('files')
+        
+        # 打印完整的请求信息
+        logger.info(f"请求表单数据: {request.form}")
+        logger.info(f"请求文件数据: {[f.filename for f in request.files.getlist('files')]}")
+        logger.info(f"files类型: {type(files)}, 数量: {len(files)}")
+        
+        logger.info(f"收到聊天请求：question={question[:20]}, model={model}, conversation_id={conversation_id}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
+        
+        # 处理问题中的URL
+        try:
+            question = jina.read_from_jina(question, keep_urls)
         except Exception as e:
-            logger.error(f"Failed to read from Jina: {str(e)}")
-        if article_ids in [None, []]:
-            response = rag_service.chat_with_file(conversation_id, context, message, os.getenv(model or "GEMINI_MODEL"))
-        else: # 勾选了文章进行聊天
-            response = rag_service.chat_with_articles(conversation_id, article_ids, message, os.getenv(model or "GEMINI_MODEL"))
+            logger.error(f"处理问题URL失败: {str(e)}")
+        # 上下文增强
+        context = _chat_context(question, files, article_ids, rag_func, recall_num)
+        
+        # 对话处理
+        response = rag_service.chat_with_context(conversation_id, context, question, os.getenv(model or "GEMINI_MODEL"))
+        
         # 异步更新LLM记忆 暂停
         # try:
-        #     memory_service.update_memory_async(message, str(response))
+        #     memory_service.update_memory_async(question, str(response))
         # except Exception as e:
         #     logger.error(f"Failed to start memory update: {str(e)}")
         # 这里暂时只返回成功响应，不调用LLM
         return jsonify({
             'success': True,
             'message': '处理聊天请求',
-            'data': {
-                'received_message': message,
-                'article_count': len(article_ids),
-                'response': str(response)
-            }
+            'data': response
         })
     except Exception as e:
         error_msg = f'处理聊天请求失败: {str(e)}'
@@ -171,6 +150,74 @@ def chat():
             'data': None
         }), 500
 
+def _chat_context(question, files, article_ids, rag_func, recall_num):
+    context_parts = []
+    # 1. 处理文件内容
+    file_contents = []
+    try:
+        for file in files:
+            file_content = FileInputHandler.read_from_file(file)
+            if file_content:
+                # 处理文件 中的URL信息 作为补充 保留2个
+                file_content = jina.read_from_jina(file_content)
+                file_contents.append(file_content)
+                # 异步保存文件
+                run_async_save(file_content, file.filename)
+        # 合并所有文件内容  # 为多模态混合embedding预留
+        if file_contents:
+            # multi_modal_content = jina.multi_embedding("\n\n".join(file_contents), keep_urls)
+            text_content = "\n\n".join(file_contents)
+            context_parts.append(f"\n## 文件内容：\n{text_content}")
+    except Exception as e:
+        logger.error(f"合并文件内容失败: {str(e)}")
+    
+    # 2. 处理勾选的文章
+    try:
+        if article_ids:
+            # 将逗号分隔的字符串转换为整数列表
+            id_list = [int(id.strip()) for id in article_ids.split(',') if id.strip()]
+            from src.models import article_crud
+            articles = article_crud.get_article_by_ids(db_session, id_list)
+            if articles:
+                articles_text = "\n".join([f"标题：{article.title}\n内容：{article.content if article.content else article.summary}" for article in articles])
+                context_parts.append(f"\n## 勾选文章：\n{articles_text}")
+    except Exception as e:
+        logger.error(f"处理勾选文章失败: {str(e)}")
+    
+    # 3. 搜索向量RAG
+    try:
+        if rag_func and int(rag_func) == 1:
+            logger.info(f"已开启向量RAG搜索")
+            client = MilvusDB()
+            children = client.search(
+                collection_name=VECTOR_DB_ARTICLES,
+                query=question,
+                limit=int(recall_num),
+                # search_params={"params": {"nprobe": 10}}, # 高级参数 https://milvus.io/docs/v2.0.x/performance_faq.md https://zilliz.com/blog/select-index-parameters-ivf-index
+                output_fields=["text", "metadata"],
+                # filter=filter
+            )
+            children = children[0]
+            chunk_ids = []
+            for node in children:
+                chunk_id = node.get("entity").get("metadata").get("chunk_id")
+                if chunk_id not in chunk_ids:
+                    chunk_ids.append(chunk_id)
+            chunks = []
+            redis_client = RedisService()
+            for chunk_id in chunk_ids:
+                chunk = redis_client.get_hash_value(f"article_chunks", chunk_id)
+                chunks.append(chunk)
+            rerank_documents = voyager.rerank(query=question, documents=chunks, top_k=int(recall_num))
+            rag_context = " ".join([str(chunk) for chunk in rerank_documents])
+            if rag_context:
+                context_parts.append(f"\n## 相关资料：\n{rag_context}")
+    except Exception as e:
+        logger.error(f"向量RAG搜索失败: {str(e)}")
+    
+    # 合并所有上下文
+    return "\n\n---\n\n".join(context_parts) if context_parts else ""
+
 # 文件聊天接口
 @chat_bp.route('/api/chat/with_file', methods=['POST'])
 def chat_with_file():
@@ -179,17 +226,31 @@ def chat_with_file():
         if 'file' not in request.files:
             return jsonify({'success': False, 'message': '未找到上传的文件'})
         file = request.files['file']
-        question = request.form.get('question')
-        conversation_id = request.form.get('conversation_id')
-        logger.info(f"收到文件请求：question={question}, file={file.filename}")
+        conversation_id = request.form.get('conversation_id', '')
+        if not conversation_id:
+            return jsonify({
+                'success': False,
+                'message': 'no conversation_id',
+                'data': None
+            }), 400
+        message = request.form.get('message', '')
+        model = request.form.get('model', 'GEMINI_MODEL')
+        # 可选参数
+        article_ids = request.form.getlist('article_ids', [])
+        keep_urls = request.form.get('keep_urls', 5)
+        rag_func = request.form.get('rag_func', 0)
+        recall_num = request.form.get('recall_num', 20)
+        logger.info(f"收到文件请求：message={message[:20]}, file={file.filename}, model={model}, conversation_id={conversation_id}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
         # 读取文件内容
         content = FileInputHandler.read_from_file(file)
         if not content:
             return jsonify({'success': False, 'message': '文件内容为空或无法读取'})
-        # 使用文件内容回答问题 # gemini_client.query_with_content(content, question)
-        response = rag_service.chat_with_file(conversation_id, content, question)
-        if not response:
-            return jsonify({'success': False, 'message': '对话失败'})
+        # 上下文增强
+        context = _chat_context(content, [file], article_ids, rag_func, recall_num)
+        if isinstance(context, tuple):  # 如果返回错误信息
+            return jsonify({'success': False, 'message': context[0]})
+        # 使用文件内容回答问题 # 简易 gemini_client.query_with_content(content, message)
+        response = rag_service.chat_with_context(conversation_id, context, message, os.getenv(model or "GEMINI_MODEL"))
         # 在后台线程中异步保存文件
         run_async_save(content, file.filename)
         return jsonify({

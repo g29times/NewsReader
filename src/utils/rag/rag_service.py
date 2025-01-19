@@ -317,21 +317,24 @@ class RAGService:
         return response
     
     # 带附件（上下文）聊天 各种URL 文件等 图片另说
-    def chat_with_file(self, conversation_id: str, file_content: str, question: str, model: str = "") -> str:
+    def chat_with_context(self, conversation_id: str, context: str, question: str, model: str = "") -> str:
         # 1. 构建上下文
-        context = f"参考内容：\n<blockquote>{file_content}</blockquote>\n\n我的问题：\n{question}"
+        prompt = ""
+        if context:
+            prompt += f"# 参考内容：\n<blockquote>{context}</blockquote>\n\n"
+        prompt += f"# 问题：\n{question}"
         # 2. 使用现有的chat方法
-        return self.chat(conversation_id, context, model)
+        return self.chat(conversation_id, prompt, model)
 
-    # 对话知识库（数据库里的文章）
-    def chat_with_articles(self, conversation_id: str, article_ids: List[int], question: str, model: str = "") -> str:
+    # 对话数据库里的文章
+    def chat_with_article(self, conversation_id: str, article_ids: List[int], question: str, model: str = "") -> str:
         # 1. 构建上下文
         articles = article_crud.get_article_by_ids(db_session, article_ids)
         if articles:
             articles_text = "\n".join([f"```标题：{article.title}\n内容：{article.content}```" for article in articles])
-            return self.chat_with_file(conversation_id, articles_text, question, model)
+            return self.chat_with_context(conversation_id, articles_text, question, model)
         else:
-            return self.chat_with_file(conversation_id, "暂无相关资料。", question, model)
+            return self.chat_with_context(conversation_id, "暂无相关资料。", question, model)
 
     # 对话知识库（资料） TODO 待改造
     def chat_with_articles_old(self, conversation_id: str, article_ids: List[int], question: str) -> str:

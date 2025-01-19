@@ -47,15 +47,15 @@ class FileInputHandler:
                 temp_path = FileInputHandler._save_temp_file(file)
                 content = FileInputHandler._process_file(temp_path, file_ext)
                 FileInputHandler._remove_temp_file(temp_path)
+                logger.info(f"文件处理成功: {len(content)}")
                 return content
-            
             # 处理文件路径
             if isinstance(file, str):
                 file_ext = file.split('.')[-1].lower()
-                return FileInputHandler._process_file(file, file_ext)
-            
+                content = FileInputHandler._process_file(file, file_ext)
+                logger.info(f"文件处理成功: {len(content)}")
+                return content
             raise ValueError('不支持的文件类型')
-            
         except Exception as e:
             logger.error(f"文件处理失败: {str(e)}")
             return None

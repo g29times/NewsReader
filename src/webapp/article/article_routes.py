@@ -85,7 +85,7 @@ def add_article(type: str = "WEB"):
         logger.info(f"成功添加文章到数据库: {new_article.title}")
 
         # 6 存向量数据库
-        add_articles_to_vector_store([new_article])
+        # add_articles_to_vector_store([new_article])
         return jsonify({
             'success': True,
             'message': '文章添加成功',
@@ -151,8 +151,8 @@ def update_article_route(article_id):
             }), 404
 
         # 更新文章后，将文章转存向量数据库
-        article = get_article_by_id(db_session, article_id)
-        add_articles_to_vector_store([article])
+        # article = get_article_by_id(db_session, article_id)
+        # add_articles_to_vector_store([article])
 
         return jsonify({
             'success': True,

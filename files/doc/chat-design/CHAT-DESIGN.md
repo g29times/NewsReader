@@ -54,11 +54,38 @@
 
 ## 路由设计
 - 页面路由: `/chat`
+chat接口
+├── 参数接收
+│   ├── conversation_id（必需）
+│   ├── question（用户问题）
+│   ├── model（可选，默认GEMINI_MODEL）
+│   ├── article_ids（可选，勾选的文章）
+│   ├── files（可选，上传的文件）
+│   ├── keep_urls（可选，默认5）
+│   ├── rag_func（可选，默认0）
+│   └── recall_num（可选，默认20）
+│
+├── 上下文增强（_chat_context）
+│   ├── 1. URL解析（独立try-catch）
+│   ├── 2. 文件处理（独立try-catch）
+│   │   ├── 读取文件内容
+│   │   ├── 异步保存文件
+│   │   └── 合并文件内容
+│   ├── 3. 勾选文章（独立try-catch）
+│   │   └── 优先使用content，没有则用summary
+│   └── 4. 向量RAG（独立try-catch）
+│       ├── 搜索相关文档
+│       └── 重排序筛选
+│
+└── 对话处理
+    └── 统一使用chat_with_context处理
+
 - API 路由: 
   - `/api/chat/send` - 发送消息
   - `/api/chat/history` - 获取聊天历史
   - `/api/articles/search` - 搜索文章（用于左侧列表）
   - `/api/articles/<article_id>` - 获取文章详情
+
 
 ## 页面布局
 三栏布局设计：

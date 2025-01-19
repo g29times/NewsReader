@@ -41,7 +41,7 @@
                 <div id="expandedArticle" style="display: none;">
                     <div class="article-header">
                         <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">回到列表</button>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="quoteContent('full')">加知识库</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="addVec('TODO')">加知识库</button>
                     </div>
                     <h2 class="article-title" id="expandedArticleTitle"></h2>
                     <div class="source-guide-container">
@@ -214,13 +214,14 @@
 
         // 引用消息
         function quoteMessage(button) {
-            const content = button.closest('.message').querySelector('.content').innerText;
+            const messageDiv = button.closest('.message');
+            const contentDiv = messageDiv.querySelector('.content').innerText;
             const messageInput = document.getElementById('messageInput');
-            messageInput.value = `${content}\n---------------\n`;
+            messageInput.value = `${contentDiv}\n---------------\n`;
             messageInput.focus();
         }
 
-        // 引用文章内容
+        // 引用文章摘要
         function quoteContent(type) {
             const messageInput = document.getElementById('messageInput');
             if (type === 'full') {
@@ -275,7 +276,7 @@
             }
         });
 
-        // Toast 提示功能 重点
+        // 重点 Toast 提示功能 
         function showToast(message, type = 'info') {
             const toastContainer = document.querySelector('#toastContainer');
             const toast = document.createElement('div');
@@ -295,18 +296,19 @@
         function uploadFile() {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.accept = '.txt,.pdf,.doc,.xlsx,.ppt,.jpg,.jpeg,.png,.gif';
+            fileInput.accept = '.txt,.md,.pdf,.doc,.xlsx,.ppt,.jpg,.jpeg,.png,.gif';
+            fileInput.multiple = true; // 允许多文件上传
             fileInput.onchange = async function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                const question = document.getElementById('messageInput').value;
-                if (!question.trim()) {
-                    showToast('请输入要询问的问题', 'warning');
-                    return;
+                const files = e.target.files;
+                if (files.length > 0) {
+                    try {
+                        await sendChatMessage(files);
+                    } catch (error) {
+                        console.error('Upload error:', error);
+                        showToast(error.message || '上传失败', 'error');
+                    }
                 }
-                // 传入文件并对话
-                await sendChatMessage(file);
-            }
+            };
             fileInput.click();
         }
 
@@ -403,7 +405,7 @@
             expandedArticle.style.display = 'none';
         }
 
-        // 显示文章列表 重点
+        // 重点 显示文章列表
         function showArticleList() {
             document.querySelector('.article-list').style.display = 'block';
             document.getElementById('expandedArticle').style.display = 'none';
@@ -459,7 +461,7 @@
             source.innerHTML = article.source ? `- ${article.source}` : '';
         }
 
-        // 获取文章详情 重点
+        // 重点 获取文章详情
         async function fetchArticleDetails(articleId) {
             try {
                 const response = await fetch(`/chat/api/articles/${articleId}`);
@@ -562,99 +564,94 @@
             `;
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
         }
 
-        // 对话聊天 重点 每次聊天生成对话或更新对话
-        async function sendChatMessage(file = null) {
-            const messageInput = document.getElementById('messageInput');
-            const sendButton = document.querySelector('.btn-primary');
-            const message = messageInput.value.trim();
-            if (message === '') {
-                showToast('请输入消息内容', 'error');
-                return;
-            }
-            // 禁用发送按钮
-            sendButton.disabled = true;
+        // 重点 对话聊天 每次聊天生成对话或更新对话
+        async function sendChatMessage(files = null) {
+            const sendButton = document.querySelector('#chatMessages ~ .chat-input-area > .btn.btn-primary');
             try {
-                // 获取选中的文章ID
-                const selectedArticles = Array.from(document.querySelectorAll('.article-items .article-checkbox:checked'))
-                    .map(checkbox => checkbox.dataset.articleId);
-                if (selectedArticles.length > 10) {
-                    showToast('最多选择10篇文章', 'error');
+                const messageInput = document.getElementById('messageInput');
+                const message = messageInput.value.trim();
+                if (message === '') {
+                    showToast('请输入消息', 'warning');
                     return;
                 }
-                // 立即添加用户消息
-                if (file) {
-                    addUserMessageToChat(`文件：${file.name}\n问题：${message}`);
-                } else {
-                    addUserMessageToChat(message);
-                }
-                // 添加思考中提示
-                addThinkingMessage();
+                // 禁用发送按钮
+                sendButton.disabled = true;
+                // 获取选中的文章ID
+                const selectedArticles = getSelectedArticles();
+                // 添加用户消息到聊天区域
+                addUserMessageToChat(message);
                 // 清空输入框
                 messageInput.value = '';
-                
-                // 生成或更新对话 重点
-                conv_id = await createUpdateChat();
+                // 添加思考中的临时消息
+                const thinkingMessageIndex = addThinkingMessage();
+                // 获取或创建对话ID
+                const conv_id = await createUpdateChat();
                 console.log('Conversation ID:', conv_id);
+                
+                // 处理文件列表
+                let fileArray = [];
+                if (files && files instanceof FileList) {
+                    fileArray = Array.from(files);
+                }
+                
                 // 调用chat服务
-                let result;
-                // const modelChoice = document.querySelector('.choice-radio input[name="choices"]:checked').value;
-                if (file) { // 如果有文件，使用文件聊天接口
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('question', message);
-                    formData.append('conversation_id', conv_id);
-                    const response = await fetch('/chat/api/chat/with_file', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    result = await response.json();
-                }
-                else if (selectedArticles.length > 0) { // 普通聊天接口，如果选择了文章，发送文章id
-                    result = await call_chat(conv_id, message, selectedArticles);
-                }
-                else { // 普通聊天接口
-                    result = await call_chat(conv_id, message);
-                }
+                let result = await call_chat(conv_id, message, selectedArticles, fileArray);
                 if (result.success) {
                     if (result.data && result.data.response) {
                         addAssistantMessageToChat(result.data.response);
+                    } else {
+                        showToast('响应格式错误', 'error');
                     }
-                    showToast('消息处理成功', 'success');
                 } else {
-                    showToast(result.message || '消息处理失败', 'error');
+                    showToast(result.message || '对话失败', 'error');
                 }
             } catch (error) {
                 console.error('Chat error:', error);
-                showToast('消息发送失败', 'error');
+                showToast(error.message || '对话失败', 'error');
             } finally {
+                // 移除思考中的临时消息
+                const thinkingMessage = document.querySelector('.thinking-message');
+                if (thinkingMessage) {
+                    thinkingMessage.remove();
+                }
                 // 恢复发送按钮
-                sendButton.disabled = false;
+                if (sendButton) {
+                    sendButton.disabled = false;
+                }
             }
         }
 
         // sendChatMessage 调用后端chat服务
-        async function call_chat(conv_id, message, selectedArticles = []) {
+        async function call_chat(conv_id, message, selectedArticles = [], files = []) {
             try {
                 if (conv_id == undefined || conv_id == null || conv_id == '') {
                    throw new Error('请稍后再试');
                 }
+                // 构建请求数据
+                const formData = new FormData();
+                formData.append('conversation_id', conv_id);
+                formData.append('message', message);
+                formData.append('model', document.getElementById('llm_choice').value);
+                formData.append('keep_urls', document.getElementById('keep_urls').value);
+                formData.append('rag_func', document.getElementById('rag_func').value);
+                formData.append('recall_num', document.getElementById('recall_num').value);
+                
+                // 添加选中的文章ID
+                formData.append('article_ids', getSelectedArticles().join(','));
+                
+                // 添加文件，使用相同的字段名files
+                if (files && files.length > 0) {
+                    Array.from(files).forEach(file => {
+                        formData.append('files', file);
+                    });
+                }
                 // 调用chat服务
                 const response = await fetch('/chat/api/chat', {
                     method: 'POST',
-                    headers: {
-                            'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        conversation_id: conv_id,
-                        message: message,
-                        article_ids: selectedArticles,
-                        model: document.getElementById('llm_choice').value, // "GEMINI_MODEL"
-                        keep_urls: document.getElementById('keep_urls').value,
-                        rag_func: document.getElementById('rag_func').value,
-                        recall_num: document.getElementById('recall_num').value,
-                    })
+                    body: formData
                 });
                 if (!response.ok) {
                     const error = await response.json();
@@ -908,7 +905,7 @@
             };
         }
 
-        // -------------------------------- 对话管理 --------------------------------
+        // -------------------------------- 历史对话管理 --------------------------------
 
         // 当前选中的对话ID
         let currentConversationId = null;
@@ -945,7 +942,8 @@
                 showToast('加载对话列表失败', 'error');
             }
         }
-        // 页面加载时获取对话列表 DONE 重点
+        
+        // 重点 页面加载时获取对话列表 DONE
         document.addEventListener('DOMContentLoaded', () => {
             loadConversationList();
             // 添加输入框监听
