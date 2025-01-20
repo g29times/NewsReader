@@ -130,7 +130,7 @@ def chat():
         context = _chat_context(question, files, article_ids, rag_func, recall_num)
         
         # 对话处理
-        response = rag_service.chat_with_context(conversation_id, context, question, model, api_key)
+        response = rag_service.chat_with_context(conversation_id, context, question, os.getenv(model or "GEMINI_MODEL"), api_key)
         
         # 异步更新LLM记忆 暂停
         # try:
@@ -252,7 +252,7 @@ def chat_with_file():
         if isinstance(context, tuple):  # 如果返回错误信息
             return jsonify({'success': False, 'message': context[0]})
         # 使用文件内容回答问题 # 简易 gemini_client.query_with_content(content, message)
-        response = rag_service.chat_with_context(conversation_id, context, message, model)
+        response = rag_service.chat_with_context(conversation_id, context, message, os.getenv(model or "GEMINI_MODEL"))
         # 在后台线程中异步保存文件
         run_async_save(content, file.filename)
         return jsonify({

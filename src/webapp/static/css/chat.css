@@ -119,6 +119,7 @@ body {
     display: none;
     height: 100%;
     overflow-y: auto;
+    overflow-x: hidden; /* 关闭文章横向滚动条 */
     padding: 15px;
 }
 
@@ -126,6 +127,7 @@ body {
     height: auto;
     padding: 10px;
     overflow-y: auto;
+    overflow-x: hidden; /* 关闭文章横向滚动条 */
 }
 
 .article-content {
@@ -553,8 +555,4 @@ body {
 
 .api-key[data-model="minimax"] {
     border-color: #ff6b6b;
-}
-
-.api-key[data-model="openrouter"] {
-    border-color: #7c3aed; /* 使用紫色作为OpenRouter的主题色 */
 }
