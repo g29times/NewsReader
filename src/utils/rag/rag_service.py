@@ -322,7 +322,7 @@ class RAGService:
         prompt = ""
         if context:
             prompt += f"# 参考内容：\n<blockquote>{context}</blockquote>\n\n"
-        prompt += f"# 问题：\n{question}"
+        prompt += f"\n{question}"
         # 2. 使用现有的chat方法
         return self.chat(conversation_id, prompt, model, api_key)
 
