@@ -88,6 +88,7 @@
                 <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
                 <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
                 <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
+                <button class="btn btn-outline-secondary" onclick="setApiKey()">KEY</button>
                 <input type="password" id="api_key" placeholder="API-KEY..." class="form-control">
                 <div class="choice-radio">
                     <!-- 模型 -->
@@ -971,6 +972,13 @@
             });
             // 初始状态设置
             sendButton.disabled = !messageInput.value.trim();
+            
+            // 加载保存的API key
+            const savedApiKey = getCookie('api_key');
+            if (savedApiKey) {
+                document.getElementById('api_key').value = savedApiKey;
+                document.getElementById('api_key').style.display = 'none'; // 默认隐藏输入框
+            }
         });
         
         // 加载特定对话内容 DONE
@@ -1287,6 +1295,47 @@
             showToast('笔记功能即将推出', 'info');
         }
     
+        // 设置API key的函数
+        function setApiKey() {
+            const apiKeyInput = document.getElementById('api_key');
+            if (apiKeyInput.style.display === 'none') {
+                // 显示输入框
+                apiKeyInput.style.display = 'block';
+                apiKeyInput.focus();
+            } else {
+                // 隐藏输入框并保存key
+                const apiKey = apiKeyInput.value.trim();
+                if (apiKey) {
+                    setCookie('api_key', apiKey, 30); // 保存30天
+                    showToast('API Key已保存', 'success');
+                }
+                apiKeyInput.style.display = 'none';
+            }
+        }
+
+        // Cookie操作函数
+        function setCookie(name, value, days) {
+            let expires = '';
+            if (days) {
+                const date = new Date();
+                date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+                expires = '; expires=' + date.toUTCString();
+            }
+            document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + '=';
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    return decodeURIComponent(c.substring(nameEQ.length, c.length));
+                }
+            }
+            return null;
+        }
     </script>
 </body>
 </html>

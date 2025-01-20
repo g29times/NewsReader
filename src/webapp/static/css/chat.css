@@ -533,3 +533,10 @@ body {
     background: #6c757d;
     color: white;
 }
+
+/* -------------------------------- API Key 输入框 -------------------------------- */
+#api_key {
+    display: none; /* 默认隐藏 */
+    width: 200px;
+    margin-left: 5px;
+}
