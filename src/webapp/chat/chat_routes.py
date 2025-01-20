@@ -1,4 +1,5 @@
 from flask import render_template, request, jsonify
+from google import api_core
 from pymilvus import db
 from . import chat_bp
 from models.article import Article
@@ -104,6 +105,7 @@ def chat():
             }), 400
         question = request.form.get('message', '')
         model = request.form.get('model', 'GEMINI_MODEL')
+        api_key = request.form.get('api_key', None)
         # 可选参数
         article_ids = request.form.get('article_ids', [])
         keep_urls = request.form.get('keep_urls', 5)
@@ -128,7 +130,7 @@ def chat():
         context = _chat_context(question, files, article_ids, rag_func, recall_num)
         
         # 对话处理
-        response = rag_service.chat_with_context(conversation_id, context, question, os.getenv(model or "GEMINI_MODEL"))
+        response = rag_service.chat_with_context(conversation_id, context, question, os.getenv(model or "GEMINI_MODEL"), api_key)
         
         # 异步更新LLM记忆 暂停
         # try:

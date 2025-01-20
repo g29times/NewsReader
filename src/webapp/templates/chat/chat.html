@@ -79,6 +79,7 @@
             <div class="chat-toolbar">
                 <button class="btn btn-outline-secondary" onclick="createUpdateNote()">记录对话</button>
                 <button class="btn btn-outline-secondary" onclick="createUpdateChat(true)">新建对话</button>
+                <input type="password" id="api_key" placeholder="API-KEY..." class="form-control">
             </div>
             <div class="chat-messages" id="chatMessages">
                 <!-- 聊天消息将在这里动态添加 -->
@@ -638,6 +639,12 @@
                 formData.append('keep_urls', document.getElementById('keep_urls').value);
                 formData.append('rag_func', document.getElementById('rag_func').value);
                 formData.append('recall_num', document.getElementById('recall_num').value);
+                
+                // 添加API key
+                const apiKey = document.getElementById('api_key').value;
+                if (apiKey) {
+                    formData.append('api_key', apiKey);
+                }
                 
                 // 添加选中的文章ID
                 formData.append('article_ids', getSelectedArticles().join(','));

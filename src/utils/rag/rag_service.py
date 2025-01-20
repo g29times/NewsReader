@@ -254,7 +254,7 @@ class RAGService:
         Settings.chunk_overlap = 50
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
     
-    def get_chat_engine(self, chat_store_key: str, model: str = ""):
+    def get_chat_engine(self, chat_store_key: str, model: str = "", api_key: str = None) -> ChatEngine:
         chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
@@ -266,7 +266,7 @@ class RAGService:
             gemini = Gemini(
                 system_prompt=system_prompt,
                 model="models/" + (model or self.GEMINI_MODEL),
-                api_key=self.google_api_key,
+                api_key=api_key or self.google_api_key,
                 temperature=float(os.getenv("LLM_TEMPERATURE")),
                 max_tokens=8192 # FOR GEMINI
             )
@@ -293,7 +293,7 @@ class RAGService:
     # 直接聊天
     # 一级 - 短期记忆（对话窗口）
     # 二级 - 长期记忆（笔记区）
-    def chat(self, conversation_id: str, question: str, model: str = "") -> str:
+    def chat(self, conversation_id: str, question: str, model: str = "", api_key: str = None) -> str:
         # 方式1 直接调用LLM对话
         # resp = self.gemini.complete(query)
         # logger.info(f"LLM response: {resp}")
@@ -304,7 +304,7 @@ class RAGService:
         logger.info(f"Conversation ID: {conversation_id}")
         # 方式2 使用LlamaIndex框架对话
         chat_store_key = "user1_conv" + conversation_id
-        chat_engine = self.get_chat_engine(chat_store_key, model)
+        chat_engine = self.get_chat_engine(chat_store_key, model, api_key)
         # chat_engine.chat_repl()
         logger.info(f"Query length: {len(question)}")
         response = chat_engine.chat(question)
@@ -317,24 +317,24 @@ class RAGService:
         return response
     
     # 带附件（上下文）聊天 各种URL 文件等 图片另说
-    def chat_with_context(self, conversation_id: str, context: str, question: str, model: str = "") -> str:
+    def chat_with_context(self, conversation_id: str, context: str, question: str, model: str = "", api_key: str = None) -> str:
         # 1. 构建上下文
         prompt = ""
         if context:
             prompt += f"# 参考内容：\n<blockquote>{context}</blockquote>\n\n"
         prompt += f"# 问题：\n{question}"
         # 2. 使用现有的chat方法
-        return self.chat(conversation_id, prompt, model)
+        return self.chat(conversation_id, prompt, model, api_key)
 
     # 对话数据库里的文章
-    def chat_with_article(self, conversation_id: str, article_ids: List[int], question: str, model: str = "") -> str:
+    def chat_with_article(self, conversation_id: str, article_ids: List[int], question: str, model: str = "", api_key: str = None) -> str:
         # 1. 构建上下文
         articles = article_crud.get_article_by_ids(db_session, article_ids)
         if articles:
             articles_text = "\n".join([f"```标题：{article.title}\n内容：{article.content}```" for article in articles])
-            return self.chat_with_context(conversation_id, articles_text, question, model)
+            return self.chat_with_context(conversation_id, articles_text, question, model, api_key)
         else:
-            return self.chat_with_context(conversation_id, "暂无相关资料。", question, model)
+            return self.chat_with_context(conversation_id, "暂无相关资料。", question, model, api_key)
 
     # 对话知识库（资料） TODO 待改造
     def chat_with_articles_old(self, conversation_id: str, article_ids: List[int], question: str) -> str:
