@@ -45,7 +45,7 @@ def articles_search():
     logger.info(f"搜到文章：{len(articles)} 篇")
     return jsonify({
         'success': True,
-        'message': '搜索文章',
+        'message': query,
         'data': {
             'articles': [{
                 'id': article.id,
@@ -68,7 +68,7 @@ def get_article_details(article_id):
     
     return jsonify({
         'success': True,
-        'message': '获取文章详情',
+        'message': article_id,
         'data': {
             'article': {
                 'id': article.id,
@@ -140,7 +140,7 @@ def chat():
         # 这里暂时只返回成功响应，不调用LLM
         return jsonify({
             'success': True,
-            'message': '处理聊天请求',
+            'message': conversation_id,
             'data': response
         })
     except Exception as e:

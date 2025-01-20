@@ -109,7 +109,7 @@ body {
 
 .chat-input {
     width: 100%;
-    min-height: 150px;
+    min-height: 100px;
     resize: vertical;
     margin-bottom: 2px;
 }

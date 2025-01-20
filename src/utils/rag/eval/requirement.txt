@@ -1,2 +1,2 @@
-ragas
-plotly
+pip install ragas
+pip install plotly

@@ -77,9 +77,8 @@
         <!-- 中间聊天区域 -->
         <div class="chat-area">
             <div class="chat-toolbar">
-                <button class="btn btn-outline-secondary" onclick="createUpdateNote()">记录对话</button>
-                <button class="btn btn-outline-secondary" onclick="createUpdateChat(true)">新建对话</button>
-                <input type="password" id="api_key" placeholder="API-KEY..." class="form-control">
+                <button class="btn btn-outline-secondary" onclick="createUpdateChat(true)">新对话</button>
+                <button class="btn btn-outline-secondary" onclick="createUpdateNote()">存对话</button>
             </div>
             <div class="chat-messages" id="chatMessages">
                 <!-- 聊天消息将在这里动态添加 -->
@@ -89,6 +88,7 @@
                 <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
                 <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
                 <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
+                <input type="password" id="api_key" placeholder="API-KEY..." class="form-control">
                 <div class="choice-radio">
                     <!-- 模型 -->
                     <select name="llm_choice" id="llm_choice">
