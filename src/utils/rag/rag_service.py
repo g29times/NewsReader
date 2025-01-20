@@ -254,7 +254,7 @@ class RAGService:
         Settings.chunk_overlap = 50
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
     
-    def get_chat_engine(self, chat_store_key: str, model: str = "", api_key: str = None) -> ChatEngine:
+    def get_chat_engine(self, chat_store_key: str, model: str = "", api_key: str = None):
         chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
