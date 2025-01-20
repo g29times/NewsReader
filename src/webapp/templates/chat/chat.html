@@ -79,6 +79,8 @@
             <div class="chat-toolbar">
                 <button class="btn btn-outline-secondary" onclick="createUpdateChat(true)">新对话</button>
                 <button class="btn btn-outline-secondary" onclick="createUpdateNote()">存对话</button>
+                <button class="btn btn-outline-secondary" onclick="setApiKey()">KEY</button>
+                <input type="password" id="api_key" placeholder="API-KEY..." class="form-control">
             </div>
             <div class="chat-messages" id="chatMessages">
                 <!-- 聊天消息将在这里动态添加 -->
@@ -88,8 +90,6 @@
                 <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
                 <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
                 <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
-                <button class="btn btn-outline-secondary" onclick="setApiKey()">KEY</button>
-                <input type="password" id="api_key" placeholder="API-KEY..." class="form-control">
                 <div class="choice-radio">
                     <!-- 模型 -->
                     <select name="llm_choice" id="llm_choice">
@@ -100,7 +100,7 @@
                     </select>
                     <!-- 最大查询URL数量 -->
                     <!-- <label for="keep_urls" value="Max Recall URL">URLs</label> -->
-                    <select name="keep_urls" id="keep_urls">
+                    <select name="keep_urls" id="keep_urls" hidden="true">
                         <option value=5>5URL</option>
                         <option value=10>10</option>
                         <option value=20>20</option>
