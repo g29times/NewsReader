@@ -278,7 +278,7 @@ class RAGService:
         else:
             openai = OpenAI(    
                 model=os.getenv("OPENAI_MODEL"),
-                api_key=os.getenv("OPENAI_API_KEY"),
+                api_key=api_key or os.getenv("OPENAI_API_KEY"),
                 api_base=os.getenv("OPENAI_API_BASE"),
                 temperature=float(os.getenv("LLM_TEMPERATURE")),
                 max_tokens=4096  # FOR GPT-4o
