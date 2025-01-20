@@ -5,6 +5,7 @@ import logging
 from flask import Blueprint, request, jsonify
 from os import getenv
 from . import note_bp
+from .notionsdk import create_long_note_sdk
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -15,6 +16,7 @@ NOTION_API_URL = "https://api.notion.com/v1/pages"
 NOTION_DATABASE_ID = "17430c2067b4805280dfe476b6facef1"  # 后续可以移到环境变量
 NOTION_API_KEY = getenv('NOTION_API_KEY')  # 后续从环境变量获取
 NOTION_VERSION = "2022-06-28"
+
 
 def create_note(title, content, articles=None, chats=None, source="Personal", types=None):
     """
@@ -120,7 +122,7 @@ def create_note_route():
         types = data.get('types', ['NOTE'])
 
         # 创建笔记
-        result = create_note(title, content, articles, chats, source, types)
+        result = create_long_note_sdk(title, content, articles, chats, source, types)
         
         return jsonify({
             'success': True,
@@ -133,3 +135,9 @@ def create_note_route():
             'success': False,
             'error': str(e)
         }), 500
+
+if __name__ == '__main__':
+    print(create_long_note_sdk("title-test", """
+ 1
+ 3
+""", ["1", "2"], ["1", "2"], "Personal", ["NOTE"]))

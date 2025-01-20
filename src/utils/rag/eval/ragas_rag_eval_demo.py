@@ -175,9 +175,9 @@ if __name__ == "__main__":
         "Charles Darwin introduced the theory of evolution by natural selection in his book 'On the Origin of Species'."
     ]
 
-    # 2 进行批量测试
+    # 2 进行批量测试 入参说明：1. 仅传real_queries 。。。2. 传入real_queries和real_references
     evaluation_dataset = rag.get_evaluation_dataset(real_queries)
-    # evaluation_dataset = rag.get_evaluation_dataset(real_queries, real_references)
+    evaluation_dataset = rag.get_evaluation_dataset(real_queries, real_references)
 
     # Evaluate
     rag.eval(evaluation_dataset)
