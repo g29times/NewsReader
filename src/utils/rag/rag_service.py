@@ -258,38 +258,76 @@ class RAGService:
         chat_memory = ChatMemoryBuffer.from_defaults(
             token_limit=2000000, # 1206 200w | think 3w
             chat_store=self.chat_store,
-            chat_store_key=chat_store_key,
+            chat_store_key=chat_store_key
         )
         system_prompt=LLMCommonUtils._get_time_prompt()
         logger.info(f"model: {model}")
-        if "gemini" in model.lower():
+
+        # 检查是否是配置模型（以CFG_开头）
+        is_cfg_model = model.startswith('CFG_') if model else False
+        model_name = model.replace('CFG_', '') if is_cfg_model else model
+
+        # 配置模型 - Gemini
+        if is_cfg_model and "gemini" in model_name.lower():
+            model_name = "models/" + os.getenv(model_name)
+            api_key = api_key or os.getenv("GEMINI_API_KEY")
             gemini = Gemini(
                 system_prompt=system_prompt,
-                model="models/" + (model or self.GEMINI_MODEL),
-                api_key=api_key or self.google_api_key,
+                model=model_name,
+                api_key=api_key,
                 temperature=float(os.getenv("LLM_TEMPERATURE")),
-                max_tokens=8192 # FOR GEMINI
+                max_tokens=int(os.getenv("LLM_MAX_TOKENS", 4096))
             )
             chat_engine = SimpleChatEngine.from_defaults(
                 system_prompt=system_prompt,
                 memory=chat_memory,
                 llm=gemini
             )
-        else:
+        # 配置模型 - OpenAI
+        elif is_cfg_model and "openai" in model_name.lower():
             openai = OpenAI(    
                 model=os.getenv("OPENAI_MODEL"),
                 api_key=api_key or os.getenv("OPENAI_API_KEY"),
                 api_base=os.getenv("OPENAI_API_BASE"),
                 temperature=float(os.getenv("LLM_TEMPERATURE")),
-                max_tokens=4096  # FOR GPT-4o
+                max_tokens=int(os.getenv("LLM_MAX_TOKENS", 4096))
             )
             chat_engine = SimpleChatEngine.from_defaults(
                 system_prompt=system_prompt,
                 memory=chat_memory,
                 llm=openai
             )
+        # 配置模型 - MiniMax 暂不支持
+        elif is_cfg_model and "minimax" in model_name.lower():
+            from llama_index.llms.minimax import Minimax
+            minimax = Minimax(
+                model=os.getenv("MINIMAX_MODEL"),
+                api_key=api_key or os.getenv("MINIMAX_API_KEY"),
+                group_id=os.getenv("MINIMAX_GROUP_ID"),
+                temperature=float(os.getenv("LLM_TEMPERATURE")),
+                max_tokens=int(os.getenv("LLM_MAX_TOKENS", 4096))
+            )
+            chat_engine = SimpleChatEngine.from_defaults(
+                system_prompt=system_prompt,
+                memory=chat_memory,
+                llm=minimax
+            )
+        # OpenRouter模型
+        else:
+            from llama_index.llms.openrouter import OpenRouter
+            llm = OpenRouter(
+                api_key=api_key or os.getenv("OPENROUTER_API_KEY"),
+                max_tokens=int(os.getenv("LLM_MAX_TOKENS", 4096)),
+                temperature=float(os.getenv("LLM_TEMPERATURE")),
+                model=model or "google/gemini-2.0-flash-exp:free",  # 使用传入的模型名称或默认值
+            )
+            chat_engine = SimpleChatEngine.from_defaults(
+                system_prompt=system_prompt,
+                memory=chat_memory,
+                llm=llm
+            )
         return chat_engine
-
+    
     # 直接聊天
     # 一级 - 短期记忆（对话窗口）
     # 二级 - 长期记忆（笔记区）
@@ -833,7 +871,9 @@ class RAGService:
 if __name__ == "__main__":
     print("RAG service main")
     rag = RAGService()
-    asyncio.run(rag.main())
+    # asyncio.run(rag.main())
+
+    rag.chat("conversation1", "hi,gemi，现在几点了", "CFG_GEMINI_MODEL")
 
     # 清理向量库脚本 如果调整了向量维度 也可通过这重置
     # 正常响应 2024-12-27 00:26:47,042 - INFO     - posthog.py[line:22] - Anonymized telemetry enabled. 

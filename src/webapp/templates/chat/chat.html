@@ -84,10 +84,15 @@
                 <div class="choice-radio">
                     <!-- 模型 -->
                     <select name="llm_choice" id="llm_choice" onchange="handleModelChange()">
-                        <option value='GEMINI_MODEL' data-provider="google">Gemini</option>
-                        <option value='GEMINI_BEST_MODEL' data-provider="google">G1206</option>
-                        <option value='MINIMAX_MODEL' data-provider="minimax">abab65</option>
-                        <option value='OPENAI_MODEL' data-provider="openai">4omini</option>
+                        <option value='CFG_GEMINI_MODEL' data-provider="google">Gemini</option>
+                        <option value='CFG_GEMINI_BEST_MODEL' data-provider="google">G1206</option>
+                        <option value='google/gemini-2.0-flash-exp:free' data-provider="openrouter">gemini</option>
+                        <option value='deepseek/deepseek-chat' data-provider="openrouter">deepseek</option>
+                        <!-- <option value='CFG_MINIMAX_MODEL' data-provider="minimax">Abab65s</option>
+                        <option value='minimax/minimax-01' data-provider="openrouter">minimax</option> -->
+                        <option value='CFG_OPENAI_MODEL' data-provider="openai">4omini</option>
+                        <!-- <option value='openai/o1' data-provider="openrouter">o1</option>
+                        <option value='openai/chatgpt-4o-latest' data-provider="openrouter">gpt-4o</option> -->
                     </select>
                     <!-- 最大查询URL数量 -->
                     <!-- <label for="keep_urls" value="Max Recall URL">URLs</label> -->
@@ -1305,7 +1310,8 @@
             const providerNames = {
                 'google': 'Google',
                 'openai': 'OpenAI',
-                'minimax': 'MiniMax'
+                'minimax': 'MiniMax',
+                'openrouter': 'OpenRouter'
             };
             const providerName = providerNames[provider] || provider.toUpperCase();
             
@@ -1343,7 +1349,8 @@
             const providerNames = {
                 'google': 'Google',
                 'openai': 'OpenAI',
-                'minimax': 'MiniMax'
+                'minimax': 'MiniMax',
+                'openrouter': 'OpenRouter'
             };
             const providerName = providerNames[provider] || provider.toUpperCase();
             

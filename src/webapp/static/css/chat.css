@@ -554,3 +554,7 @@ body {
 .api-key[data-model="minimax"] {
     border-color: #ff6b6b;
 }
+
+.api-key[data-model="openrouter"] {
+    border-color: #7c3aed; /* 使用紫色作为OpenRouter的主题色 */
+}
