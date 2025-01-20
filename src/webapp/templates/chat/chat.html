@@ -80,23 +80,14 @@
                 <button class="btn btn-outline-secondary" onclick="createUpdateChat(true)">新对话</button>
                 <button class="btn btn-outline-secondary" onclick="createUpdateNote()">存对话</button>
                 <button class="btn btn-outline-secondary" onclick="setApiKey()">KEY</button>
-                <input type="password" id="api_key" placeholder="API-KEY..." class="form-control">
-            </div>
-            <div class="chat-messages" id="chatMessages">
-                <!-- 聊天消息将在这里动态添加 -->
-            </div>
-            <div class="chat-input-area">
-                <textarea id="messageInput" class="chat-input" placeholder="输入消息..."></textarea>
-                <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
-                <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
-                <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
+                <input type="password" id="api_key" class="form-control api-key" data-model="" placeholder="输入API Key..." style="display: none;">
                 <div class="choice-radio">
                     <!-- 模型 -->
-                    <select name="llm_choice" id="llm_choice">
-                        <option value='GEMINI_MODEL'>Gemini</option>
-                        <option value='GEMINI_BEST_MODEL'>G1206</option>
-                        <option value='MINIMAX_MODEL'>abab65</option>
-                        <option value='OPENAI_MODEL'>4omini</option>
+                    <select name="llm_choice" id="llm_choice" onchange="handleModelChange()">
+                        <option value='GEMINI_MODEL' data-provider="google">Gemini</option>
+                        <option value='GEMINI_BEST_MODEL' data-provider="google">G1206</option>
+                        <option value='MINIMAX_MODEL' data-provider="minimax">abab65</option>
+                        <option value='OPENAI_MODEL' data-provider="openai">4omini</option>
                     </select>
                     <!-- 最大查询URL数量 -->
                     <!-- <label for="keep_urls" value="Max Recall URL">URLs</label> -->
@@ -119,6 +110,15 @@
                         <option value=10>10</option>
                      </select>
                 </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <!-- 聊天消息将在这里动态添加 -->
+            </div>
+            <div class="chat-input-area">
+                <textarea id="messageInput" class="chat-input" placeholder="输入消息..."></textarea>
+                <button class="btn btn-primary" onclick="sendChatMessage()">对话</button>
+                <button class="btn btn-outline-secondary" onclick="uploadFile()">文件</button>
+                <button class="btn btn-outline-secondary" onclick="startRecording()">语音</button>
             </div>
         </div>
 
@@ -641,8 +641,8 @@
                 formData.append('rag_func', document.getElementById('rag_func').value);
                 formData.append('recall_num', document.getElementById('recall_num').value);
                 
-                // 添加API key
-                const apiKey = document.getElementById('api_key').value;
+                // 获取当前模型对应的API key
+                const apiKey = getCurrentApiKey();
                 if (apiKey) {
                     formData.append('api_key', apiKey);
                 }
@@ -973,12 +973,14 @@
             // 初始状态设置
             sendButton.disabled = !messageInput.value.trim();
             
-            // 加载保存的API key
-            const savedApiKey = getCookie('api_key');
-            if (savedApiKey) {
-                document.getElementById('api_key').value = savedApiKey;
-                document.getElementById('api_key').style.display = 'none'; // 默认隐藏输入框
-            }
+            // 加载保存的API keys
+            document.querySelectorAll('.api-key').forEach(input => {
+                const provider = input.dataset.model;
+                const savedKey = getCookie(`${provider}_api_key`);
+                if (savedKey) {
+                    input.value = savedKey;
+                }
+            });
         });
         
         // 加载特定对话内容 DONE
@@ -1298,19 +1300,68 @@
         // 设置API key的函数
         function setApiKey() {
             const apiKeyInput = document.getElementById('api_key');
+            const currentModel = document.getElementById('llm_choice').value;
+            const provider = document.querySelector(`option[value='${currentModel}']`).dataset.provider;
+            const providerNames = {
+                'google': 'Google',
+                'openai': 'OpenAI',
+                'minimax': 'MiniMax'
+            };
+            const providerName = providerNames[provider] || provider.toUpperCase();
+            
             if (apiKeyInput.style.display === 'none') {
                 // 显示输入框
-                apiKeyInput.style.display = 'block';
+                apiKeyInput.style.display = 'inline-block';
+                apiKeyInput.dataset.model = provider;
+                apiKeyInput.placeholder = `请输入${providerName}的API Key`;
+                // 加载已保存的key
+                const savedKey = getCookie(`${provider}_api_key`);
+                if (savedKey) {
+                    apiKeyInput.value = savedKey;
+                }
                 apiKeyInput.focus();
             } else {
-                // 隐藏输入框并保存key
+                // 保存并隐藏输入框
                 const apiKey = apiKeyInput.value.trim();
+                const currentProvider = apiKeyInput.dataset.model;
+                const currentProviderName = providerNames[currentProvider] || currentProvider.toUpperCase();
                 if (apiKey) {
-                    setCookie('api_key', apiKey, 30); // 保存30天
-                    showToast('API Key已保存', 'success');
+                    setCookie(`${currentProvider}_api_key`, apiKey, 30);
+                    showToast(`${currentProviderName}的API Key已保存`, 'success');
                 }
                 apiKeyInput.style.display = 'none';
+                apiKeyInput.value = '';
+                apiKeyInput.dataset.model = '';
             }
+        }
+
+        // 处理模型切换
+        function handleModelChange() {
+            const apiKeyInput = document.getElementById('api_key');
+            const currentModel = document.getElementById('llm_choice').value;
+            const provider = document.querySelector(`option[value='${currentModel}']`).dataset.provider;
+            const providerNames = {
+                'google': 'Google',
+                'openai': 'OpenAI',
+                'minimax': 'MiniMax'
+            };
+            const providerName = providerNames[provider] || provider.toUpperCase();
+            
+            // 如果输入框是显示状态，更新其属性
+            if (apiKeyInput.style.display === 'inline-block') {
+                apiKeyInput.dataset.model = provider;
+                apiKeyInput.placeholder = `请输入${providerName}的API Key`;
+                // 加载已保存的key
+                const savedKey = getCookie(`${provider}_api_key`);
+                apiKeyInput.value = savedKey || '';
+            }
+        }
+
+        // 获取当前选中模型的API key
+        function getCurrentApiKey() {
+            const currentModel = document.getElementById('llm_choice').value;
+            const provider = document.querySelector(`option[value='${currentModel}']`).dataset.provider;
+            return getCookie(`${provider}_api_key`);
         }
 
         // Cookie操作函数

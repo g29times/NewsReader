@@ -535,8 +535,22 @@ body {
 }
 
 /* -------------------------------- API Key 输入框 -------------------------------- */
-#api_key {
-    display: none; /* 默认隐藏 */
+.api-key {
     width: 200px;
     margin-left: 5px;
+    margin-right: 5px;
+    transition: border-color 0.3s ease;
+}
+
+/* 不同厂商的输入框样式 */
+.api-key[data-model="google"] {
+    border-color: #4285f4;
+}
+
+.api-key[data-model="openai"] {
+    border-color: #10a37f;
+}
+
+.api-key[data-model="minimax"] {
+    border-color: #ff6b6b;
 }
