@@ -175,8 +175,39 @@ if __name__ == "__main__":
         "Charles Darwin introduced the theory of evolution by natural selection in his book 'On the Origin of Species'."
     ]
 
-    # 2 进行批量测试 入参说明：1. 仅传real_queries 。。。2. 传入real_queries和real_references
+    # 2 进行批量测试 入参说明：
+    """评估方式一 只传query：
+        对于每个查询（query）：
+            answers 参数为 None，使用 [None] 作为默认值
+            references 参数为 None，使用 [None] 作为默认值
+            通过 get_most_relevant_docs 方法获取相关文档
+            使用 generate_answer 方法生成回答
+        构建数据集条目，包含三个字段：
+            user_input: 用户输入的查询
+            retrieved_contexts: 检索到的相关文档
+            response: 生成的回答
+        最终通过 ragas.EvaluationDataset.from_list 创建评估数据集
+        在评估时（eval方法），由于没有参考答案，只能使用 AnswerRelevancy 指标进行评估 答案相关性
+    """
     evaluation_dataset = rag.get_evaluation_dataset(real_queries)
+    
+    """
+    评估方式二 只传query：
+    对于每个查询（query）和参考答案（reference）对：
+        answers 参数为 None，使用 [None] 作为默认值
+        通过 get_most_relevant_docs 方法获取相关文档
+        使用 generate_answer 方法生成回答
+    构建数据集条目，包含四个字段：
+        user_input: 用户输入的查询
+        retrieved_contexts: 检索到的相关文档
+        response: 生成的回答
+        reference: 参考答案（ground truth）
+    最终通过 ragas.EvaluationDataset.from_list 创建评估数据集
+    在评估时（eval方法），由于有参考答案，可以使用更多评估指标：
+        AnswerRelevancy: 答案相关性
+        ContextPrecision: 上下文精确度
+        FactualCorrectness: 事实正确性
+    """
     evaluation_dataset = rag.get_evaluation_dataset(real_queries, real_references)
 
     # Evaluate

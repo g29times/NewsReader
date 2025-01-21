@@ -192,9 +192,22 @@ def batch_vector_store():
         # 1 获取表单数据
         article_ids = request.form.get('article_ids', '')
         articles = get_article_by_ids(db_session, article_ids.split(","))
+        # 过滤掉已有向量的文章
+        articles_to_process = []
+        for article in articles:
+            if article.vector_ids:
+                logger.warning(f"文章已存在向量数据库，跳过：{article.id}")
+                continue
+            articles_to_process.append(article)
+        if not articles_to_process:
+            return jsonify({
+                'success': True,
+                'message': '所有文章都已在向量数据库中',
+                'data': None
+            }), 200
         # 在后台处理向量数据库操作
-        rag_service.add_articles_to_vector_store_background(articles, collection_name=VECTOR_DB_ARTICLES)
-        logger.info(f"开始在后台添加文章到向量数据库：{article_ids}")
+        rag_service.add_articles_to_vector_store_background(articles_to_process, collection_name=VECTOR_DB_ARTICLES)
+        logger.info(f"开始在后台添加文章到向量数据库：{[a.id for a in articles_to_process]}")
         return jsonify({
                 'success': True,
                 'message': '开始在后台添加文章到向量数据库',

@@ -210,7 +210,7 @@ index = VectorStoreIndex.from_documents(
 )
 # 配置查询引擎
 query_engine = index.as_query_engine(
-    llm=Gemini(model=GENIMI_MODEL, api_key=GEMINI_API_KEY),
+    llm=Gemini(model=GEMINI_MODEL, api_key=GEMINI_API_KEY),
     streaming=True
 )
 # 执行查询

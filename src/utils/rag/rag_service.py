@@ -34,6 +34,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
+from src import (
+    CHAT_STORE_FILE, CHUNK_SIZE, CHUNK_OVERLAP, MAX_TOKENS_LONG, MAX_TOKENS_NORMAL, MAX_TOKENS_SHORT,
+    MAX_CONTEXT_WINDOW, EMBEDDING_DIMENSION, EMBEDDING_DIMENSION_COMPRESSED,
+    VOYAGE_MODELS, JINA_MODELS, GEMINI_MODELS, OPENAI_MODELS, MINIMAX_MODELS, DEEPSEEK_MODELS
+)
 from src.models import article_crud
 from src.utils.llms.llm_common_utils import LLMCommonUtils
 from src.database.connection import db_session
@@ -176,10 +181,15 @@ class RAGService:
         Args:
             vector_db_type: 向量数据库类型，可选 "chroma" 或 "milvus"
         """
+        self.GEMINI_MODEL = GEMINI_MODELS[0]
+        self.OPENAI_MODEL = OPENAI_MODELS[0]
+        self.MINIMAX_MODEL = MINIMAX_MODELS[0]
+        self.DEESEEK_MODEL = DEEPSEEK_MODELS[0]
+        self.VOYAGE_MODEL = VOYAGE_MODELS[0]
+        self.JINA_MODEL = JINA_MODELS[0]
         # Load API keys
         self.voyage_api_key = os.getenv("VOYAGE_API_KEY")
         self.google_api_key = os.getenv("GEMINI_API_KEY")
-        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL")
         self.JINA_API_KEY = os.getenv("JINA_API_KEY")
         if not self.voyage_api_key or not self.google_api_key:
             raise ValueError("Missing required API keys")
@@ -195,13 +205,14 @@ class RAGService:
             raise ValueError(f"Unsupported vector database type: {vector_db_type}")
         # 模块1 嵌入 Initialize embedding model
         self.voyage = VoyageEmbedding(
-            model_name = "voyage-3",
-            voyage_api_key = self.voyage_api_key
+            model_name = self.VOYAGE_MODEL,
+            api_key = self.voyage_api_key,
+            dimensions = EMBEDDING_DIMENSION
         )
-        self.jina = JinaEmbedding( # 推荐
-            model_name = "jina-embeddings-v3",
+        self.jina = JinaEmbedding(
+            model_name = self.JINA_MODEL,
             api_key = self.JINA_API_KEY,
-            dimensions = 128, # MRL技术
+            dimensions = EMBEDDING_DIMENSION_COMPRESSED, # MRL技术 压缩维度
             late_chunking = True # late_chunking 技术
         )
 
@@ -241,34 +252,34 @@ class RAGService:
             # ttl=300,  # Optional: Time to live in seconds
         )
         local_chat_store = SimpleChatStore.from_persist_path(
-            persist_path="chat_store.json"
+            persist_path=CHAT_STORE_FILE
         )
         self.chat_store = remote_chat_store if remote_chat_store else local_chat_store
 
         # 全局配置 Global 默认值
         # Settings.llm = self.gemini
         Settings.embed_model = self.voyage
-        # Settings.context_window=8192
-        # Settings.text_splitter = SentenceSplitter(chunk_size=1024) # JINA 1024 最佳
-        Settings.chunk_size = 1024
-        Settings.chunk_overlap = 50
+        # Settings.context_window=MAX_CONTEXT_WINDOW
+        # Settings.text_splitter = SentenceSplitter(chunk_size=1024) # JINA 1000 最佳
+        Settings.chunk_size = CHUNK_SIZE
+        Settings.chunk_overlap = CHUNK_OVERLAP
         # Settings.Callbacks https://docs.llamaindex.ai/en/stable/module_guides/supporting_modules/settings/
     
     def get_chat_engine(self, chat_store_key: str, model: str = "", api_key: str = None):
         chat_memory = ChatMemoryBuffer.from_defaults(
-            token_limit=2000000, # 1206 200w | think 3w
+            token_limit=MAX_CONTEXT_WINDOW, # 1206 200w | think 3w
             chat_store=self.chat_store,
             chat_store_key=chat_store_key,
         )
         system_prompt=LLMCommonUtils._get_time_prompt()
         logger.info(f"model: {model}")
         if "gemini" in model.lower():
-            gemini = Gemini(
+            gemini = Gemini( # GEMINI 专用格式
                 system_prompt=system_prompt,
                 model="models/" + (model or self.GEMINI_MODEL),
                 api_key=api_key or self.google_api_key,
                 temperature=float(os.getenv("LLM_TEMPERATURE")),
-                max_tokens=8192 # FOR GEMINI
+                max_tokens=MAX_TOKENS_NORMAL # FOR BIGMODEL LIKE GEMINI
             )
             chat_engine = SimpleChatEngine.from_defaults(
                 system_prompt=system_prompt,
@@ -277,11 +288,11 @@ class RAGService:
             )
         else:
             openai = OpenAI(    
-                model=os.getenv("OPENAI_MODEL"),
+                model=model or self.OPENAI_MODEL,
                 api_key=api_key or os.getenv("OPENAI_API_KEY"),
                 api_base=os.getenv("OPENAI_API_BASE"),
                 temperature=float(os.getenv("LLM_TEMPERATURE")),
-                max_tokens=4096  # FOR GPT-4o
+                max_tokens=MAX_TOKENS_SHORT  # FOR SMALL MODEL LIKE GPT-4o-mini
             )
             chat_engine = SimpleChatEngine.from_defaults(
                 system_prompt=system_prompt,
@@ -833,7 +844,9 @@ class RAGService:
 if __name__ == "__main__":
     print("RAG service main")
     rag = RAGService()
-    asyncio.run(rag.main())
+    # asyncio.run(rag.main())
+
+    rag.chat("conversation1", "Hello", "gemini-2.0-flash-exp")
 
     # 清理向量库脚本 如果调整了向量维度 也可通过这重置
     # 正常响应 2024-12-27 00:26:47,042 - INFO     - posthog.py[line:22] - Anonymized telemetry enabled. 

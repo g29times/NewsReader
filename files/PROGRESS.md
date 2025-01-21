@@ -62,7 +62,34 @@
 
 # 2 Daily Progress
 
-
+## 1.22 统一配置管理
+1. 统一了系统关键参数配置：
+   - Embedding相关：维度配置(EMBEDDING_DIM, EMBEDDING_DIM_ZIP)
+   - LLM相关：生成参数(MAX_TOKENS, TEMPERATURE, TOP_P, TOP_K)
+   - RAG相关：检索参数(RECALL_TOP_K, CHUNK_SIZE, OVERLAP)
+   - 上下文相关：窗口大小(MAX_CONTEXT_WINDOW)
+2. 重构了模型配置的三层架构设计：
+   - 配置层(.env)：最外层，通过环境变量统一管理所有模型列表
+     - 使用逗号分隔的字符串配置多个模型，如：VOYAGE_EMBED_MODELS="model1,model2,model3"
+     - 便于在不修改代码的情况下灵活调整可用模型
+   - 解析层(__init__.py)：中间层，负责配置转换和默认值管理
+     - 通过 _parse_env_list 函数将环境变量转换为Python列表
+     - 为每类模型提供默认值，确保系统在环境变量未设置时也能正常运行
+   - 使用层(各模型客户端)：最内层，负责具体模型的选择和使用
+     - 各客户端根据自身需求从模型列表中选择合适的模型，默认使用第一个
+     - 如：Gemini客户端区分普通对话、视觉任务使用不同模型
+3. 新增 DeepSeek 模型支持：
+   - 实现了 DeepseekClient 类，支持原生API和OpenAI格式的调用
+   - 遵循统一的配置管理方式，使用模型列表配置
+   - 提供了与其他模型一致的接口：query_with_history 和 query_openai_with_history
+4. 支持聊天中的URL和文件转为文章
+5. 上下文增强
+   - 实现了三层上下文增强机制：
+     1. 文件内容处理：支持上传文件作为上下文，自动提取文件中的URL信息，并异步保存为文章
+     2. 勾选文章：支持用户选择已有文章作为上下文，加入聊天信息
+     3. 向量RAG：基于用户问题进行语义搜索，使用Milvus检索相关文章片段，通过Voyager进行重排序
+   - 采用分层结构组织上下文，使用markdown格式区分不同来源的内容
+   - 异步处理文件和URL保存，避免阻塞主流程
 
 ## 1.21 优化Notion长文章支持
 1. 重构了Notion SDK的长文章处理功能
@@ -494,24 +521,3 @@
 ### 遗留问题
 1. 可能需要考虑添加更多语言的支持
 2. 需要进一步测试语言切换功能在各种场景下的表现
-
-
-# 3 DONE
-## Integrate LLM/VLM
-### Implementation Steps
-1. Select Libraries and Tools: Choose libraries for LLM/VLM integration, such as Hugging Face Transformers, OpenAI API, or PyTorch for local model hosting.
-- Decide on the specific LLMs/VLMs and APIs you want to use. - GEMINI
-- Develop a prototype to test the integration of LLM/VLM capabilities.
-- Create API Client Module: Implement a Python module to interact with the Gemini API.
-- Secure API Key: Store the API key securely and update your application to retrieve it from a secure location.
-- Develop Use Cases: Define specific use cases for Gemini, such as summarizing articles or generating new ideas.
-- Test Integration: Develop test cases to ensure the integration works as expected.
-2. Develop Input Handlers: Create modules to handle different input types (text, vision, audio) and preprocess them for LLM/VLM processing.
-    - Develop Functions: Implement these tasks as functions or services.
-    - Integrate with Database: Ensure that the results are stored and updated in the database.
-    - Schedule Tasks: Use a scheduler to handle periodic idea generation.
-3. Integrate Frameworks: Use frameworks like LangChain to build workflows that incorporate LLMs for complex tasks.
-4. Implement RAG Techniques: Develop methods to retrieve relevant data from your database to augment LLM outputs.
-5. *(TODO) Design Agents: Create agents that can autonomously perform tasks and interact with the system.
-6. Frontend: HTML -> JS/CSS -> NextJs
-7. windsurf工具 支持文件、联网

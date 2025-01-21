@@ -15,6 +15,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
+from src import OPENAI_MODELS
 from src.utils.llms.llm_common_utils import LLMCommonUtils
 
 # 配置日志
@@ -29,10 +30,9 @@ class OpenAIClient:
         """OpenAI API客户端"""
         self.API_KEY = os.getenv('OPENAI_API_KEY')
         self.API_BASE = os.getenv('OPENAI_API_BASE')
-        self.MODEL = os.getenv('OPENAI_MODEL')
-        self.max_tokens = os.getenv("LLM_MAX_TOKENS")
+        self.MODEL = OPENAI_MODELS[0]
+        self.max_tokens = os.getenv("LLM_MAX_TOKENS_NORMAL")
         self.temperature = os.getenv("LLM_TEMPERATURE")
-        logger.info("LLM_TEMPERATURE: " + self.temperature)
         self.top_p = os.getenv("LLM_TOP_P")
         self.client = None
 

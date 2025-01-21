@@ -16,6 +16,7 @@ if project_root not in sys.path:
 from src.utils.llms.llm_common_utils import LLMCommonUtils
 from src.utils.llms.models import LLMResponse
 from src.utils.file_input_handler import FileInputHandler
+from src import GEMINI_MODELS
 
 # Load environment variables and configure logging
 load_dotenv()
@@ -28,11 +29,12 @@ class GeminiClient:
     静态方法集合，用于与Google Gemini API交互
     提供文本、媒体和查询的处理功能
     """
+    BASE_URL = os.getenv("GEMINI_API_BASE")
     API_KEY = os.getenv("GEMINI_API_KEY")
-    MODEL = os.getenv("GEMINI_MODEL")
-    BEST_MODEL = os.getenv("GEMINI_BEST_MODEL")
-    THINKING_MODEL = os.getenv("GEMINI_THINKING_MODEL")
-    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
+
+    MODEL = GEMINI_MODELS[0]
+    BEST_MODEL = GEMINI_MODELS[1]
+    THINKING_MODEL = GEMINI_MODELS[2]
     
     # 配置生成参数
     SYSTEM_INSTRUCTION = os.getenv("SYSTEM_PROMPT")
@@ -59,7 +61,7 @@ class GeminiClient:
             logger.info("GEMINI SYSTEM_PROMPT: " + system_prompt)
         system_prompt = system_prompt or LLMCommonUtils._get_time_prompt()
         return genai.GenerativeModel(
-            model_name=cls.MODEL,
+            model_name=cls.BEST_MODEL,
             generation_config=cls.GENERATION_CONFIG,
             system_instruction=system_prompt,
         )

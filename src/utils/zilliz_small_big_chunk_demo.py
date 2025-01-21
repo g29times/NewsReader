@@ -222,3 +222,9 @@ rag = RAG()
 # references = ["《巨龙的黎明》的故事围绕着诺兹多姆对时间线混乱的探索和应对展开，最终他选择打破时间的循环，改变过去，以创造一个更美好的未来。这个时间线展示了诺兹多姆从迷茫到坚定的心理转变，以及他与其他守护巨龙和提尔之间的互动，为后续的《上古之战三部曲》奠定了基础。"]
 # evaluation_dataset = rag.get_evaluation_dataset(real_queries, real_answers, chunks, references)
 # rag.eval(evaluation_dataset)
+
+# 本DEMO已接入到系统中，
+# 相关模块(有微调）：
+# text_input_handler.split_text
+# rag_service.add_articles_to_vector_store
+# article_routes.batch_vector_store

@@ -7,9 +7,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-NOTION_DATABASE_ID = "17430c2067b4805280dfe476b6facef1"  # 后续可以移到环境变量
-
-notion = Client(auth=os.environ["NOTION_API_KEY"])
+NOTION_DATABASE_ID = os.getenv('NOTION_DATABASE_ID')
+NOTION_API_KEY = os.getenv('NOTION_API_KEY')
 
 def split_text_into_chunks(text: str, chunk_size: int = 1900) -> list:
     """
@@ -89,6 +88,7 @@ def create_note_sdk(title, content, articles=None, chats=None, source="Personal"
     :return: 创建的笔记信息
     """
     try:
+        notion = Client(auth=NOTION_API_KEY)
         if types is None:
             types = ["NOTE"]
             
@@ -140,7 +140,7 @@ def create_long_note_sdk(title: str, content: str, articles=None, chats=None, so
     """
     try:
         # 初始化notion客户端
-        notion = Client(auth=os.environ["NOTION_API_KEY"])
+        notion = Client(auth=NOTION_API_KEY)
         
         # 分割内容为多个块
         chunks = split_text_into_chunks(content, chunk_size=1900)

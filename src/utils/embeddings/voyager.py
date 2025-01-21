@@ -1,8 +1,17 @@
 import os
 import voyageai
-from typing import List, Union
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict
+import json
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+from src.utils.knn import k_nearest_neighbors
+from src import (
+    VOYAGE_MODELS, VOYAGE_RERANK_MODELS, EMBEDDING_BATCH_SIZE
+)
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -10,33 +19,13 @@ logger = logging.getLogger(__name__)
 # 初始化 Voyage 客户端
 voyage = voyageai.Client(api_key=os.getenv('VOYAGE_API_KEY'))
 
-# 嵌入模型配置
-EMBED_MODES = ["voyage-3", "voyage-3-lite", "voyage-multilingual-2"]  # 1024 512 1024
-DEFAULT_MODEL = EMBED_MODES[2]  # 默认使用多语言模型
-
-import voyageai
-import numpy as np
-import json
-import os
-import sys
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
-if project_root not in sys.path:
-    sys.path.append(project_root)
-from src.utils.knn import k_nearest_neighbors
-
 # TODO 
     # 1 隐藏API 
     # 1 加参数可选模型 *
     # 2 LOG日志归档 
     # 3 数据入库PINGCAP
-voyage = voyageai.Client(api_key=os.getenv('VOYAGE_API_KEY'))
-# voyage = voyageai.Client(api_key='<your secret key>')
-# https://docs.voyageai.com/docs/embeddings
-embed_modes=["voyage-3", "voyage-3-lite", "voyage-multilingual-2"] # 1024 512 1024
-embed_model=embed_modes[2]
-rerank_models=["rerank-1", "rerank-lite-1"]
-rerank_model=rerank_models[1]
+embed_model = VOYAGE_MODELS[0]  # 默认使用多语言模型
+rerank_model=VOYAGE_RERANK_MODELS[0]
 
 # "谁更像林黛玉？" | instruct 黛宝晴64薛62 best | large 黛宝薛79晴78 | voyage 黛宝薛77晴75
 # "红楼梦, 谁更像林黛玉？" | instruct 黛74宝70晴67薛65 best | large 黛81宝81袭80晴80 | voyage 黛81宝80薛77晴76
@@ -75,23 +64,11 @@ my_documents = [
 def get_my_documents():
     return my_documents
 
-# 封装 voyageai 核心API
-# class VectorTools:
-#     def __init__(self, documents=None, query=None):
-#         self.documents = documents if documents is not None else []
-#         # self.query = query if query is not None else ""
-    
-#     def get_doc_embeddings(self):
-#         print(f"---------------- `{len(self.documents)}` ----------------")
-#         # 这里是将文档列表转换为嵌入向量的逻辑
-#         embeddings = voyage.embed(self.documents, model=embed_model, input_type="document").embeddings
-#         return embeddings
-
 # 将文档列表转换为嵌入向量  voyageai 限制batch数量：128
 def get_doc_embeddings(documents):
     print(f"---------------- voyageai embedding {len(documents)} docs ----------------")
     all_embeddings = []
-    batch_size = 128
+    batch_size = EMBEDDING_BATCH_SIZE
     for i in range(0, len(documents), batch_size):
         batch_docs = documents[i:i+batch_size] # 获取当前批次的文档
         # 调用 voyage API 获取当前批次的 embeddings
@@ -109,46 +86,6 @@ def get_query_embedding(query):
     print(f"---------------- voyageai embedding query: `{query}` ----------------")
     embedding = voyage.embed([query], model=embed_model, input_type="query").embeddings[0]
     return embedding
-
-# def get_text_embedding(text: str, model: str = DEFAULT_MODEL) -> List[float]:
-#     """获取单个文本的嵌入向量
-    
-#     Args:
-#         text: 输入文本
-#         model: 使用的模型名称
-        
-#     Returns:
-#         文本的嵌入向量
-#     """
-#     try:
-#         embedding = voyage.embed(text, model=model).embeddings[0]
-#         return embedding
-#     except Exception as e:
-#         logger.error(f"获取文本嵌入向量失败: {str(e)}")
-#         return []
-
-# def get_doc_embeddings(documents: Union[List[str], str], model: str = DEFAULT_MODEL) -> List[List[float]]:
-#     """获取文档列表的嵌入向量
-    
-#     Args:
-#         documents: 文档列表或单个文档
-#         model: 使用的模型名称
-        
-#     Returns:
-#         文档列表的嵌入向量列表
-#     """
-#     try:
-#         # 确保输入是列表形式
-#         if isinstance(documents, str):
-#             documents = [documents]
-            
-#         # 批量获取嵌入向量
-#         response = voyage.embed(documents, model=model)
-#         return response.embeddings
-        
-#     except Exception as e:
-#         logger.error(f"获取文档嵌入向量失败: {str(e)}")
-#         return []
 
 # Retrieval 使用KNN召回 TODO 研究 最终的召回效果是KNN影响的吗?
 def knn_algo(query, k, doc_embeddings):
@@ -179,7 +116,6 @@ def knn_algo(query, k, doc_embeddings):
 # Retrieval 使用ANN召回 # TODO
 def ann_algo(query, k, doc_embeddings):
     query_embedding = get_query_embedding(query)
-    
 
 # Reranking 外部调用
 def rerank(query, documents, top_k=k_default):

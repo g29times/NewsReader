@@ -22,7 +22,10 @@ from src.utils.rag.rag_service import MilvusDB
 from src.utils.embeddings import jina
 import src.utils.embeddings.voyager as voyager
 from src.utils.redis.redis_service import RedisService
-from src import VECTOR_DB_ARTICLES
+from src import VECTOR_DB_ARTICLES, CHAT_KEEP_URLS_DEFAULT, KEEP_URLS_DEFAULT, RAG_RECALL_NUM_DEFAULT
+import re
+from typing import List
+from src.utils import async_utils
 
 # from src.utils.memory.memory_service import NotionMemoryService
 # # 直接使用NotionMemoryService的单例
@@ -78,6 +81,7 @@ def get_article_details(article_id):
                 'topics': topics,
                 'tags': article.tags,
                 'source': article.source,
+                'vector_ids': article.vector_ids
             }
         }
     })
@@ -108,19 +112,23 @@ def chat():
         api_key = request.form.get('api_key', None)
         # 可选参数
         article_ids = request.form.get('article_ids', [])
-        keep_urls = request.form.get('keep_urls', 5)
+        keep_urls = request.form.get('keep_urls', CHAT_KEEP_URLS_DEFAULT)
         rag_func = request.form.get('rag_func', 0)
-        recall_num = request.form.get('recall_num', 20)
+        recall_num = request.form.get('recall_num', RAG_RECALL_NUM_DEFAULT)
         # 获取多文件
         files = request.files.getlist('files')
         
         # 打印完整的请求信息
-        logger.info(f"请求表单数据: {request.form}")
-        logger.info(f"请求文件数据: {[f.filename for f in request.files.getlist('files')]}")
-        logger.info(f"files类型: {type(files)}, 数量: {len(files)}")
-        
+        # logger.info(f"请求表单数据: {request.form}")
+        logger.info(f"请求文件数据: {[f.filename for f in files] if files else []}")
         logger.info(f"收到聊天请求：question={question[:20]}, model={model}, conversation_id={conversation_id}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
         
+        # 检查是否包含URL并异步保存URL为文章
+        urls = jina._extract_urls(question)
+        if urls:
+            # 保存前两个URL
+            async_utils.run_async_task(_save_url_as_article(urls[:KEEP_URLS_DEFAULT], user_id), "异步保存URL失败")
+
         # 处理问题中的URL
         try:
             question = jina.read_from_jina(question, keep_urls)
@@ -130,7 +138,7 @@ def chat():
         context = _chat_context(question, files, article_ids, rag_func, recall_num)
         
         # 对话处理
-        response = rag_service.chat_with_context(conversation_id, context, question, os.getenv(model or "GEMINI_MODEL"), api_key)
+        response = rag_service.chat_with_context(conversation_id, context, question, model, api_key)
         
         # 异步更新LLM记忆 暂停
         # try:
@@ -152,6 +160,89 @@ def chat():
             'data': None
         }), 500
 
+# 异步将URL保存为文章
+async def _save_url_as_article(urls: List[str], user_id: str):
+    """异步将URL列表保存为文章"""
+    for url in urls:
+        try:
+            # 1. 构造文章数据
+            article_data = {
+                'url': url,
+                'title': '',  # 由LLM生成
+                'content': '',  # 由JINA获取
+                'summary': '',  # 由LLM生成
+                'key_topics': '',  # 由LLM生成
+            }
+            
+            # 2. 检查URL是否存在
+            article = get_article_by_url(db_session, url)
+            if article:
+                logger.info(f"已经存在同样url的文章：{article.title}")
+                continue
+                
+            # 3. 获取内容
+            article_data['content'] = FileInputHandler.jina_read_from_url(url)
+            if not article_data['content']:
+                logger.warning(f"无法获取URL内容：{url}")
+                continue
+                
+            # 4. 使用LLM处理内容
+            from src.webapp.article import article_routes
+            article_data = article_routes.summarize_article_content(article_data['content'], article_data)
+            
+            # 5. 保存到数据库
+            article_data.update({
+                'type': 'url',
+                'user_id': user_id
+            })
+            new_article = create_article(db_session, article_data)
+            logger.info(f"成功将聊天URL保存为文章: {new_article.title}")
+        except Exception as e:
+            logger.error(f"保存URL为文章失败: {str(e)}")
+            continue
+
+# 异步保存文件
+async def _save_file_as_article(content: str, filename: str):
+    """异步保存文件为文章"""
+    try:
+        # 处理文件内容，生成文章
+        article_data = {
+            'title': filename,  # 临时标题，会被LLM更新
+            'url': '',  # 文件类型没有URL
+            'tags': '',  # 可以后续添加文件类型标签
+            'type': 'FILE'
+        }
+        
+        # 先查重 title
+        from models.article_crud import get_article_by_title
+        if get_article_by_title(db_session, filename):
+            logger.info(f"文件已存在，跳过保存: {filename}")
+            return
+            
+        # 使用公共方法处理文章
+        article_data = article_routes.summarize_article_content(content, article_data)
+        
+        # 再次查重（因为LLM可能生成了一个已存在的标题）
+        if get_article_by_title(db_session, article_data['title']):
+            logger.info(f"文章标题已存在，跳过保存: {article_data['title']}")
+            return
+            
+        # 创建新文章
+        new_article = Article(**article_data)
+        db_session.add(new_article)
+        db_session.commit()
+        
+        # 添加到向量库
+        # article_routes.add_articles_to_vector_store([new_article])
+        
+        logger.info(f"文件保存成功: {filename}")
+        return new_article
+    except Exception as e:
+        logger.error(f"文件保存失败: {str(e)}")
+        db_session.rollback()
+        return None
+
+# 重点方法 上下文增强
 def _chat_context(question, files, article_ids, rag_func, recall_num):
     context_parts = []
     # 1. 处理文件内容
@@ -164,7 +255,7 @@ def _chat_context(question, files, article_ids, rag_func, recall_num):
                 file_content = jina.read_from_jina(file_content)
                 file_contents.append(file_content)
                 # 异步保存文件
-                run_async_save(file_content, file.filename)
+                async_utils.run_async_task(_save_file_as_article(file_content, file.filename), "异步保存文件失败")
         # 合并所有文件内容  # 为多模态混合embedding预留
         if file_contents:
             # multi_modal_content = jina.multi_embedding("\n\n".join(file_contents), keep_urls)
@@ -220,7 +311,7 @@ def _chat_context(question, files, article_ids, rag_func, recall_num):
     # 合并所有上下文
     return "\n\n---\n\n".join(context_parts) if context_parts else ""
 
-# 文件聊天接口
+# 文件聊天接口 准备depre
 @chat_bp.route('/api/chat/with_file', methods=['POST'])
 def chat_with_file():
     try:
@@ -239,9 +330,9 @@ def chat_with_file():
         model = request.form.get('model', 'GEMINI_MODEL')
         # 可选参数
         article_ids = request.form.getlist('article_ids', [])
-        keep_urls = request.form.get('keep_urls', 5)
+        keep_urls = request.form.get('keep_urls', CHAT_KEEP_URLS_DEFAULT)
         rag_func = request.form.get('rag_func', 0)
-        recall_num = request.form.get('recall_num', 20)
+        recall_num = request.form.get('recall_num', RAG_RECALL_NUM_DEFAULT)
         logger.info(f"收到文件请求：message={message[:20]}, file={file.filename}, model={model}, conversation_id={conversation_id}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
         # 读取文件内容
         content = FileInputHandler.read_from_file(file)
@@ -252,9 +343,9 @@ def chat_with_file():
         if isinstance(context, tuple):  # 如果返回错误信息
             return jsonify({'success': False, 'message': context[0]})
         # 使用文件内容回答问题 # 简易 gemini_client.query_with_content(content, message)
-        response = rag_service.chat_with_context(conversation_id, context, message, os.getenv(model or "GEMINI_MODEL"))
+        response = rag_service.chat_with_context(conversation_id, context, message, model)
         # 在后台线程中异步保存文件
-        run_async_save(content, file.filename)
+        _run_async_save_article(content, file.filename)
         return jsonify({
             'success': True,
             'message': '处理文件请求',
@@ -264,69 +355,6 @@ def chat_with_file():
         error_msg = f'文件处理失败: {str(e)}'
         logger.error(error_msg)
         return jsonify({'success': False, 'message': error_msg})
-
-# 异步文件上传
-def run_async_save(content: str, filename: str):
-    """在新线程中运行异步保存任务"""
-    async def _run_save():
-        try:
-            await save_file_as_article(content, filename)
-        except Exception as e:
-            logger.error(f"异步保存文件失败: {str(e)}")
-    
-    def _run_in_thread():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            loop.run_until_complete(_run_save())
-        finally:
-            loop.close()
-    
-    # 启动后台线程运行异步任务
-    thread = threading.Thread(target=_run_in_thread)
-    thread.daemon = True  # 设置为守护线程，这样主程序退出时线程会自动结束
-    thread.start()
-
-# 异步保存文件
-async def save_file_as_article(content: str, filename: str):
-    """异步保存文件为文章"""
-    try:
-        # 处理文件内容，生成文章
-        article_data = {
-            'title': filename,  # 临时标题，会被LLM更新
-            'url': '',  # 文件类型没有URL
-            'tags': '',  # 可以后续添加文件类型标签
-            'type': 'FILE'
-        }
-        
-        # 先查重 title
-        from models.article_crud import get_article_by_title
-        if get_article_by_title(db_session, filename):
-            logger.info(f"文件已存在，跳过保存: {filename}")
-            return None
-        
-        # 使用公共方法处理文章
-        article_data = article_routes.summarize_article_content(content, article_data)
-        
-        # 再次查重（因为LLM可能生成了一个已存在的标题）
-        if get_article_by_title(db_session, article_data['title']):
-            logger.info(f"文章标题已存在，跳过保存: {article_data['title']}")
-            return None
-        
-        # 创建新文章
-        new_article = Article(**article_data)
-        db_session.add(new_article)
-        db_session.commit()
-        
-        # 添加到向量库
-        # article_routes.add_articles_to_vector_store([new_article])
-        
-        logger.info(f"文件保存成功: {filename}")
-        return new_article
-    except Exception as e:
-        logger.error(f"文件保存失败: {str(e)}")
-        db_session.rollback()
-        return None
 
 # 删除消息 (注意 消息只是对话中的一段)
 @chat_bp.route('/api/msg/delete', methods=['POST'])

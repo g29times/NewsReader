@@ -25,7 +25,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
-
+from src import GEMINI_MODELS
 from src.utils.file_input_handler import FileInputHandler
 from src.utils.text_input_handler import TextInputHandler
 
@@ -61,7 +61,7 @@ class DatasetGenerator:
             raise ValueError("Missing Gemini API key")
             
         genai.configure(api_key=gemini_api_key)
-        self.model = genai.GenerativeModel(model_name=os.getenv("GEMINI_MODEL"))
+        self.model = genai.GenerativeModel(model_name=GEMINI_MODELS[0])
         
         # 加载文档
         self.documents = []

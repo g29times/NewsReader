@@ -12,11 +12,13 @@ project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
 from src import logy
+from src import KEEP_URLS_DEFAULT, JINA_MODELS
 
 # 配置日志
 logger = logging.getLogger(__name__)
 
 JINA_API_KEY = os.getenv("JINA_API_KEY")
+EMBEDDING_MODEL = JINA_MODELS[0]  # 默认使用的embedding模型
 
 # JINA的Embedding：多种下游任务优化 必须带token 付费
 @logy
@@ -31,7 +33,7 @@ async def get_doc_embeddings_jina(documents, task="text-matching"):
     print(f"---------------- jina embedding task: `{len(documents)}` ----------------")
     embeddings = []
     data = {
-        "model": "jina-embeddings-v3",
+        "model": EMBEDDING_MODEL,
         "task": task,
         "late_chunking": True, # late_chunking 技术
         "dimensions": 128, # MRL技术 可以根据需要减少嵌入的维度（甚至可以降到单个维度！）。较小的嵌入对向量数据库更友好
@@ -54,7 +56,7 @@ async def split_text_with_jina(text: str, max_chunk_length: int = 1000) -> List[
     """使用JINA API切分文本
     Args:
         text: 要切分的文本
-        max_chunk_length: 最大块长度 推荐1024 但是长文某些embedding会报错 可增大到2000 使得分段减少
+        max_chunk_length: 最大块长度 推荐1000 但是长文某些embedding会报错 可增大到2000 使得分段减少
     Returns:
         切分后的文本块列表
     """
@@ -115,7 +117,7 @@ def jina_reader(url: str, mode='read') -> str:
 # 重点工具 解析含url的消息 数量可能非常多 只保留前N个
 @logy
 @staticmethod
-def read_from_jina(message, keep_urls=2):
+def read_from_jina(message, keep_urls=KEEP_URLS_DEFAULT):
     urls = _extract_urls(message)
     logger.info(f"URLs extracted: {len(urls)}")
     # 对比传入的keep_urls的数量和extract_urls的结果数量，取小的

@@ -5,6 +5,7 @@ import logging
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 import re
+from src import TIME_ZONE_ADDNUM
 
 # 添加项目根目录到 Python 路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +22,7 @@ class LLMCommonUtils:
     @classmethod
     def _get_time(cls):
         now = datetime.now()# 加上8小时
-        time_plus_8_hours = now + timedelta(hours=8)
+        time_plus_8_hours = now + timedelta(hours=TIME_ZONE_ADDNUM)
         # 格式化为 ISO 8601 格式
         return time_plus_8_hours.strftime('%Y-%m-%dT%H:%M:%S.000Z')
     
