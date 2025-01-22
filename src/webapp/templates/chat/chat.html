@@ -722,6 +722,10 @@
                 sendButton.disabled = true;
                 // 获取选中的文章ID
                 const selectedArticles = getSelectedArticles();
+                if (selectedArticles.length > 10) {
+                    showToast('最多选择10篇文章', 'error');
+                    return;
+                }
                 // 添加用户消息到聊天区域
                 addUserMessageToChat(message);
                 // 清空输入框
