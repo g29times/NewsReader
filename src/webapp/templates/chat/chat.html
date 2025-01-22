@@ -299,7 +299,7 @@
         function uploadFile() {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
-            fileInput.accept = '.txt,.md,.pdf,.doc,.xlsx,.ppt,.jpg,.jpeg,.png,.gif';
+            fileInput.accept = '.txt,.html,.md,.pdf,.doc,.xlsx,.ppt,.jpg,.jpeg,.png,.gif';
             fileInput.multiple = true; // 允许多文件上传
             fileInput.onchange = async function(e) {
                 const files = e.target.files;
