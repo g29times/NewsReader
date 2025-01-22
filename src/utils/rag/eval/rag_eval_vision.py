@@ -13,7 +13,7 @@
 # 可视化：
 
 # 四个输入维度，如果用表格，会更加复杂，难以展示多个维度之间的关系。
-# 一个输出维度，需要选择合适的方式来展示多个指标。
+# 若干输出维度，需要选择合适的方式来展示多个指标。
 
 # 可视化方案
 
@@ -92,22 +92,23 @@ from ragas.metrics import (
 )
 
 # 参数组
-topk_values = [5, 20] # 可以增加 减少
+topk_values = [1, 5, 10] # 可以增加 减少
 chunk_sizes = [500, 1000]
 # 3个一组 16K, 32K, 64K, | 128K, 256K, 512K, | 1M, 2M 5M, | 10M, 20M, 50M
-file_sizes = ['16K', '1M']
+file_sizes = ['5M', '1M']
 # 指标metrics
 # @see ragas.metrics & ragas.evaluation
-# default : answer_relevancy-答案相关性, context_precision-上下文精确度, context_recall-上下文召回率, faithfulness-可信度
 # https://mp.weixin.qq.com/s/y61bX6iAwKdhpcupi1UBKQ，这些default指标不需要人工标注数据集或参考答案。
-# 三元组：问题 - answer_relevancy - 答案 - faithfulness - 上下文 - context_precision/context_recall/F1 - 问题
-# 上下文相关性-Context Relevance 参数已取消，新增factual_correctness参数，可配F1，Precision，Recall
-# 可信度 是指确保答案是基于给定的上下文生成的 避免幻觉
-# 答案相关性 衡量的是生成答案和查询之间的相关性
-# 上下文召回  衡量检索到的上下文和标注答案之间的一致性水平
-# 上下文精度  衡量检索到的包含真实事实的所有相关上下文是否排名靠前
-# answer_context_f1 = factual_correctness
-metrics = ['answer_relevancy', 'context_precision', 'answer_context_f1'] 
+# 三元组：问题 - answer_relevancy - 答案 - faithfulness - 上下文 - context_precision/context_recall - 问题
+# 含义: 1 answer_relevancy-答案相关性, 2 faithfulness-可信度, 3 context_precision-上下文精确度, context_recall-上下文召回率
+# 含义: 4 factual_correctness 答案中的事实陈述是否能在上下文中得到验证，可配F1，Precision，Recall 默认F1
+# 上下文-Context Relevance 相关性参数已取消
+# 1 答案相关性 衡量的是生成答案和查询之间的相关性
+# 2 可信度 是指确保答案是基于给定的上下文生成的 避免幻觉
+# 3 上下文召回  衡量检索系统是否找到了所有相关的上下文内容（需要参考文档）
+# 3 上下文精度  衡量检索到的上下文中有多少是真正相关的，以及相关内容的排序质量
+
+metrics = ['问题答案相关性', '召回文档准确性', '回答文档忠实度'] 
 
 def generate_dummy_data(real_data=None):
     """生成虚拟数据，并用真实数据替换指定组合"""
@@ -124,16 +125,16 @@ def generate_dummy_data(real_data=None):
                     # 默认分值 随机生成
                     answer_relevancy_score = np.random.uniform(0.1, 0.5)
                     context_precision_score = np.random.uniform(0.1, 0.5)
-                    factual_correctness_f1_score = np.random.uniform(0.1, 0.5)
+                    faithfulness_score = np.random.uniform(0.1, 0.5)
                     
                     data.append({
                         'file_size': file_size,
                         'chunk_size': chunk_size,
                         'with_context': with_context,
                         'topk': topk,
-                        'answer_relevancy': answer_relevancy_score,
-                        'context_precision': context_precision_score,
-                        'answer_context_f1': factual_correctness_f1_score
+                        '问题答案相关性': answer_relevancy_score,
+                        '召回文档准确性': context_precision_score,
+                        '回答文档忠实度': faithfulness_score
                     })
 
     df = pd.DataFrame(data)
@@ -150,9 +151,9 @@ def generate_dummy_data(real_data=None):
             # print("mask:",mask)
             if mask.any():
               # print("find it")
-              df.loc[mask, 'answer_relevancy'] = scores['answer_relevancy']
-              df.loc[mask, 'context_precision'] = scores['context_precision']
-              df.loc[mask, 'answer_context_f1'] = scores['answer_context_f1']
+              df.loc[mask, '问题答案相关性'] = scores['问题答案相关性']
+              df.loc[mask, '召回文档准确性'] = scores['召回文档准确性']
+              df.loc[mask, '回答文档忠实度'] = scores['回答文档忠实度']
     return df
 
 
@@ -161,7 +162,7 @@ def create_dashboard(df):
     unique_file_sizes = df['file_size'].unique()
     unique_contexts = df['with_context'].unique()
     # 固定坐标
-    # metrics = ['answer_relevancy', 'context_precision', 'faithfulness']
+    # metrics = ['问题答案相关性', '召回文档准确性', '回答文档忠实度']
     # chunk_sizes = [100, 500, 1000]
     # topk_values = [10, 50, 100]
 
@@ -169,7 +170,7 @@ def create_dashboard(df):
     num_cols = len(metrics)
 
     fig = make_subplots(rows=num_rows, cols=num_cols, subplot_titles=[
-        f"File Size: {size}, Context: {context} - {metric}"
+        f"{size}, 上下文: {context} - {metric}"
         for size in unique_file_sizes
         for context in unique_contexts
         for metric in metrics
@@ -179,15 +180,16 @@ def create_dashboard(df):
     global_min = df[metrics].min().min()
     global_max = df[metrics].max().max()
 
-    custom_colorscale = [ # Viridis | Hot | 'RdPu' (Red-Purple) | 'Magenta'
-        '#4B0082',  # 紫色
-        '#0000FF',  # 蓝色
-        '#00FFFF',  # 青色
-        '#008000',  # 绿色
-        '#FFFF00',  # 黄色
-        '#FFA500',  # 橙色
-        '#FF0000'   # 红色
-    ]
+    custom_colorscale = 'Viridis'
+    # custom_colorscale = [ # 'Viridis' | Hot | 'RdPu' (Red-Purple) | 'Magenta'
+    #     '#4B0082',  # 紫色
+    #     '#0000FF',  # 蓝色
+    #     '#00FFFF',  # 青色
+    #     '#008000',  # 绿色
+    #     '#FFFF00',  # 黄色
+    #     '#FFA500',  # 橙色
+    #     '#FF0000'   # 红色
+    # ]
 
     row_index = 1
     # 循环处理每个子图
@@ -201,7 +203,7 @@ def create_dashboard(df):
                     z=heatmap_data.values,
                     x=heatmap_data.columns,
                     y=heatmap_data.index,
-                    colorscale=custom_colorscale,
+                    colorscale=custom_colorscale, # 定制颜色版
                     zmin=global_min,  # Set the zmin to be the global minimum
                     zmax=global_max,  # Set the zmax to be the global maximum
                     showscale=False,
@@ -242,30 +244,39 @@ def create_dashboard(df):
 
 if __name__ == '__main__':
     real_data = {
-        # {'answer_relevancy': 0.9077, 'context_precision': 0.9500, 'factual_correctness': 0.6410}
+        # 这里是真实数据
         # (file_size, chunk_size, with_context, topk_value)
+        # {'问题答案相关性': 0.9077, '召回文档准确性': 0.9500, '回答文档忠实度': 0.6410}
+        # topk=1 {'answer_relevancy': 0.4022, 'llm_context_precision_without_reference': 0.9091, 'faithfulness': 0.8682}
         (
-            '16K', 500, False, 5
+            '5M', 1000, False, 1
          ): {
-            "answer_relevancy": 0.9077,
-            "context_precision": 0.9500,
-            "answer_context_f1": 0.6410
+            "问题答案相关性": 0.4022,
+            "召回文档准确性": 0.9091,
+            "回答文档忠实度": 0.8682
         },
-        # 以下是示例用法
+        # 系统问题1： answer_relevancy，llm_context_precision_without_reference 多次评分不一致
+        # {'answer_relevancy': 0.3985, 'llm_context_precision_without_reference': 0.9347, 'faithfulness': 0.9545}
+        # {'answer_relevancy': 0.4096, 'llm_context_precision_without_reference': 0.9505, 'faithfulness': 0.9545}
+        # {'answer_relevancy': 0.3985, 'llm_context_precision_without_reference': 0.9111, 'faithfulness': 0.9545}
         (
-            '1M', 1000, True, 20
+            '5M', 1000, False, 5
          ): {
-            "answer_relevancy": 0.8,
-            "context_precision": 0.85,
-            "answer_context_f1": 0.9
+            "问题答案相关性": 0.3985,
+            "召回文档准确性": 0.9347,
+            "回答文档忠实度": 0.9545
         },
+        # 系统问题2：topk 增加， llm_context_precision_without_reference 反而下降
+        # {'answer_relevancy': 0.4101, 'llm_context_precision_without_reference': 0.8050, 'faithfulness': 0.9773}
+        # {'answer_relevancy': 0.4059, 'llm_context_precision_without_reference': 0.8006, 'faithfulness': 0.9773}
         (
-           '2M', 500, False, 5
-        ): {
-            "answer_relevancy": 0.6,
-            "context_precision": 0.75,
-            "answer_context_f1": 0.85
+            '5M', 1000, False, 10
+         ): {
+            "问题答案相关性": 0.4101,
+            "召回文档准确性": 0.8050,
+            "回答文档忠实度": 0.9773
         }
+        # k=20 {'answer_relevancy': 0.4062, 'llm_context_precision_without_reference': 0.6908, 'faithfulness': 0.9773}
     }
     df = generate_dummy_data(real_data)
     create_dashboard(df)

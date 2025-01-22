@@ -12,7 +12,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
 if project_root not in sys.path:
     sys.path.append(project_root)
-import src.utils.embeddings.jina as jina
+# import src.utils.embeddings.jina as jina
 
 import logging
 logger = logging.getLogger(__name__)
@@ -52,7 +52,12 @@ class TextInputHandler:
         logger.info(f"文本预处理后：{len(text)}")
         return text
 
-    # 文本分割：使用JINA API + 本地分割
+    # 本地文本分割：简单按长度切分
+    @staticmethod
+    def split_text_simple(text: str, max_chunk_length: int = 1000) -> List[str]:
+        return [text[i:i+max_chunk_length] for i in range(0, len(text), max_chunk_length)]
+
+    # 文本长短父子分割：返回大块，小块，以及小块到大块的id映射
     @staticmethod
     async def split_text(text: str, max_chunk_length: int = 1000, chunk_overlap: int = 100) -> Tuple[List[str], List[str], Dict[int, int]]:
         max_node_length = max_chunk_length - chunk_overlap
@@ -243,6 +248,41 @@ class TextInputHandler:
         logger.info(f"本地分割最终切分成 {len(merged_nodes)} 个chunk")
         return merged_nodes
 
+    @staticmethod
+    def generate_dataset(filepath: str, output_path: str, max_chunk_length: int = 1000):
+        """生成评估数据集
+        Args:
+            filepath: 输入文件路径
+            output_path: 输出JSON文件路径
+            max_chunk_length: 每个chunk的最大长度
+        """
+        import json
+        
+        # 读取文件
+        with open(filepath, 'r', encoding='utf-8') as f:
+            text = f.read()
+        
+        # 切分文本
+        chunks = TextInputHandler.split_text_simple(text, max_chunk_length)
+        print(f"切分成 {len(chunks)} 个chunk")
+        
+        # 生成数据集格式
+        dataset = []
+        for i, chunk in enumerate(chunks):
+            item = {
+                "id": i,
+                "question": "",
+                "answer": "",
+                "golden_chunk": chunk
+            }
+            dataset.append(item)
+        
+        # 保存为JSON
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(dataset, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"已生成数据集，共{len(chunks)}条记录，保存至：{output_path}")
+
 # Example usage
 if __name__ == "__main__":
     import embeddings.jina as jina # 测试时打开
@@ -251,15 +291,18 @@ if __name__ == "__main__":
     async def main(filepath = None):
         sample_text = ''
         if not filepath:
-            sample_text = "This is a SAMPLE text, with Special Characters! \n 这是一个 示例文本，带有特殊字符"
+            sample_text = "This is a SAMPLE text, with Special Characters! \n 这是一个 示例文本，带有特殊字符。"
         else:
             with open(filepath, 'r', encoding='utf-8') as f:
                 sample_text = f.read()
-        # processed_text = TextInputHandler.preprocess_text(sample_text)
-        # print(processed_text)  # Output: "this is a sample text with special characters"
-        chunks, nodes = await TextInputHandler.split_text(sample_text, 10, 2)
+        chunks, nodes, small_big_dict = await TextInputHandler.split_text(sample_text, 10, 2)
         print(chunks)
         print(nodes)
     asyncio.run(main())
-    # asyncio.run(main("C:/Users/SWIFT/Desktop/temp/accouting.txt"))
+
+    #         # 输出到json
+    #         handler = TextInputHandler()
+    #         handler.generate_dataset(filepath, "output_dataset.json", 1000)
+    # asyncio.run(main("C:/Users/SWIFT/Desktop/temp1/accouting.txt"))
+
 

@@ -29,7 +29,7 @@
             
 #         self.llm = Gemini(
 #             api_key=google_api_key,
-#             model_name="models/gemini-pro",
+#             model_name="models/gemini",
 #             temperature=0.7,
 #             max_tokens=2048
 #         )

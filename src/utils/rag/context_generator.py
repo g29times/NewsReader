@@ -10,11 +10,11 @@ logger = logging.getLogger(__name__)
 class ContextGenerator:
     """使用Claude/Gemini为文档chunk生成上下文描述"""
     
-    def __init__(self, model_name: str = "gemini-pro"):
+    def __init__(self, model_name: str = "gemini"):
         """初始化上下文生成器
         
         Args:
-            model_name: 使用的模型名称，默认为gemini-pro
+            model_name: 使用的模型名称，默认为gemini
         """
         self.model = GenerativeModel(model_name)
     

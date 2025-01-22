@@ -62,7 +62,7 @@ class RAGEvaluator:
             logger.error(f"加载评估集失败: {e}")
             return []
     
-    # 使用文本相似度计算Pass@k
+    # 使用文本相似度计算Pass@k 余弦相似度
     def _calculate_pass_at_k(self, retrieved_chunks: List[Dict], golden_chunk: str) -> Dict[str, float]:
         """使用文本相似度计算Pass@k
         

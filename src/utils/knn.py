@@ -1,6 +1,7 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
+# k最邻近 余弦相似度
 def k_nearest_neighbors(query_embedding, documents_embeddings, k=5):
     query_embedding = np.array(query_embedding) # convert to numpy array
     documents_embeddings = np.array(documents_embeddings) # convert to numpy array
