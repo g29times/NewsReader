@@ -143,6 +143,25 @@ class CacheManager {
     }
 
     /**
+     * 将 Uint8Array 转换为 Base64 字符串
+     * @private
+     * @param {Uint8Array} bytes - 要转换的字节数组
+     * @returns {string} Base64字符串
+     */
+    _uint8ArrayToBase64(bytes) {
+        const chunks = [];
+        const chunkSize = 0x8000; // 每次处理32KB
+        
+        // 分块处理
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.slice(i, i + chunkSize);
+            chunks.push(String.fromCharCode.apply(null, chunk));
+        }
+        
+        return btoa(chunks.join(''));
+    }
+
+    /**
      * 压缩文本数据
      * @private
      * @param {string} text - 要压缩的文本
@@ -156,13 +175,27 @@ class CacheManager {
             // 使用 Uint8Array 来处理二进制数据
             const textBytes = new TextEncoder().encode(text);
             const compressed = pako.deflate(textBytes);
-            // 转换为Base64
-            const base64 = btoa(String.fromCharCode.apply(null, compressed));
-            return base64;
+            // 转换为Base64，使用分块处理
+            return this._uint8ArrayToBase64(compressed);
         } catch (error) {
             console.warn('Compression failed:', error);
             return text;
         }
+    }
+
+    /**
+     * Base64字符串转换为 Uint8Array
+     * @private
+     * @param {string} base64 - Base64字符串
+     * @returns {Uint8Array} 字节数组
+     */
+    _base64ToUint8Array(base64) {
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes;
     }
 
     /**
@@ -177,11 +210,7 @@ class CacheManager {
         }
         try {
             // 转换Base64为二进制数组
-            const binaryString = atob(base64);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
+            const bytes = this._base64ToUint8Array(base64);
             // 解压缩并转换回文本
             const decompressed = pako.inflate(bytes);
             return new TextDecoder().decode(decompressed);

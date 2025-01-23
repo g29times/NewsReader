@@ -188,38 +188,38 @@ filter='metadata["article_title"] == "魔兽时间线"'
 print(" ---------------- ")
 
 # Search
-query = "巨龙的黎明时间线？"
+query = "没有灵魂的 AI"
 children = client.search(
-    collection_name="my_json_collection",
+    collection_name="news_reader_articles", # 可变
     data=[voyager.get_query_embedding(query)],
-    limit=10,
+    limit=20, # 可变
     search_params={"params": {"nprobe": 10}},
-    output_fields=["content", "metadata"],
-    filter=filter
+    output_fields=["text", "metadata"], # 可变
+    filter='metadata["article_title"] like "%灵魂的%"'  # 可变
 )
 children = children[0]
-# print(children)
+print(len(children))
 chunk_ids = []
 for i, node in enumerate(children):
     chunk_id = node.get("entity").get("metadata").get("chunk_id")
-    if chunk_id not in chunk_ids:
+    if chunk_id not in chunk_ids: # 多个小段可能都是同一个大段里的，因此去重
         chunk_ids.append(chunk_id)
 chunks = []
 for chunk_id in chunk_ids:
     chunk = redis_client.get_hash_value(f"article_chunks", chunk_id)
     chunks.append(chunk)
-# print(chunks)
+chunks = [chunk for chunk in chunks if chunk is not None]
+print(chunks)
+
+# 需要清理数据时打开
+# client.delete( # https://docs.zilliz.com.cn/docs/delete-entities
+#     collection_name="news_reader_articles",
+#     filter='metadata["article_id"] = 999'
+# )
 
 # Evaluate
-from rag.eval.ragas_rag_eval_demo import RAG
-rag = RAG()
-# answer = rag.generate_answer(query, chunks)
-# print(f"Query: {query}")
-# print(f"Answer: {answer}")
-
-# real_queries = [query]
-# real_answers = [answer]
-# references = ["《巨龙的黎明》的故事围绕着诺兹多姆对时间线混乱的探索和应对展开，最终他选择打破时间的循环，改变过去，以创造一个更美好的未来。这个时间线展示了诺兹多姆从迷茫到坚定的心理转变，以及他与其他守护巨龙和提尔之间的互动，为后续的《上古之战三部曲》奠定了基础。"]
+# from rag.eval.ragas_rag_eval_demo import RAG
+# rag = RAG()
 # evaluation_dataset = rag.get_evaluation_dataset(real_queries, real_answers, chunks, references)
 # rag.eval(evaluation_dataset)
 

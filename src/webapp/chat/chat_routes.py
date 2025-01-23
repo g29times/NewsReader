@@ -293,9 +293,10 @@ def _chat_context(question, files, article_ids, rag_func, recall_num):
                 limit=int(recall_num),
                 # search_params={"params": {"nprobe": 10}}, # 高级参数 https://milvus.io/docs/v2.0.x/performance_faq.md https://zilliz.com/blog/select-index-parameters-ivf-index
                 output_fields=["text", "metadata"],
-                # filter=filter
+                # filter='metadata["article_title"] like "%灵魂的 AI%"' # 高级参数 见 zilliz_small_big_chunk_demo.py
             )
             children = children[0]
+            logger.info(f"向量库找到文档个数：{len(children)}")
             chunk_ids = []
             for node in children:
                 chunk_id = node.get("entity").get("metadata").get("chunk_id")
@@ -306,11 +307,12 @@ def _chat_context(question, files, article_ids, rag_func, recall_num):
             for chunk_id in chunk_ids:
                 chunk = redis_client.get_hash_value(f"article_chunks", chunk_id)
                 chunks.append(chunk)
-            if chunks and len(chunks) >= 1:
-                rerank_documents = voyager.rerank(query=question, documents=chunks, top_k=int(recall_num))
-                rag_context = " ".join([str(chunk) for chunk in rerank_documents])
-                if rag_context:
-                    context_parts.append(f"\n## 相关资料：\n{rag_context}")
+            chunks = [chunk for chunk in chunks if chunk is not None]
+            logger.info(f"Redis找到文档个数：{len(chunks)}")
+            rerank_documents = voyager.rerank(query=question, documents=chunks, top_k=int(recall_num))
+            rag_context = " ".join([str(chunk) for chunk in rerank_documents])
+            if rag_context:
+                context_parts.append(f"\n## 相关资料：\n{rag_context}")
     except Exception as e:
         logger.error(f"向量RAG搜索失败: {str(e)}")
     

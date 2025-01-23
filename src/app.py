@@ -24,4 +24,4 @@ if __name__ == '__main__':
     # 启用静态文件缓存
     app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1年
     app.config['STATIC_CACHE'] = True
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=True)
