@@ -187,6 +187,9 @@ class Milvus:
         return res
 
     # Semantic Search
+    # 支持结构化搜索 filter
+    # 用法：zilliz_small_big_chunk_demo.py
+    # 举例：metadata["article_id"] == 143
     def search(self, collection_name, query, limit=5, output_fields=["text"], search_params={}, filter=""):
         query_vectors = self.encode_query(query)
         res = self.client.search(
