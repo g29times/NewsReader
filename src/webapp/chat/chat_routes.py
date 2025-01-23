@@ -1,6 +1,4 @@
 from flask import render_template, request, jsonify
-from google import api_core
-from pymilvus import db
 from . import chat_bp
 from models.article import Article
 from models.article_crud import *
@@ -12,11 +10,9 @@ from utils.llms.gemini_client import GeminiClient
 from webapp.article import article_routes
 from database.connection import db_session
 import logging
-import asyncio
 import uuid
 import os
 import json
-import threading
 from src.utils.redis.redis_service import redis_service
 from src.utils.rag.rag_service import MilvusDB
 from src.utils.embeddings import jina
@@ -131,7 +127,7 @@ def chat():
         # 检查是否包含URL并异步保存URL为文章
         urls = jina._extract_urls(question)
         if urls:
-            # 保存前两个URL
+            # 异步保存前两个URL
             async_utils.run_async_task(_save_url_as_article(urls[:KEEP_URLS_DEFAULT], user_id), "异步保存URL失败")
 
         # 处理问题中的URL
@@ -375,8 +371,12 @@ def delete_chat_msg():
             return jsonify({'success': False, 'message': '缺少必要参数'}), 400
         message_index = data.get('message_index')
         redis_key = f"user{user_id}_conv{conversation_id}"
-        rag_service.delete_chat_msg(redis_key, int(message_index))
-        return jsonify({'success': True, 'message': '对话删除成功'})
+        
+        def delete_message():
+            rag_service.delete_chat_msg(redis_key, int(message_index))
+            logger.info(f'消息删除成功: conversation_id={conversation_id}, message_index={message_index}')
+        async_utils.run_simple_async(delete_message, error_msg=f'后台删除消息失败')
+        return jsonify({'success': True, 'message': '对话删除请求已提交'})
     except Exception as e:
         error_msg = f'删除对话失败: {str(e)}'
         logger.error(error_msg)
@@ -395,10 +395,12 @@ def edit_chat_msg():
         new_content = data.get('content')
         role = data.get('role', 'user')  # 默认用户消息
         redis_key = f"user{user_id}_conv{conversation_id}"
-        if rag_service.edit_chat_msg(redis_key, int(message_index), new_content, role):
-            return jsonify({'success': True, 'message': '对话编辑成功'})
-        else:
-            return jsonify({'success': False, 'message': '对话编辑失败'})
+        
+        def edit_message():
+            success = rag_service.edit_chat_msg(redis_key, int(message_index), new_content, role)
+            logger.info(f'消息编辑成功: conversation_id={conversation_id}, message_index={message_index}')
+        async_utils.run_simple_async(edit_message, error_msg=f'后台编辑消息失败')
+        return jsonify({'success': True, 'message': '对话编辑请求已提交'})
     except Exception as e:
         error_msg = f'编辑对话失败: {str(e)}'
         logger.error(error_msg)

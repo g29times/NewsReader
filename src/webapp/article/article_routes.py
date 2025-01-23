@@ -1,5 +1,5 @@
-from flask import render_template, request, jsonify, flash, redirect, url_for
-from typing import List, Dict, Any, Optional, Tuple, Union
+from flask import render_template, request, jsonify, flash
+from typing import List
 from . import article_bp
 from models.article import Article
 from models.article_crud import *
@@ -9,6 +9,7 @@ from utils.llms.article_service import ArticleTasks
 import logging
 from src.utils.rag.rag_service import RAGService
 from src import VECTOR_DB_ARTICLES
+from utils import async_utils
 
 logger = logging.getLogger(__name__)
 rag_service = RAGService()
@@ -118,13 +119,16 @@ def delete_article_route(article_id):
                 'message': '文章不存在',
                 'data': None
             }), 404
-
         delete_article(db_session, article_id)
-        # 删除文章后，也删除向量数据库中该文章的信息
-        rag_service.delete_articles_from_vector_store([article], collection_name=VECTOR_DB_ARTICLES)
+        
+        def delete_vectors():
+            rag_service.delete_articles_from_vector_store([article], collection_name=VECTOR_DB_ARTICLES)
+            logger.info(f'文章向量数据删除成功: article_id={article_id}')
+        async_utils.run_simple_async(delete_vectors, error_msg=f'后台删除文章向量数据失败')
+        
         return jsonify({
             'success': True,
-            'message': '文章删除成功',
+            'message': '文章删除成功，向量数据清理任务已提交',
             'data': {'id': article_id}
         })
     except Exception as e:
