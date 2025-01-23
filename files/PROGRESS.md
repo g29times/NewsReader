@@ -62,13 +62,53 @@
 
 # 2 Daily Progress
 
+## 1.23 前端性能优化
+1. 实现了通用缓存管理类 CacheManager：src\webapp\static\js\cache_manager.js
+   - 支持多种数据类型（文本、二进制、JSON）
+   - 实现 TTL 过期控制和 LRU 清理策略
+   - 支持数据压缩（使用 pako）
+   - 提供缓存统计功能
+   - 默认缓存时间1小时，最大缓存100MB
+   - 支持自定义缓存时间和类型
+   - 实现缓存项删除功能，用于数据更新时失效缓存
+   - 采用两级缓存机制：
+     - 内存缓存：提供快速访问
+     - localStorage持久化：提供数据持久性
+2. 优化了对话加载性能：
+   - 添加重复加载检查，避免相同对话重复请求
+   - 实现对话内容的本地缓存（1小时）
+   - 实现文章内容的本地缓存（30天）
+   - 对话更新后自动使相关缓存失效
+   - 添加缓存统计面板，方便监控缓存使用情况
+   - 支持手动清空所有缓存
+
+3. 优化了静态资源加载：src\webapp\__init__.py
+   - app.py 需关闭debug=False
+   - 实现细粒度的静态资源缓存控制
+   - JS/CSS 文件缓存30天，使用 immutable 标记优先内存缓存
+   - 图片/图标缓存1年，使用 must-revalidate 优先磁盘缓存
+   - 其他文件缓存1天
+   - 添加必要的缓存控制头（public, Vary: Accept-Encoding）
+   - 支持 CDN 缓存和压缩
+   - 修复了开发模式下静态文件缓存失效的问题
+
+4. 将主要静态依赖迁移到本地：
+   - Bootstrap 4.5.2
+   - jQuery 3.5.1
+   - Showdown 2.1.0
+   - Pako 2.1.0
+   - Font Awesome 5.15.4
+
 ## 1.22 统一配置管理
 1. 统一了系统关键参数配置：
    - Embedding相关：维度配置(EMBEDDING_DIM, EMBEDDING_DIM_ZIP)
    - LLM相关：生成参数(MAX_TOKENS, TEMPERATURE, TOP_P, TOP_K)
    - RAG相关：检索参数(RECALL_TOP_K, CHUNK_SIZE, OVERLAP)
    - 上下文相关：窗口大小(MAX_CONTEXT_WINDOW)
-2. 重构了模型配置的三层架构设计：
+   - 将所有配置项移至.env文件
+   - 添加了配置项的说明文档
+   - 实现了统一的配置加载机制
+2. 模型配置的三层架构设计：
    - 配置层(.env)：最外层，通过环境变量统一管理所有模型列表
      - 使用逗号分隔的字符串配置多个模型，如：VOYAGE_EMBED_MODELS="model1,model2,model3"
      - 便于在不修改代码的情况下灵活调整可用模型
@@ -82,14 +122,18 @@
    - 实现了 DeepseekClient 类，支持原生API和OpenAI格式的调用
    - 遵循统一的配置管理方式，使用模型列表配置
    - 提供了与其他模型一致的接口：query_with_history 和 query_openai_with_history
-4. 支持聊天中的URL和文件转为文章
-5. 上下文增强
+4. 聊天上下文增强
    - 实现了三层上下文增强机制：
      1. 文件内容处理：支持上传文件作为上下文，自动提取文件中的URL信息，并异步保存为文章
      2. 勾选文章：支持用户选择已有文章作为上下文，加入聊天信息
      3. 向量RAG：基于用户问题进行语义搜索，使用Milvus检索相关文章片段，通过Voyager进行重排序
    - 采用分层结构组织上下文，使用markdown格式区分不同来源的内容
    - 异步处理文件和URL保存，避免阻塞主流程
+5. 优化了评估框架中的召回率计算逻辑
+   - 将Jaccard相似度改为余弦相似度，以更好地捕捉文本语义相似性
+   - 修复了召回率计算可能超过1的问题，现在对每个golden chunk只计算一次召回
+   - 调整了相似度阈值从0.8降到0.6，使评估更合理
+   - 重命名了ground_truths为reference_contexts，使命名更准确
 
 ## 1.21 优化Notion长文章支持
 1. 重构了Notion SDK的长文章处理功能

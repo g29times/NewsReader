@@ -92,7 +92,12 @@ def get_article_details(article_id):
 def chat_page():
     user_id = '1'
     articles = get_all_articles(db_session)
-    return render_template('chat/chat.html', articles=articles)
+    # 设置缓存配置
+    cache_config = {
+        'CHAT_CACHE_TTL': os.getenv('CHAT_CACHE_TTL', 3600),  # 1小时
+        'CHAT_CACHE_MAX_SIZE': os.getenv('CHAT_CACHE_MAX_SIZE', 104857600)  # 100MB
+    }
+    return render_template('chat/chat.html', articles=articles, config=cache_config)
 
 # 普通聊天接口
 @chat_bp.route('/api/chat', methods=['POST'])
