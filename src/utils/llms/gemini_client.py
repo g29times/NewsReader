@@ -56,7 +56,7 @@ class GeminiClient:
 
     # 初始化Generative Model
     @classmethod
-    def _initialize_model(cls, system_prompt) -> genai.GenerativeModel:
+    def _initialize_model(cls, system_prompt=None) -> genai.GenerativeModel:
         if system_prompt:
             logger.info("GEMINI SYSTEM_PROMPT: " + system_prompt)
         system_prompt = system_prompt or LLMCommonUtils._get_time_prompt()
@@ -87,24 +87,34 @@ class GeminiClient:
 
     # 上传并验证文件
     @classmethod
-    def _upload_and_validate_file(cls, file_path: str, mime_type: Optional[str]):
-        files = [cls._upload_file(file_path, mime_type=mime_type)]
-        if not files[0]:
-            logger.error("Failed to upload file to Gemini")
-            return []
-        # 等待文件处理完成
-        cls._wait_for_files_active(files)
-        return files
-
-    # 上传文件到Gemini
-    @classmethod
-    def _upload_file(cls, path: str, mime_type: Optional[str] = None) -> Optional[Any]:
+    def _upload_and_validate_file(cls, file_paths, mime_types=None):
+        """上传并验证文件
+        Args:
+            file_paths: 文件路径，可以是单个字符串或字符串列表
+            mime_types: MIME类型，可以是单个字符串或字符串列表，需要与file_paths长度匹配
+        Returns:
+            上传后的文件列表
+        """
         try:
-            file = genai.upload_file(path, mime_type=mime_type)
-            logger.info(f"Uploaded file '{file.display_name}' as: {file.uri}")
-            return file
+            if isinstance(file_paths, str):
+                file_paths = [file_paths]
+                mime_types = [mime_types] if mime_types else [None]
+            elif mime_types and len(file_paths) != len(mime_types):
+                raise ValueError("mime_types长度必须与file_paths匹配")
+            elif not mime_types:
+                mime_types = [None] * len(file_paths)
+
+            uploaded_files = []
+            for file_path, mime_type in zip(file_paths, mime_types):
+                if not os.path.exists(file_path):
+                    logger.error(f"文件不存在: {file_path}")
+                    continue
+                file = genai.upload_file(file_path, mime_type=mime_type)
+                logger.info(f"已上传文件 '{file.display_name}' 为: {file.uri}")
+                uploaded_files.append(file)
+            return uploaded_files
         except Exception as e:
-            logger.error(f"Failed to upload file: {e}")
+            logger.error(f"文件上传失败: {e}")
             return None
 
     # 等待文件处理完成
@@ -282,21 +292,55 @@ class GeminiClient:
 
     # 询问Gemini关于多媒体文件（文本、图片、PDF等） TODO
     @classmethod
-    def query_with_file(cls, file_path: str, question: str, mime_type: Optional[str] = None):
+    def query_with_file(cls, file_paths, question, system_prompt=None, mime_types=None):
+        """处理文件查询
+        Args:
+            file_paths: 文件路径，可以是单个字符串或字符串列表
+            question: 问题
+            mime_types: MIME类型，可以是单个字符串或字符串列表
+        Returns:
+            回答
+        """
         try:
-            uploaded_files = cls._upload_and_validate_file(file_path, mime_type)
+            uploaded_files = cls._upload_and_validate_file(file_paths, mime_types)
             if not uploaded_files:
                 return None
-            # return cls.query_with_history(uploaded_files[0], question) # TODO 需要_start_chat_session支持多轮
-            return cls.query_with_history(FileInputHandler.read_from_file(file_path), question)
-            # model = cls._initialize_model()
-            # chat_session = cls._start_chat_session(model, question, uploaded_files[0])
-            # response = cls._get_response(chat_session, question)
-            # if response and response.text:
-            #     response = response.text
-            # return response
+            model = cls._initialize_model(system_prompt)
+            # 构建初始对话历史
+            history = []
+            if len(uploaded_files) == 1:
+                history = [
+                    {
+                        "role": "user",
+                        "parts": [
+                            uploaded_files[0],
+                            question
+                        ]
+                    }
+                ]
+            else:
+                history = [
+                    {
+                        "role": "user",
+                        "parts": [
+                            *uploaded_files,  # 解包所有文件
+                            question
+                        ]
+                    }
+                ]
+            chat_session = cls._start_chat_session(model, history)
+            response = cls._get_response(chat_session, question)
+            if response and response.text:
+                response = response.text
+                if (len(response) > 200):
+                    logger.info("Response: " + response[:100] + " ..." + response[-100:])
+                else:
+                    logger.info("Response: " + response)
+            else:
+                return None
+            return response
         except Exception as e:
-            logger.error(f"Error processing file with Gemini: {e}")
+            logger.error(f"Gemini处理文件失败: {e}")
             return None
 
 if __name__ == "__main__":
@@ -309,7 +353,7 @@ if __name__ == "__main__":
 
     # # OK
     print("TEST query_with_history -------------")
-    GeminiClient.query_with_history("你好")
+    # GeminiClient.query_with_history("你好")
 
     # # OK
     # print("TEST query_with_url -------------")
@@ -320,6 +364,7 @@ if __name__ == "__main__":
     # print("TEST query_with_file -------------")
     # response = GeminiClient.query_with_file('src/utils/rag/docs/3B模型长思考后击败70B.txt', "这篇文章讲什么？")
     # print(response)
+    GeminiClient.query_with_file(['C:/Users/SWIFT/Downloads/0_1.webp','C:/Users/SWIFT/Downloads/monroe.jpg'], "这2个图片是什么？")
     # 
     # # OK
     # print("TEST summarize_text -------------")

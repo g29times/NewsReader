@@ -3,6 +3,9 @@ import logging
 from PyPDF2 import PdfReader
 import os
 import sys
+import tempfile
+from typing import List, Union
+from werkzeug.datastructures import FileStorage
 
 # 添加项目根目录到 Python 路径 标准方式
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -18,9 +21,10 @@ class FileInputHandler:
     """文件处理工具类"""
     
     # 支持的文件类型
+    # 前端 fileInput.accept = '.txt,.csv,.html,.md,json,.pdf,.doc,.xlsx,.ppt,.jpg,.jpeg,.png,.gif';
     SUPPORTED_TEXT_FILES = {
-        'txt', 'csv', 'md', 'html',  # 简单文本
-        'pdf',                        # PDF文件
+        'txt', 'csv', 'md', 'html', 'json',  # 简单文本
+        'pdf',                       # PDF文件
         'doc', 'docx',               # Word文件
         'xls', 'xlsx',               # Excel文件
         'ppt', 'pptx'                # PowerPoint文件
@@ -31,68 +35,93 @@ class FileInputHandler:
     
     # 统一的文件读取入口
     @staticmethod
-    def read_from_file(file, mime_type=None):
+    def read_from_file(files: List[Union[str, FileStorage]], mime_types: List[str] = None, query: str=None):
         """统一的文件读取入口
         Args:
-            file: 可以是文件路径(str)或FileStorage对象
-            mime_type: 可选的MIME类型
+            files: 文件列表，每个元素可以是文件路径(str)或FileStorage对象
+            mime_types: 可选的MIME类型列表，若提供则必须与files等长
         Returns:
             str: 提取的文本内容
         """
         try:
-            # 处理FileStorage对象
-            if hasattr(file, 'filename'):
-                file_ext = file.filename.split('.')[-1].lower()
-                # 保存到临时文件
-                temp_path = FileInputHandler._save_temp_file(file)
-                content = FileInputHandler._process_file(temp_path, file_ext)
-                FileInputHandler._remove_temp_file(temp_path)
-                logger.info(f"文件处理成功: {len(content)}")
-                return content
-            # 处理文件路径
-            if isinstance(file, str):
-                file_ext = file.split('.')[-1].lower()
-                content = FileInputHandler._process_file(file, file_ext)
-                logger.info(f"文件处理成功: {len(content)}")
-                return content
-            raise ValueError('不支持的文件类型')
+            if mime_types and len(files) != len(mime_types):
+                raise ValueError("mime_types长度必须与files匹配")
+            
+            file_paths = []
+            file_exts = []
+            
+            # 处理所有文件
+            for file in files:
+                if isinstance(file, FileStorage):
+                    file_ext = file.filename.split('.')[-1].lower()
+                    temp_path = FileInputHandler._save_temp_file(file)
+                    file_paths.append(temp_path)
+                elif isinstance(file, str):
+                    file_ext = file.split('.')[-1].lower()
+                    file_paths.append(file)
+                else:
+                    raise ValueError(f'不支持的文件类型: {type(file)}')
+                file_exts.append(file_ext)
+            
+            # 按类型分组处理文件
+            text_files = []
+            media_files = []
+            for path, ext in zip(file_paths, file_exts):
+                if ext in FileInputHandler.SUPPORTED_TEXT_FILES:
+                    text_files.append(path)
+                else:
+                    media_files.append(path)
+            
+            results = []
+            # 处理非纯文本文件（图片、视频、音频等）
+            if media_files:
+                from src.utils.llms.gemini_client import GeminiClient
+                media_result = GeminiClient.query_with_file(media_files, query or '请解析和提取媒体文件的主要内容', '你是一个多媒体助手')
+                if media_result:
+                    results.append(media_result)
+            
+            # 处理文本文件
+            if text_files:
+                text_result = FileInputHandler._process_text(text_files)
+                if text_result:
+                    results.append(text_result)
+            
+            return '\n\n'.join(results) if results else None
+
         except Exception as e:
             logger.error(f"文件处理失败: {str(e)}")
             return None
-    
+        finally:
+            # 清理临时文件
+            for path in file_paths:
+                if path.startswith(tempfile.gettempdir()):
+                    FileInputHandler._remove_temp_file(path)
+
     @staticmethod
-    def _process_file(file_path, file_ext):
-        """根据文件类型处理文件
+    def _process_text(file_paths):
+        """处理文本文件
         Args:
-            file_path: 文件路径
-            file_ext: 文件扩展名
+            file_paths: 文本文件路径列表
         Returns:
-            str: 提取的文本内容
+            str: 合并后的文本内容
         """
-        # 文本类文件处理
-        if file_ext in FileInputHandler.SUPPORTED_TEXT_FILES:
-            if file_ext == 'pdf':
-                return FileInputHandler._extract_text_from_pdf(file_path)
-            elif file_ext in {'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}:
-                return FileInputHandler._extract_text_from_office(file_path)
-            else:
-                return FileInputHandler._extract_text_from_plain(file_path)
-        
-        # 视觉类文件处理（预留） TODO
-        elif file_ext in FileInputHandler.SUPPORTED_IMAGE_FILES:
-            return FileInputHandler._process_image(file_path)
-        elif file_ext in FileInputHandler.SUPPORTED_VIDEO_FILES:
-            return FileInputHandler._process_video(file_path)
-            
-        # 音频类文件处理（预留） TODO
-        elif file_ext in FileInputHandler.SUPPORTED_AUDIO_FILES:
-            return FileInputHandler._process_audio(file_path)
-            
-        else:
-            raise ValueError(f'不支持的文件类型: {file_ext}')
-    
+        contents = []
+        for file_path in file_paths:
+            ext = file_path.split('.')[-1].lower()
+            content = None
+            if ext in ['txt', 'csv', 'md', 'html', 'json']:
+                content = FileInputHandler._extract_text_from_plain(file_path)
+            elif ext == 'pdf':
+                content = FileInputHandler._extract_text_from_pdf(file_path)
+            elif ext in {'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'}:
+                content = FileInputHandler._extract_text_from_office(file_path)
+            if content:
+                contents.append(content)
+                
+        return '\n\n'.join(contents) if contents else None
+
     @staticmethod
-    def _extract_text_from_plain(file_path):
+    def _extract_text_from_plain(file_path: str):
         """处理普通文本文件"""
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
@@ -107,7 +136,7 @@ class FileInputHandler:
                 return None
     
     @staticmethod
-    def _extract_text_from_pdf(file_path):
+    def _extract_text_from_pdf(file_path: str):
         """处理PDF文件"""
         try:
             reader = PdfReader(file_path)
@@ -125,44 +154,36 @@ class FileInputHandler:
         # TODO: 实现Office文件的文本提取
         raise NotImplementedError('Office文件处理功能即将推出')
     
-    @staticmethod # TODO
-    def _process_image(file_path):
-        """处理图片文件（预留）"""
-        # TODO: 实现图片处理
-        raise NotImplementedError('图片处理功能即将推出')
-    
-    @staticmethod # TODO
-    def _process_video(file_path):
-        """处理视频文件（预留）"""
-        # TODO: 实现视频处理
-        raise NotImplementedError('视频处理功能即将推出')
-    
-    @staticmethod # TODO
-    def _process_audio(file_path):
-        """处理音频文件（预留）"""
-        # TODO: 实现音频处理
-        raise NotImplementedError('音频处理功能即将推出')
-    
     @staticmethod
     def _save_temp_file(file):
-        """保存上传的文件到临时目录"""
+        """保存上传的文件到临时目录，保留原始扩展名
+        Args:
+            file: FileStorage对象
+        Returns:
+            str: 临时文件路径
+        """
         import tempfile
         import os
         
-        # 创建临时文件
-        fd, temp_path = tempfile.mkstemp()
-        os.close(fd)
+        # 获取原始文件扩展名
+        ext = os.path.splitext(file.filename)[1]
+        
+        # 创建临时文件，保留扩展名
+        fd, temp_path = tempfile.mkstemp(suffix=ext)
+        os.close(fd)  # 关闭文件描述符
         
         # 保存文件内容
         file.save(temp_path)
+        logger.info(f"已保存临时文件: {temp_path}")
         return temp_path
     
     @staticmethod
-    def _remove_temp_file(temp_path):
+    def _remove_temp_file(temp_path: str):
         """删除临时文件"""
         import os
         try:
             os.remove(temp_path)
+            logger.info(f"已删除临时文件: {temp_path}")
         except:
             pass
     

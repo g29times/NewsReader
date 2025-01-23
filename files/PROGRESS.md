@@ -50,6 +50,19 @@
 		Agent 人格设定 主动对话
 			Autogen https://github.com/Chainlit/cookbook/tree/main/pyautogen
 			https://docs.llamaindex.ai/en/stable/examples/chat_engine/chat_engine_personality/
+	- 双层模型调用（待改进）：
+     - 当前流程：
+       1. 用户上传多媒体文件并提问
+       2. 使用Gemini处理多媒体文件，生成文本描述
+       3. 将文本描述作为上下文，连同用户问题传给LlamaIndex聊天引擎
+       4. LlamaIndex调用最终的对话模型（OpenAI/Gemini）回答问题
+     - 原因：
+       - LlamaIndex的SimpleChatEngine目前不支持多媒体输入
+       - 为了复用现有的对话历史和文档检索功能，暂时采用这种方案
+     - 改进方向：
+       - 等待LlamaIndex支持多模态输入
+       - 或者直接使用支持多模态的模型（如Gemini）进行对话，绕过LlamaIndex
+       - 需要权衡：直接对话vs文档检索增强的对话
 
 ## 优化
 - 异步处理
@@ -61,6 +74,38 @@
    https://mp.weixin.qq.com/s/vGjgrod3A0cAjGUrLv52Sg
 
 # 2 Daily Progress
+
+## 1.24 
+### 改进文件上传和预览功能
+1. 优化了文件上传和预览的实现：
+   - 实现了文字和图片的组合显示，支持用户同时发送文字和图片
+   - 使用MIME类型替代文件扩展名，支持更全面的文件类型：
+     - image/*: 所有图片格式
+     - text/*: 所有文本文件
+     - video/*: 所有视频文件
+     - audio/*: 所有音频文件
+     - application/*: 常用办公文档(PDF, Word, Excel等)
+   - 支持多文件上传
+2. 改进用户体验：
+   - 上传后立即预览
+   - 文字和图片在同一条消息中显示
+   - 保持了与原有对话功能的兼容性
+3. 后端文件处理流程：
+   - 统一的文件处理入口`FileInputHandler.read_from_file`：
+     - 支持多种文件类型（图片、文本）的批量处理
+     - 自动处理临时文件的保存和清理
+     - 使用MIME类型进行文件分类
+   - 图片处理：
+     - 使用Gemini的多模态能力解析图片内容
+     - 生成图片描述文本，支持非视觉模型使用
+   - 文本处理：
+     - 支持多种文本格式（txt, md等）
+     - 使用jina提取和处理URL信息
+     - 异步保存为文章供后续使用
+   - 多模态融合：
+     - 预留了多模态混合embedding的接口
+     - 将文字和图片内容组合发送给模型
+   - 双层模型调用（待改进）
 
 ## 1.23 前端性能优化
 1. 实现了通用缓存管理类 CacheManager：src\webapp\static\js\cache_manager.js

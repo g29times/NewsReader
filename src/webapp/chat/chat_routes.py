@@ -247,23 +247,18 @@ async def _save_file_as_article(content: str, filename: str):
 def _chat_context(question, files, article_ids, rag_func, recall_num):
     context_parts = []
     # 1. 处理文件内容
-    file_contents = []
     try:
-        for file in files:
-            file_content = FileInputHandler.read_from_file(file)
+        if files:
+            file_content = FileInputHandler.read_from_file(files, query=question)
             if file_content:
-                # 处理文件 中的URL信息 作为补充 保留2个
-                file_content = jina.read_from_jina(file_content)
-                file_contents.append(file_content)
-                # 异步保存文件
-                async_utils.run_async_task(_save_file_as_article(file_content, file.filename), "异步保存文件失败")
-        # 合并所有文件内容  # 为多模态混合embedding预留
-        if file_contents:
-            # multi_modal_content = jina.multi_embedding("\n\n".join(file_contents), keep_urls)
-            text_content = "\n\n".join(file_contents)
-            context_parts.append(f"\n## 文件内容：\n{text_content}")
+                context_parts.append("\n用户上传的媒体文件描述，供非多模态模型，或无法查看媒体的模型参考（相关模型将此参考信息当成自己已了解相关媒介，可用于直接回答用户的问题，无需转述此参考的事实）：")
+                context_parts.append(f"\n## 文件内容：\n{file_content}")
+                # 对于纯文本文件，异步保存为文章
+                for file in files:
+                    if file.filename.split('.')[-1].lower() in FileInputHandler.SUPPORTED_TEXT_FILES:
+                        async_utils.run_async_task(_save_file_as_article(file_content, file.filename), "异步保存文件失败")
     except Exception as e:
-        logger.error(f"合并文件内容失败: {str(e)}")
+        logger.error(f"处理文件内容失败: {str(e)}")
     
     # 2. 处理勾选的文章
     try:
