@@ -251,8 +251,8 @@ def _chat_context(question, files, article_ids, rag_func, recall_num):
         if files:
             file_content = FileInputHandler.read_from_file(files, query=question)
             if file_content:
-                context_parts.append("\n用户上传的媒体文件描述，供非多模态模型，或无法查看媒体的模型参考（相关模型将此参考信息当成自己已了解相关媒介，可用于直接回答用户的问题，无需转述此参考的事实）：")
-                context_parts.append(f"\n## 文件内容：\n{file_content}")
+                context_parts.append("\n## I. 用户上传的文件：以下是用户上传的媒体文件内容描述，供参考（可当成自己的了解和认知，用于回答用户的问题，无需转述参考的事实，如果与用户的问题无关，可忽略）：")
+                context_parts.append(f"\n## 媒体文件内容描述：\n{file_content}")
                 # 对于纯文本文件，异步保存为文章
                 for file in files:
                     if file.filename.split('.')[-1].lower() in FileInputHandler.SUPPORTED_TEXT_FILES:
@@ -269,7 +269,7 @@ def _chat_context(question, files, article_ids, rag_func, recall_num):
             articles = article_crud.get_article_by_ids(db_session, id_list)
             if articles:
                 articles_text = "\n".join([f"标题：{article.title}\n内容：{article.content if article.content else article.summary}" for article in articles])
-                context_parts.append(f"\n## 勾选文章：\n{articles_text}")
+                context_parts.append(f"\n## II. 用户选择的文章（可能与用户的问题有关或无关，应自行评估，如果与用户的问题无关，可忽略）：\n{articles_text}")
     except Exception as e:
         logger.error(f"处理勾选文章失败: {str(e)}")
     
@@ -303,7 +303,7 @@ def _chat_context(question, files, article_ids, rag_func, recall_num):
             rerank_documents = voyager.rerank(query=question, documents=chunks, top_k=int(recall_num))
             rag_context = " ".join([str(chunk) for chunk in rerank_documents])
             if rag_context:
-                context_parts.append(f"\n## 相关资料：\n{rag_context}")
+                context_parts.append(f"\n## III. 其他相关资料：\n{rag_context}")
     except Exception as e:
         logger.error(f"向量RAG搜索失败: {str(e)}")
     

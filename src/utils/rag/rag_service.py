@@ -317,7 +317,7 @@ class RAGService:
         chat_store_key = "user1_conv" + conversation_id
         chat_engine = self.get_chat_engine(chat_store_key, model, api_key)
         # chat_engine.chat_repl()
-        logger.info(f"Query length: {len(question)} - {question[:20]}")
+        logger.info(f"Query length: {len(question)} - {question[:200]}")
         response = chat_engine.chat(question)
         logger.info(f"LLM response length: {len(str(response))} - {str(response)[:20]}") # LLM response 格式：纯字符串
         # LlamaIndex 会自动保存持久化（本地json或redis）
@@ -330,7 +330,7 @@ class RAGService:
         # 1. 构建上下文
         prompt = ""
         if context:
-            prompt += f"# 参考内容：\n<blockquote>{context}</blockquote>\n\n"
+            prompt += f"# 参考内容：\n<blockquote>{context}</blockquote>\n参考内容结束\n\n"
         prompt += f"\n{question}"
         # 2. 使用现有的chat方法
         return self.chat(conversation_id, prompt, model, api_key)
