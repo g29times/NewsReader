@@ -145,15 +145,18 @@ class CacheManager {
     /**
      * 压缩文本数据
      * @private
+     * @param {string} text - 要压缩的文本
+     * @returns {string} Base64编码的压缩数据
      */
     _compress(text) {
-        if (!this.compression || typeof text !== 'string') {
+        if (!text || text.length < 1024) {
             return text;
         }
         try {
             // 使用 Uint8Array 来处理二进制数据
             const textBytes = new TextEncoder().encode(text);
             const compressed = pako.deflate(textBytes);
+            // 转换为Base64
             const base64 = btoa(String.fromCharCode.apply(null, compressed));
             return base64;
         } catch (error) {
@@ -163,11 +166,13 @@ class CacheManager {
     }
 
     /**
-     * 解压缩文本数据
+     * 解压缩数据
      * @private
+     * @param {string} base64 - Base64编码的压缩数据
+     * @returns {string} 解压缩后的文本
      */
     _decompress(base64) {
-        if (!this.compression || typeof base64 !== 'string') {
+        if (!base64 || base64.length < 1024) {
             return base64;
         }
         try {
@@ -177,9 +182,9 @@ class CacheManager {
             for (let i = 0; i < binaryString.length; i++) {
                 bytes[i] = binaryString.charCodeAt(i);
             }
-            // 解压缩
-            const decompressed = pako.inflate(bytes, { to: 'string' });
-            return decompressed;
+            // 解压缩并转换回文本
+            const decompressed = pako.inflate(bytes);
+            return new TextDecoder().decode(decompressed);
         } catch (error) {
             console.warn('Decompression failed:', error);
             return base64;
