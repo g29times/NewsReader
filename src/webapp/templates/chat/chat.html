@@ -52,7 +52,8 @@
                 <div id="expandedArticle" style="display: none;">
                     <div class="article-header">
                         <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">回到列表</button>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="addVec(this)" data-article-id="" style="display: none;">加知识库</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="addToVecDb(this)" data-article-id="" style="display: none;">加知识库</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="saveArtAsNote(this)">存Notion</button>
                     </div>
                     <h2 class="article-title" id="expandedArticleTitle"></h2>
                     <div class="source-guide-container">
@@ -89,7 +90,7 @@
         <div class="chat-area">
             <div class="chat-toolbar">
                 <button class="btn btn-outline-secondary" onclick="createUpdateChat(true)">新对话</button>
-                <button class="btn btn-outline-secondary" onclick="saveChat()">存对话</button>
+                <button class="btn btn-outline-secondary" onclick="saveChatAsNote()">存对话</button>
                 <button class="btn btn-outline-secondary" onclick="setApiKey()" title="再次点击保存">KEY</button>
                 <input type="password" id="api_key" class="form-control api-key" data-model="" placeholder="输入API Key..." style="display: none;">
                 <div class="choice-radio">
@@ -498,7 +499,8 @@
 
         // -------------------------------- 文章管理 --------------------------------
         let isExpanded = false;
-        let currentArticle = null;
+        let currentArticleId = null;
+        let currentArticle = '';
 
         // 文章区 面板展开/收起 默认收起
         function toggleArticlesPanel() {
@@ -668,7 +670,7 @@
                     });
                 }
                 // 加入向量库（知识库）
-                const addVecBtn = document.querySelector('#expandedArticle .article-header button[onclick^="addVec"]');
+                const addVecBtn = document.querySelector('#expandedArticle .article-header button[onclick^="addToVecDb"]');
                 if (addVecBtn) {
                     // 如果已经加入知识库（vector_ids不为空），则隐藏按钮
                     if (article.data.article.vector_ids) {
@@ -679,13 +681,15 @@
                     }
                 }
                 // 如果点击的是同一篇文章，切换展开状态
-                if (currentArticle === articleId) {
+                if (currentArticleId === articleId) {
                     toggleArticleExpand();
                 } else {
                     // 如果是新文章，展示内容并展开面板
-                    currentArticle = articleId;
+                    currentArticleId = articleId;
                     displayArticleContent(article.data.article);
                     expandArticlesPanel();
+                    currentArticle = article.data.article;
+                    // console.log(currentArticle);
                 }
             } catch (error) {
                 console.error('Fetch error:', error);
@@ -696,10 +700,10 @@
         }
         
         // 文章加知识库
-        function addVec(btn) {
+        function addToVecDb(btn) {
             const articleId = btn.getAttribute('data-article-id');
             if (!articleId) {
-                showToast('错误', '未找到文章ID');
+                showToast('错误', '未找到文章');
                 return;
             }
             fetch('/article/vector_article', {
@@ -1448,7 +1452,7 @@
         // -------------------------------- 笔记管理 --------------------------------
         // TODO 多笔记汇入合并
         
-        // 调用后端方法 记笔记
+        // 重点 调用后端方法 记笔记
         async function createNote(noteData) {
             try {
                 // 发送请求创建笔记
@@ -1501,8 +1505,31 @@
             }
         }
 
-        // 将对话 持久化笔记
-        async function saveChat() {
+        // 保存消息为笔记
+        async function saveMessageAsNote(button) {
+            try {
+                const messageDiv = button.closest('.message');
+                const content = messageDiv.querySelector('.message-content').textContent;
+                const noteData = {
+                    title: `${currentChatTitle}`,
+                    content: content,
+                    source: 'NewsReader',
+                    types: ['NOTE'],
+                    chats: currentConversationId ? [currentConversationId] : []
+                };
+                // 如果有选中的文章，添加到笔记中
+                const selectedArticles = getSelectedArticles();
+                if (selectedArticles.length > 0) {
+                    noteData.articles = selectedArticles;
+                }
+                await createNote(noteData);
+            } catch (error) {
+                showToast('创建笔记失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 保存对话为笔记
+        async function saveChatAsNote() {
             try {
                 // 获取当前对话的内容
                 const chatMessages = document.querySelectorAll('.message');
@@ -1534,27 +1561,24 @@
             }
         }
 
-        // 保存消息为笔记
-        async function saveMessageAsNote(button) {
-            try {
-                const messageDiv = button.closest('.message');
-                const content = messageDiv.querySelector('.message-content').textContent;
-                const noteData = {
-                    title: `${currentChatTitle}`,
-                    content: content,
-                    source: 'NewsReader',
-                    types: ['NOTE'],
-                    chats: currentConversationId ? [currentConversationId] : []
-                };
-                // 如果有选中的文章，添加到笔记中
-                const selectedArticles = getSelectedArticles();
-                if (selectedArticles.length > 0) {
-                    noteData.articles = selectedArticles;
-                }
-                await createNote(noteData);
-            } catch (error) {
-                showToast('创建笔记失败: ' + error.message, 'error');
+        // 保存文章为笔记
+        async function saveArtAsNote(btn) {
+            // 收集文章内容
+            let content = currentArticle.content;
+            if (!content) {
+                showToast('错误', '未找到文章内容');
+                return;
             }
+            // 准备笔记数据
+            const noteData = {
+                types: ['ARTICLE'],
+                title: currentArticle.title,
+                content: content,
+                url: currentArticle.url,
+                topics: currentArticle.topics,
+                summary: currentArticle.summary
+            };
+            await createNote(noteData);
         }
 
         // 新建笔记

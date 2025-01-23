@@ -634,7 +634,7 @@ class RAGService:
             asyncio.set_event_loop(loop)
             try:
                 loop.run_until_complete(self.add_articles_to_vector_store(articles, collection_name))
-                logger.info(f"后台成功添加 {len(articles)} 篇文章到向量数据库")
+                # logger.info(f"后台成功添加 {len(articles)} 篇文章到向量数据库")
             except Exception as e:
                 logger.error(f"后台添加文章失败: {str(e)}")
             finally:

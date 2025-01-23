@@ -7,7 +7,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-NOTION_DATABASE_ID = os.getenv('NOTION_DATABASE_ID')
+NOTE_DATABASE_ID = os.getenv('NOTE_DATABASE_ID')
+CHAT_DATABASE_ID = os.getenv('CHAT_DATABASE_ID')
 NOTION_API_KEY = os.getenv('NOTION_API_KEY')
 
 def split_text_into_chunks(text: str, chunk_size: int = 1900) -> list:
@@ -76,6 +77,21 @@ def split_text_into_chunks(text: str, chunk_size: int = 1900) -> list:
     
     return final_chunks
 
+def save_simple_content(types, title, content, database_id=None):
+    """
+    保存简单内容到Chat数据库，支持长文本自动分页
+    :param types: 笔记类型列表 [ARTICLE/CHAT/NOTE/BLOG/IDEA/MEMORY]
+    :param title: 聊天标题
+    :param content: 聊天内容
+    :param database_id: 目标数据库ID，默认使用CHAT_DATABASE_ID
+    :return: 创建的第一个页面ID
+    """
+    try:
+        return create_long_note_sdk(types, title, content, database_id=database_id or CHAT_DATABASE_ID)
+    except Exception as e:
+        logger.error(f"保存简单内容失败: {str(e)}")
+        raise e
+
 def create_note_sdk(title, content, articles=None, chats=None, source="Personal", types=None):
     """
     使用Notion SDK创建笔记
@@ -116,7 +132,7 @@ def create_note_sdk(title, content, articles=None, chats=None, source="Personal"
             })
         
         return notion.pages.create(
-            parent={"database_id": NOTION_DATABASE_ID},
+            parent={"database_id": NOTE_DATABASE_ID},
             properties=properties,
             children=children
         )
@@ -124,16 +140,17 @@ def create_note_sdk(title, content, articles=None, chats=None, source="Personal"
         logger.error(f"使用SDK创建笔记失败: {str(e)}")
         raise
 
-def create_long_note_sdk(title: str, content: str, articles=None, chats=None, source="Personal", types=None) -> str:
+def create_long_note_sdk(types: list, title: str, content: str, properties=None, database_id=None):
     """创建长文章，如果内容超过限制会自动分页
     
     Args:
+        types: 类型列表 [ARTICLE/CHAT/NOTE/BLOG/IDEA/MEMORY]
         title: 文章标题
         content: 文章内容
-        articles: 相关文章列表
-        chats: 相关对话列表
-        source: 来源，默认为"Personal"
-        types: 类型列表
+        properties: 额外的属性，根据类型不同而不同
+            - ARTICLE: url, topics, summary
+            - NOTE: articles, chats, source
+        database_id: 目标数据库ID，默认使用NOTE_DATABASE_ID
         
     Returns:
         str: 第一个页面的ID
@@ -141,6 +158,10 @@ def create_long_note_sdk(title: str, content: str, articles=None, chats=None, so
     try:
         # 初始化notion客户端
         notion = Client(auth=NOTION_API_KEY)
+        properties = properties or {}
+        
+        # 使用指定的数据库ID或默认的笔记数据库ID
+        target_db_id = database_id or NOTE_DATABASE_ID
         
         # 分割内容为多个块
         chunks = split_text_into_chunks(content, chunk_size=1900)
@@ -164,20 +185,30 @@ def create_long_note_sdk(title: str, content: str, articles=None, chats=None, so
             # 构建页面属性
             page_properties = {
                 "title": {"title": [{"text": {"content": page_title}}]},
-                "source": {"select": {"name": source}},
             }
             
-            # 添加可选属性
-            if articles:
-                page_properties["articles"] = {"rich_text": [{"text": {"content": ", ".join(articles)}}]}
-            if chats:
-                page_properties["chats"] = {"rich_text": [{"text": {"content": ", ".join(chats)}}]}
-            if types:
-                page_properties["type"] = {"multi_select": [{"name": t} for t in types]}
-                
+            # 根据类型添加不同的属性
+            if types[0] == 'ARTICLE':
+                # Articles: url, topics, summary
+                if url := properties.get('url'):
+                    page_properties["url"] = {"rich_text": [{"text": {"content": url}}]}
+                if topics := properties.get('topics'):
+                    page_properties["key_topics"] = {"rich_text": [{"text": {"content": ", ".join(topics)}}]}
+                if summary := properties.get('summary'):
+                    page_properties["summary"] = {"rich_text": [{"text": {"content": summary}}]}
+            elif types[0] == 'NOTE':
+                # Notes: articles, chats, source
+                if source := properties.get('source'):
+                    page_properties["source"] = {"select": {"name": source}}
+                if articles := properties.get('articles'):
+                    page_properties["articles"] = {"rich_text": [{"text": {"content": ", ".join(articles)}}]}
+                if chats := properties.get('chats'):
+                    page_properties["chats"] = {"rich_text": [{"text": {"content": ", ".join(chats)}}]}
+            # Chat类型不需要额外属性
+            
             # 创建页面
             page = notion.pages.create(
-                parent={"database_id": NOTION_DATABASE_ID},
+                parent={"database_id": target_db_id},
                 properties=page_properties
             )
             
@@ -248,8 +279,10 @@ def create_long_note_sdk(title: str, content: str, articles=None, chats=None, so
 
 
 if __name__ == "__main__":
-    create_long_note_sdk("title-test", """
- 1
- 2
- 3
-""", ["1", "3"], ["2", "3"], "Personal", ["NOTE"])
+    save_simple_content("title-test", "content", "17430c2067b4808c9aa6ed12f334753e")
+    
+#     create_long_note_sdk("title-test", """
+#  1
+#  2
+#  3
+# """, ["1", "3"], ["2", "3"], "Personal", ["NOTE"])
