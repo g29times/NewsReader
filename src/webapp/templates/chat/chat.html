@@ -51,7 +51,7 @@
                 </div>
                 <div id="expandedArticle" style="display: none;">
                     <div class="article-header">
-                        <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="collapseArticle()">回到列表</button>
+                        <button class="collapse-btn btn btn-sm btn-outline-secondary" onclick="toggleArticleView()">回到列表</button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="addToVecDb(this)" data-article-id="" style="display: none;">加知识库</button>
                         <button class="btn btn-sm btn-outline-secondary" onclick="saveArtAsNote(this)">存Notion</button>
                     </div>
@@ -502,28 +502,20 @@
         let currentArticleId = null;
         let currentArticle = '';
 
-        // 文章区 面板展开/收起 默认收起
+        // 左侧文章区 面板展开/收起 默认收起
         function toggleArticlesPanel() {
             const panel = document.querySelector('.articles-panel');
             const button = panel.querySelector('.toggle-panel-btn');
-            if (panel.classList.contains('expanded')) {
-                // 如果是展开状态，先恢复到默认宽度
-                panel.classList.remove('expanded');
-                button.textContent = '⬅';
-                panel.classList.add('collapsed');
-            } else if (panel.classList.contains('collapsed')) {
-                // 如果是收起状态，恢复到默认宽度
+            if (panel.classList.contains('collapsed')) {
                 panel.classList.remove('collapsed');
-                button.textContent = '➡';
-                panel.classList.add('expanded');
+                button.textContent = '⬅';
             } else {
-                // 如果是默认状态，收起面板
                 panel.classList.add('collapsed');
                 button.textContent = '➡';
             }
         }
 
-        // 笔记区 面板展开/收起 默认展开
+        // 右侧笔记区 面板展开/收起 默认展开
         function toggleRightPanel() {
             const panel = document.querySelector('.right-panel');
             const button = panel.querySelector('.toggle-panel-btn');
@@ -536,30 +528,21 @@
             }
         }
 
-        // 展开新文章详情
-        function expandArticlesPanel() {
-            const panel = document.querySelector('.articles-panel');
-            const button = panel.querySelector('.toggle-panel-btn');
-            // 移除收起状态（如果有的话）
-            panel.classList.remove('collapsed');
-            // 添加展开状态
-            panel.classList.add('expanded');
-            button.textContent = '⬅';
-        }
-
-        // 点击同一篇文章详情 展开/收起
-        function toggleArticleExpand() {
-            const panel = document.querySelector('.articles-panel');
-            if (panel.classList.contains('expanded')) {
-                panel.classList.remove('expanded');
-                showArticleList();
+        // 切换文章列表和详情显示
+        function toggleArticleView(showDetail = false) {
+            const articleList = document.getElementById('articleList');
+            const expandedArticle = document.getElementById('expandedArticle');
+            
+            if (showDetail) {
+                articleList.style.display = 'none';
+                expandedArticle.style.display = 'block';
             } else {
-                panel.classList.add('expanded');
-                hideArticleList();
+                articleList.style.display = 'block';
+                expandedArticle.style.display = 'none';
             }
         }
 
-        // 文章概要 展开/收起
+        // 文章概要 上下展开/收起
         function toggleSourceGuide(element) {
             const content = element.nextElementSibling;
             content.classList.toggle('expanded');
@@ -571,19 +554,6 @@
             } else {
                 arrow.textContent = '▶';
             }
-        }
-
-        // 从文章详情返回文章列表
-        function collapseArticle() {
-            const panel = document.querySelector('.articles-panel');
-            const articleList = document.getElementById('articleList');
-            const expandedArticle = document.getElementById('expandedArticle');
-            
-            // 移除展开状态
-            panel.classList.remove('expanded');
-            // 显示文章列表，隐藏文章详情
-            articleList.style.display = 'block';
-            expandedArticle.style.display = 'none';
         }
 
         // 重点 显示文章列表
@@ -682,14 +652,20 @@
                 }
                 // 如果点击的是同一篇文章，切换展开状态
                 if (currentArticleId === articleId) {
-                    toggleArticleExpand();
+                    if (document.getElementById('articleList').style.display === 'none') {
+                        // 如果当前在详情页，切换回列表
+                        toggleArticleView(false);
+                    } else {
+                        // 如果当前在列表页，显示详情
+                        displayArticleContent(article.data.article);
+                        toggleArticleView(true);
+                    }
                 } else {
                     // 如果是新文章，展示内容并展开面板
                     currentArticleId = articleId;
                     displayArticleContent(article.data.article);
-                    expandArticlesPanel();
+                    toggleArticleView(true);
                     currentArticle = article.data.article;
-                    // console.log(currentArticle);
                 }
             } catch (error) {
                 console.error('Fetch error:', error);

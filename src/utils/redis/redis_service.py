@@ -8,6 +8,7 @@ import re
 import json
 from upstash_redis import Redis
 from typing import List
+import logging
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 from src import logy
@@ -21,7 +22,7 @@ class RedisService:
             keys = self.redis.keys(pattern)
             return keys
         except Exception as e:
-            logy.error(f"Error getting keys: {str(e)}")
+            logging.error(f"Error getting keys: {str(e)}")
             return []
 
     def delete_keys(self, pattern: str):
@@ -30,28 +31,28 @@ class RedisService:
             for key in keys:
                 self.redis.delete(key)
         except Exception as e:
-            logy.error(f"Error deleting keys: {str(e)}")
+            logging.error(f"Error deleting keys: {str(e)}")
     
     def get_string(self, key: str):
         try:
             value = self.redis.get(key)
             return value
         except Exception as e:
-            logy.error(f"Error getting string: {str(e)}")
+            logging.error(f"Error getting string: {str(e)}")
             return None
 
     def set_string(self, key: str, value: str):
         try:
             self.redis.set(key, value)
         except Exception as e:
-            logy.error(f"Error setting string: {str(e)}")
+            logging.error(f"Error setting string: {str(e)}")
 
     def get_hash(self, key: str):
         try:
             value = self.redis.hgetall(key)
             return value
         except Exception as e:
-            logy.error(f"Error getting hash: {str(e)}")
+            logging.error(f"Error getting hash: {str(e)}")
             return None
     
     def get_hash_value(self, key: str, field: str):
@@ -59,7 +60,7 @@ class RedisService:
             value = self.redis.hget(key, field)
             return value
         except Exception as e:
-            logy.error(f"Error getting hash value: {str(e)}")
+            logging.error(f"Error getting hash value: {str(e)}")
             return None
             
     def set_hash(self, key: str, data: dict):
@@ -98,13 +99,13 @@ class RedisService:
             for field, value in data.items():
                 self.redis.hset(key, field, value)
         except Exception as e:
-            logy.error(f"Error setting hash: {str(e)}")
-
+            logging.error(f"Error setting hash: {str(e)}")
+    # 实际在用 for循环删除
     def delete_hash_value(self, key: str, field: str):
         try:
             self.redis.hdel(key, field)
         except Exception as e:
-            logy.error(f"Error deleting hash value: {str(e)}")
+            logging.error(f"Error deleting hash value: {str(e)}")
 
     async def batch_delete_hash_fields(self, key_pattern):
         """
@@ -120,7 +121,7 @@ class RedisService:
             keys.extend(batch_keys)
             if cursor == '0':
                 break
-        print(f"匹配到的 keys: {keys}")
+        logging.info(f"匹配到的 keys: {keys}")
 
         for key in keys:
             key = key.decode("utf-8")
@@ -129,8 +130,8 @@ class RedisService:
                 field_list = [field.decode("utf-8") for field in fields]
                 print(f"key: {key}, 将删除 field: {field_list}")
                 self.redis.hdel(key, *field_list) # 批量删除 field，注意*的使用
-        print("批量删除完成")
-
+        logging.info("批量删除完成")
+    # 有问题 使用 Lua 脚本批量删除 Redis Hash 中符合指定模式的 key 的 field。
     async def batch_delete_hash_fields_with_lua(self, key_pattern):
         """
         使用 Lua 脚本批量删除 Redis Hash 中符合指定模式的 key 的 field。
@@ -163,7 +164,7 @@ class RedisService:
         try:
             return bytes(s, 'utf-8').decode('unicode_escape')
         except Exception as e:
-            logy.error(f"Error decoding unicode escape: {str(e)}")
+            logging.error(f"Error decoding unicode escape: {str(e)}")
             return s
 
     # 使用Lua 在Redis服务器端搜索对话内容
@@ -202,7 +203,6 @@ class RedisService:
         
         return matched_keys
         '''
-        
         try:
             # 执行Lua脚本
             pattern = f"user{user_id}_conv*"
@@ -212,17 +212,15 @@ class RedisService:
                 keys=[pattern],  # pattern作为KEYS参数
                 args=[pattern, query_escaped]  # 参数通过args传递
             )
-            
             # 从返回的key中提取conv_id
             conv_ids = set()
             for key in matched_keys:
                 match = re.search(r'conv([a-zA-Z0-9]+)$', str(key))
                 if match:
                     conv_ids.add(match.group(1))
-            
             return list(conv_ids)
         except Exception as e:
-            logy.error(f"Error executing Redis Lua script: {str(e)}")
+            logging.error(f"Error executing Redis Lua script: {str(e)}")
             return []
 
 # 创建单例实例

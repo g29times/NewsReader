@@ -1,9 +1,7 @@
 /* -------------------------------- 基础布局 -------------------------------- */
-/* 整体设计 左右两侧一级伸展宽度：320px 点击详情展开二级宽度：360px 收缩宽度：40px 聊天框高度 80*/
+/* 整体设计 两侧收缩宽度：40px 伸展宽度：365px 聊天框高度 80px*/
 /* 展开折叠逻辑：
-1 折叠时，点击展开按钮，展开到一级伸展，显示列表；点击列表里的元素，展开到二级
-2 无论是展开到一级还是二级，只要点击折叠，都会收回到最小值：40px
-3 在详情页，点击回到列表，将从二级宽度收回到一级
+点击展开/收起按钮，在40px和365px之间切换
 */
 body {
     margin: 0;
@@ -44,7 +42,7 @@ body {
 .articles-panel,
 .notes-panel,
 .right-panel {
-    width: 320px;
+    width: 365px;
     min-width: 40px;
     transition: all 0.3s ease;
     background: #f8f9fa;
@@ -63,13 +61,6 @@ body {
 .right-panel.collapsed {
     width: 40px;
     min-width: 40px;
-}
-
-.articles-panel.expanded,
-.notes-panel.expanded,
-.right-panel.expanded {
-    width: 360px;
-    min-width: 360px;
 }
 
 .collapsed .panel-content,
