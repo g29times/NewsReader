@@ -166,87 +166,29 @@ class TextInputHandler:
             logger.error(f"分割文本失败: {str(e)}")
             return []
 
-    def _split_document_old1(text: str, max_chunk_length: int = 500) -> List[NodeWithScore]:
-        """智能分割文档，生成语义完整的黄金块
-        Args:
-            doc: 输入文档
-        Returns:
-            List[NodeWithScore]: 黄金块列表
+    @staticmethod
+    def is_media(url: str) -> bool:
         """
-        doc = Document(text=text, metadata={})
-        from llama_index.core.node_parser import SentenceSplitter
-        # 使用句子级别的分割器
-        parser = SentenceSplitter(
-            chunk_size=max_chunk_length,
-            chunk_overlap=50,
-            separator=" ",
-            paragraph_separator="\n\n",
-        )
-        # 获取初始分块
+        判断URL是否指向媒体文件（图片、视频、音频等）
+        """
+        # 常见媒体文件扩展名
+        media_extensions = {
+            # 图片
+            '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg',
+            # 视频
+            '.mp4', '.avi', '.mov', '.wmv', '.flv', '.mkv', '.webm',
+            # 音频
+            '.mp3', '.wav', '.ogg', '.m4a', '.aac'
+        }
+        
         try:
-            initial_nodes = parser.get_nodes_from_documents([doc])
-            logger.info(f"本地分割初步切分成 {len(initial_nodes)} 个chunk")
+            # 将URL转为小写以进行不区分大小写的匹配
+            url_lower = url.lower()
+            # 检查URL是否以任何媒体扩展名结尾
+            return any(url_lower.endswith(ext) for ext in media_extensions)
         except Exception as e:
-            logger.error(f"Failed to split document: {str(e)}")
-        # 合并短句，确保语义完整性
-        merged_nodes = []
-        current_text = []
-        current_length = 0
-        for node in initial_nodes:
-            # 如果当前句子很短，尝试与下一句合并
-            if len(node.text.split()) < 10 and current_length < max_chunk_length:
-                current_text.append(node.text)
-                current_length += len(node.text.split())
-            else:
-                # 如果积累了一些短句，将它们合并
-                if current_text:
-                    merged_text = " ".join(current_text)
-                    text_node = TextNode(
-                        text=merged_text,
-                        id_=f"{doc.doc_id}_golden_{len(merged_nodes)}",
-                        metadata={
-                            **node.metadata,
-                            "is_golden": True,
-                            "merged_from": len(current_text)
-                        }
-                    )
-                    merged_nodes.append(NodeWithScore(
-                        node=text_node,
-                        score=1.0  # 黄金块的得分设为1.0
-                    ))
-                    current_text = []
-                    current_length = 0
-                # 将当前句子作为独立的块
-                text_node = TextNode(
-                    text=node.text,
-                    id_=f"{doc.doc_id}_golden_{len(merged_nodes)}",
-                    metadata={
-                        **node.metadata,
-                        "is_golden": True
-                    }
-                )
-                merged_nodes.append(NodeWithScore(
-                    node=text_node,
-                    score=1.0
-                ))
-        # 处理剩余的短句
-        if current_text:
-            merged_text = " ".join(current_text)
-            text_node = TextNode(
-                text=merged_text,
-                id_=f"{doc.doc_id}_golden_{len(merged_nodes)}",
-                metadata={
-                    **doc.metadata,
-                    "is_golden": True,
-                    "merged_from": len(current_text)
-                }
-            )
-            merged_nodes.append(NodeWithScore(
-                node=text_node,
-                score=1.0
-            ))
-        logger.info(f"本地分割最终切分成 {len(merged_nodes)} 个chunk")
-        return merged_nodes
+            logger.error(f"URL媒体类型检查异常：{e}")
+            return False
 
     @staticmethod
     def generate_dataset(filepath: str, output_path: str, max_chunk_length: int = 1000):
@@ -304,5 +246,3 @@ if __name__ == "__main__":
     #         handler = TextInputHandler()
     #         handler.generate_dataset(filepath, "output_dataset.json", 1000)
     # asyncio.run(main("C:/Users/SWIFT/Desktop/temp1/accouting.txt"))
-
-

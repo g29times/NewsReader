@@ -175,6 +175,11 @@ async def _save_url_as_article(urls: List[str], user_id: str):
                 'key_topics': '',  # 由LLM生成
             }
             
+            # 检查URL不是图片或视频等媒体，而是网页、论文等
+            from src.utils.text_input_handler import TextInputHandler
+            if TextInputHandler.is_media(url):
+                continue
+            
             # 2. 检查URL是否存在
             article = get_article_by_url(db_session, url)
             if article:
