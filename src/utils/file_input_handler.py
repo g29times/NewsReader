@@ -76,7 +76,7 @@ class FileInputHandler:
             # 处理非纯文本文件（图片、视频、音频等）
             if media_files:
                 from src.utils.llms.gemini_client import GeminiClient
-                media_result = GeminiClient.query_with_file(media_files, query or '请解析和提取媒体文件的主要内容', '你是一个多媒体助手')
+                media_result = GeminiClient.query_with_file(media_files, '请解析和提取媒体文件的主要内容', '你是一个多媒体助手')
                 if media_result:
                     results.append(media_result)
             
