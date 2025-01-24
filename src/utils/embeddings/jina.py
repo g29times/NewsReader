@@ -130,14 +130,16 @@ def read_from_jina(message, keep_urls=KEEP_URLS_DEFAULT):
 
 # 提取URL 数量可能非常多 只保留前N个
 def _extract_urls(text):
-  """
-  从文本中提取 URL 的函数。
-  Returns:
-    一个包含提取到的 URL 的列表。
-  """
-  url_pattern = re.compile(r'https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)')
-  urls = url_pattern.findall(text)
-  return urls
+    """
+    从文本中提取 URL 的函数。
+    Returns:
+        一个包含提取到的 URL 的列表。
+    """
+    url_pattern = re.compile(r'https?://(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)')
+    urls = url_pattern.findall(text)
+    from src.utils.text_input_handler import TextInputHandler
+    urls = [url for url in urls if not TextInputHandler.is_media(url)]
+    return urls
 
 # 将URL的内容跟URL拼起来 此处会调用JINA Reader
 def _insert_content(text, urls):

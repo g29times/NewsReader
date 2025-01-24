@@ -130,13 +130,8 @@ def chat():
             # 异步保存前两个URL
             async_utils.run_async_task(_save_url_as_article(urls[:KEEP_URLS_DEFAULT], user_id), "异步保存URL失败")
 
-        # 处理问题中的URL
-        try:
-            question = jina.read_from_jina(question, keep_urls)
-        except Exception as e:
-            logger.error(f"处理问题URL失败: {str(e)}")
         # 上下文增强
-        context = _chat_context(question, files, article_ids, rag_func, recall_num)
+        context = _chat_context(question, keep_urls, files, article_ids, rag_func, recall_num)
         
         # 对话处理
         response = rag_service.chat_with_context(conversation_id, context, question, model, api_key)
@@ -249,7 +244,13 @@ async def _save_file_as_article(content: str, filename: str):
         return None
 
 # 重点方法 上下文增强
-def _chat_context(question, files, article_ids, rag_func, recall_num):
+def _chat_context(question, keep_urls, files, article_ids, rag_func, recall_num):
+    # 处理问题中的URL
+    try:
+        question = jina.read_from_jina(question, keep_urls)
+    except Exception as e:
+        logger.error(f"处理问题URL失败: {str(e)}")
+        
     context_parts = []
     # 1. 处理文件内容
     try:
