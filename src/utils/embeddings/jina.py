@@ -115,6 +115,9 @@ def jina_reader(url: str, mode='read') -> str:
         return None
 
 # 重点工具 解析含url的消息 数量可能非常多 只保留前N个
+# 例子
+#   输入 你参考一下官方资料，把文本https://mp.weixin.qq.com/s/cY4WrrS6pqLsKiw1JFl4jA解释通俗一点
+#   输出 你参考一下官方资料，把文本https://...<blockquote>{content}</blockquote>解释通俗一点
 @logy
 @staticmethod
 def read_from_jina(message, keep_urls=KEEP_URLS_DEFAULT):

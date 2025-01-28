@@ -124,11 +124,16 @@ def chat():
         logger.info(f"请求文件数据: {[f.filename for f in files] if files else []}")
         logger.info(f"收到聊天请求：question={question[:20]}, model={model}, conversation_id={conversation_id}, article_ids={article_ids}, rag_func={rag_func}, recall_num={recall_num}")
         
-        # 检查是否包含URL并异步保存URL为文章
-        urls = jina._extract_urls(question)
-        if urls:
-            # 异步保存前两个URL
-            async_utils.run_async_task(_save_url_as_article(urls[:KEEP_URLS_DEFAULT], user_id), "异步保存URL失败")
+        # 处理问题中的URL
+        try:
+            question = jina.read_from_jina(question, keep_urls)
+        except Exception as e:
+            logger.error(f"处理问题URL失败: {str(e)}")
+        # 检查是否包含URL并异步保存URL为文章 TODO 重复掉了JINA 暂时关闭
+        # urls = jina._extract_urls(question)
+        # if urls:
+        #     # 异步保存前两个URL
+        #     async_utils.run_async_task(_save_url_as_article(urls[:KEEP_URLS_DEFAULT], user_id), "异步保存URL失败")
 
         # 上下文增强
         context = _chat_context(question, keep_urls, files, article_ids, rag_func, recall_num)
@@ -245,12 +250,6 @@ async def _save_file_as_article(content: str, filename: str):
 
 # 重点方法 上下文增强
 def _chat_context(question, keep_urls, files, article_ids, rag_func, recall_num):
-    # 处理问题中的URL
-    try:
-        question = jina.read_from_jina(question, keep_urls)
-    except Exception as e:
-        logger.error(f"处理问题URL失败: {str(e)}")
-        
     context_parts = []
     # 1. 处理文件内容
     try:
