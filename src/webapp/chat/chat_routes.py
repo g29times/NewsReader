@@ -129,7 +129,7 @@ def chat():
             question = jina.read_from_jina(question, keep_urls)
         except Exception as e:
             logger.error(f"处理问题URL失败: {str(e)}")
-        # 检查是否包含URL并异步保存URL为文章 TODO 重复掉了JINA 暂时关闭
+        # 检查是否包含URL并异步保存URL为文章 TODO 重复调了JINA 暂时关闭
         # urls = jina._extract_urls(question)
         # if urls:
         #     # 异步保存前两个URL
@@ -251,7 +251,7 @@ async def _save_file_as_article(content: str, filename: str):
 # 重点方法 上下文增强
 def _chat_context(question, keep_urls, files, article_ids, rag_func, recall_num):
     context_parts = []
-    # 1. 处理文件内容
+    # 1. 获取文件内容，添加到上下文，对于纯文本文件，异步保存为文章
     try:
         if files:
             file_content = FileInputHandler.read_from_file(files, query=question)
@@ -265,7 +265,7 @@ def _chat_context(question, keep_urls, files, article_ids, rag_func, recall_num)
     except Exception as e:
         logger.error(f"处理文件内容失败: {str(e)}")
     
-    # 2. 处理勾选的文章
+    # 2. 处理勾选的文章：获取文章内容，添加到上下文
     try:
         if article_ids:
             # 将逗号分隔的字符串转换为整数列表
@@ -278,7 +278,7 @@ def _chat_context(question, keep_urls, files, article_ids, rag_func, recall_num)
     except Exception as e:
         logger.error(f"处理勾选文章失败: {str(e)}")
     
-    # 3. 搜索向量RAG
+    # 3. 搜索向量RAG（开关）
     try:
         if rag_func and int(rag_func) == 1:
             logger.info(f"已开启向量RAG搜索")

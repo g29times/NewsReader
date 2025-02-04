@@ -2,7 +2,7 @@
 
 ## 使用指南
 1. 使用 retrieve.py 收集RAG召回，并更新eval集（需关闭VPN）
-2. 调整context_recall.py 相似度分值 使用 ragas_rag_eval.py 进行评估出分（需开启VPN）
+2. 调整 context_recall.py 相似度分值 使用 ragas_rag_eval.py 进行评估出分（需开启VPN）
 3. 使用 rag_eval_vision.py 进行可视化（无需VPN）
 
 ## 零、横向评测设计
