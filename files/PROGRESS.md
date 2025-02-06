@@ -10,11 +10,15 @@
 
 # 1 TODO
 ## 整体设计
-  见SYSTEM-DESIGN
-  文章向量声明统一，目前分散于milvus_client.build_data，rag_service.add_articles_to_vector_store，chat_routes.chat
+  1 见SYSTEM-DESIGN
+  2 文章向量声明统一，目前分散于milvus_client.build_data，rag_service.add_articles_to_vector_store，chat_routes.chat
+	3 修改文章标题的功能
+	4 RAG流程重构：先全文给到LLM，然后再将之作为RAG的上下文，效果更好
 ## BUG
-	多余的方法
-	数据库重构
+	对话删多了之后会乱序 建议改用gemini
+	文章列表详情 已录入向量库 还能显示按钮
+	多个文件上传后，内容会挤在一起形成一篇文章
+	
 ## 前端
 	throw new Error 和 toast 的整合
 	支持各种信息源：WEB 文件 音频 图片 脑图 微信社交

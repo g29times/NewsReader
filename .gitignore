@@ -8,6 +8,7 @@ NewsReader.code-workspace
 
 # ignore directories
 database
+local_backup
 __pycache__
 files/temp
 .idea
