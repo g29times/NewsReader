@@ -5,6 +5,10 @@
 2. 调整 context_recall.py 相似度分值 使用 ragas_rag_eval.py 进行评估出分（需开启VPN）
 3. 使用 rag_eval_vision.py 进行可视化（无需VPN）
 
+### 参考
+https://arangodb.com/2024/10/some-perspectives-on-hybridrag-in-an-arangodb-world/
+https://arxiv.org/html/2408.04948v1#S5.T5
+
 ## 零、横向评测设计
 
 ### 1. 评测维度

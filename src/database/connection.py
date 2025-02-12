@@ -14,8 +14,15 @@ DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./src/database/articles.db')
 
 # Create engine
 engine = create_engine(
-    DATABASE_URL, echo=False, # echo 打印数据库日志
-    connect_args={'check_same_thread': False} if 'sqlite' in DATABASE_URL else {}
+    DATABASE_URL, 
+    echo=False, # echo 打印数据库日志
+    connect_args={'check_same_thread': False} if 'sqlite' in DATABASE_URL else {},
+    # 连接池配置
+    pool_size=20,  # 连接池大小
+    max_overflow=30,  # 最大溢出连接数
+    pool_timeout=60,  # 连接超时时间（秒）
+    pool_recycle=3600,  # 连接回收时间（1小时）
+    pool_pre_ping=True  # 连接前ping一下，确保连接有效
 )
 
 # Create a configured "Session" class
