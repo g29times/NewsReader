@@ -105,10 +105,30 @@ class DeepseekClient:
                 "top_logprobs": None
             }
             response = requests.post(url, headers=headers, json=payload)
-            return response.json()
+            
+            if response.status_code != 200:
+                logger.error(f"API request failed with status {response.status_code}: {response.text}")
+                return None
+
+            return response.json()  
+            # try:
+            #     response_json = response.json()
+            #     if not response_json.get('choices'):
+            #         logger.error(f"Invalid response format: {response_json}")
+            #         return None
+                    
+            #     message = response_json['choices'][0].get('message', {})
+            #     return message.get('content', '').strip()
+                
+            # except (KeyError, ValueError) as e:
+            #     logger.error(f"Failed to parse response: {str(e)}")
+            #     return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request failed: {str(e)}")
+            return None
         except Exception as e:
             logger.error(f"Error in _chat_complete: {str(e)}")
-            raise e
+            return None
 
     def query_with_history(self, question: str, histories: List[Dict] = None, system_prompt: str = None) -> Optional[str]:
         logger.info(f"MODEL: {self.MODEL}")
