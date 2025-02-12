@@ -1,3 +1,4 @@
+from flask import render_template, request, jsonify, redirect, url_for, session
 from flask import render_template, request, jsonify
 from . import chat_bp
 from models.article import Article
@@ -22,6 +23,8 @@ from src import VECTOR_DB_ARTICLES, CHAT_KEEP_URLS_DEFAULT, KEEP_URLS_DEFAULT, R
 import re
 from typing import List
 from src.utils import async_utils
+from functools import wraps
+from utils.content_filter import ContentFilter
 
 # from src.utils.memory.memory_service import NotionMemoryService
 # # 直接使用NotionMemoryService的单例
@@ -31,6 +34,36 @@ logger = logging.getLogger(__name__)
 rag_service = RAGService()
 gemini_client = GeminiClient()  # 创建一个全局实例
 
+
+# 登录检查装饰器
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'logged_in' not in session:
+            return redirect(url_for('.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 登录页面
+@chat_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == 'admin' and password == '654321':
+            session['logged_in'] = True
+            return redirect(url_for('.chat_page'))
+        else:
+            return render_template('login.html', error='用户名或密码错误')
+    
+    return render_template('login.html')
+
+# 登出
+@chat_bp.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('.login'))
 
 # --------------------------------- 文章管理 ---------------------------------
 # 搜索文章 # TODO 整合到 article_routes
@@ -85,6 +118,7 @@ def get_article_details(article_id):
 # --------------------------------- 聊天管理 ---------------------------------
 # 聊天页面
 @chat_bp.route('/')
+@login_required
 def chat_page():
     user_id = '1'
     articles = get_all_articles(db_session)
@@ -97,27 +131,40 @@ def chat_page():
 
 # 普通聊天接口
 @chat_bp.route('/api/chat', methods=['POST'])
+@login_required
 def chat():
     try:
         user_id = '1'
+        data = request.form
+
+        question = data.get('message', '')
+        model = data.get('model', 'GEMINI_MODEL')
+        api_key = data.get('api_key', None)
+        # 可选参数
+        article_ids = data.get('article_ids', [])
+        keep_urls = data.get('keep_urls', CHAT_KEEP_URLS_DEFAULT)
+        rag_func = request.form.get('rag_func', 0)
+        recall_num = data.get('recall_num', RAG_RECALL_NUM_DEFAULT)
+        # 获取多文件
+        files = request.files.getlist('files')
+
+        # 内容过滤
+        if not ContentFilter.filter_content(question):
+            print("-------------------------------------------内容不合法")
+            return jsonify({
+                'success': False,
+                'message': '内容不合法',
+                'data': None
+            }), 400
+
         # 从form表单中获取参数
-        conversation_id = request.form.get('conversation_id', '')
+        conversation_id = data.get('conversation_id', '')
         if not conversation_id:
             return jsonify({
                 'success': False,
                 'message': 'no conversation_id',
                 'data': None
             }), 400
-        question = request.form.get('message', '')
-        model = request.form.get('model', 'GEMINI_MODEL')
-        api_key = request.form.get('api_key', None)
-        # 可选参数
-        article_ids = request.form.get('article_ids', [])
-        keep_urls = request.form.get('keep_urls', CHAT_KEEP_URLS_DEFAULT)
-        rag_func = request.form.get('rag_func', 0)
-        recall_num = request.form.get('recall_num', RAG_RECALL_NUM_DEFAULT)
-        # 获取多文件
-        files = request.files.getlist('files')
         
         # 打印完整的请求信息
         # logger.info(f"请求表单数据: {request.form}")

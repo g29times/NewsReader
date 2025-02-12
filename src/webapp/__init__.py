@@ -6,7 +6,7 @@ import os
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = 'super secret key'  # 设置密钥
+    app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24).hex())  # 从环境变量读取密钥，如果没有则生成随机密钥
     
     # 配置静态文件路径
     app.static_url_path = '/static'
