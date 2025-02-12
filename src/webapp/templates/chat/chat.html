@@ -344,6 +344,8 @@
         // 文件上传功能
         function uploadFile() {
             const fileInput = document.getElementById('fileInput');
+            // 先清空文件输入框的值，这样即使选择同一个文件也会触发 change 事件
+            fileInput.value = '';
             fileInput.click();
         }
 
