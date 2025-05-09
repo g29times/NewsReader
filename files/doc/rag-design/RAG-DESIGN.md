@@ -1,19 +1,19 @@
 # 提高召回质量
 ## 1. 父子文档设计
-
-### 1.1 整体流程
-父子文档设计的目的是在保证召回质量的同时，兼顾上下文的完整性。整个流程分为三个阶段：
 涉及代码：
 - zilliz_small_big_chunk_demo.py
 - text_input_handler.split_text
 - rag_service.add_articles_to_vector_store
 - article_routes.batch_vector_store
 
+### 1.1 整体流程
+父子文档设计的目的是在保证召回质量的同时，兼顾上下文的完整性。整个流程分为三个阶段：
+
 #### (1) 文档切分阶段 (TextInputHandler.split_text)
 - 输入：原始文本
 - 处理流程：
-  1. 使用JINA进行初步切分，得到小段落(nodes)
-  2. 基于最大长度(max_chunk_length)和重叠长度(chunk_overlap)参数，将相邻的小段落合并成大段落(big_chunks)
+  1. 使用JINA等语义切分工具进行初步切分，得到句子语义级别的小段落(nodes)，每个node长度不等，可能在数十到百字的范围
+  2. 基于最大长度(max_chunk_length 默认1000)和重叠长度(chunk_overlap 默认100)参数，将相邻的小段落合并成大段落(big_chunks)
   3. 维护小段落到大段落的映射关系(small_big_dict)
 - 输出：
   - big_chunks：合并后的大段落列表
@@ -26,7 +26,7 @@
    - 存储对象：小段落(nodes)
    - 存储内容：
      - 文本内容
-     - 向量嵌入(1024维)
+     - 向量嵌入(1024维度)
      - 元数据(文章ID、标题、chunk_id等)
    - 目的：用于语义相似度检索
 
@@ -57,6 +57,7 @@
 
 ### 1.4 总结
 父子文档设计通过将文档切分为小段落和大段落，分别存储在向量数据库和Redis缓存中，实现了高效的检索和上下文获取。这种设计不仅提高了召回质量，还兼顾了上下文的完整性和存储效率。
+
 ## 2. 上下文设计
 
 ### 2.1 问题背景

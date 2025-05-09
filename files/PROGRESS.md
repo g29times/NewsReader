@@ -149,8 +149,8 @@
    - Font Awesome 5.15.4
 
 ## 1.22 统一配置管理
-1. 统一了系统关键参数配置：
-   - Embedding相关：维度配置(EMBEDDING_DIM, EMBEDDING_DIM_ZIP)
+1. 统一了系统关键参数配置：.evn
+   - Embedding相关：维度配置(EMBEDDING_DIM=1024, EMBEDDING_DIM_ZIP=128)
    - LLM相关：生成参数(MAX_TOKENS, TEMPERATURE, TOP_P, TOP_K)
    - RAG相关：检索参数(RECALL_TOP_K, CHUNK_SIZE, OVERLAP)
    - 上下文相关：窗口大小(MAX_CONTEXT_WINDOW)
